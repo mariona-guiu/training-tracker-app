@@ -68,6 +68,7 @@ function ExercisePanel({
   onStartEditing,
   onConfirmEditing,
   onLogSet,
+  onUnlogSet,
   onEditSet,
   restLabel,
 }) {
@@ -80,12 +81,6 @@ function ExercisePanel({
   const logged = exercise.sets.filter((set) => set.done).length
   const allSetsLogged = logged >= exercise.targetSets
 
-  // A TextInput does not size itself to what is in it, so a fixed width left
-  // a single digit sitting in a box built for two and pushed the unit away
-  // from it. This is the web's field-sizer idea: an invisible copy of the
-  // digits is laid out, measured, and its width given to the field — so the
-  // unit sits exactly where it would if the two were one piece of text.
-  const [fieldWidth, setFieldWidth] = useState(0)
 
   // The big figure doubles as the edit control: tapping either the number or
   // the pencil turns it into a field, and the value only changes when the
@@ -102,20 +97,28 @@ function ExercisePanel({
           // it is what the number being typed means, and losing it mid-edit
           // leaves a bare figure.
           <View style={styles.figureRow}>
-            <Text
-              style={[styles.figure, styles.ghost]}
-              onLayout={(event) => setFieldWidth(event.nativeEvent.layout.width)}
-            >
-              {draft === '' ? '0' : draft}
-            </Text>
-            <TextInput
-              value={draft}
-              onChangeText={onDraft}
-              keyboardType="number-pad"
-              autoFocus
-              selectTextOnFocus
-              style={[styles.figure, { width: Math.max(fieldWidth, 1), color: ink }]}
-            />
+            {/* The digits on screen are ordinary text, so the row is laid
+                out from them directly and the unit sits tight against them
+                at every length. The field is invisible and laid over the
+                top, contributing nothing to layout — only the keyboard, the
+                caret and the selection.
+
+                Measuring the text and feeding its width back as state was
+                the obvious approach and the wrong one: onLayout arrives
+                after the render that caused it, so the width was always a
+                frame behind and every keystroke jumped. */}
+            <View style={styles.field}>
+              <Text style={[styles.figure, { color: ink }]}>{draft}</Text>
+              <TextInput
+                value={draft}
+                onChangeText={onDraft}
+                keyboardType="number-pad"
+                autoFocus
+                selectTextOnFocus
+                selectionColor={ink}
+                style={[styles.figure, styles.fieldInput]}
+              />
+            </View>
             <Text style={[styles.unit, styles.unitDimmed, { color: ink }]}>{unit}</Text>
           </View>
         ) : (
@@ -169,9 +172,9 @@ function ExercisePanel({
             accessibilityLabel={set.done ? `Set ${i + 1}, logged` : `Log set ${i + 1}`}
             accessibilityHint={set.done ? 'Long press to correct this set' : undefined}
             // An empty circle logs the next set — any of them, since they
-            // fill from the same end. A filled one is corrected by holding
-            // it, never by a tap, so a mistimed press cannot undo a set.
-            onPress={() => live && !set.done && onLogSet()}
+            // fill from the same end. Tapping a filled one takes it back,
+            // and holding it opens the sheet to correct what was recorded.
+            onPress={() => live && (set.done ? onUnlogSet(i) : onLogSet())}
             onLongPress={() => live && set.done && onEditSet(i)}
             style={({ pressed }) => [
               styles.dot,
@@ -332,6 +335,11 @@ export default function WorkoutMode() {
           },
     )
     update(replaceExercise({ sets }))
+  }
+
+  function unlogSet(setIndex) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    update(replaceExercise({ sets: exercise.sets.map((set, j) => (j === setIndex ? { done: false } : set)) }))
   }
 
   function saveSetEdit(reps, weight) {
@@ -531,6 +539,7 @@ export default function WorkoutMode() {
                 onStartEditing={startEditing}
                 onConfirmEditing={confirmEditing}
                 onLogSet={logNextSet}
+                onUnlogSet={unlogSet}
                 onEditSet={setEditingSet}
                 restLabel={null}
               />
@@ -583,7 +592,6 @@ export default function WorkoutMode() {
         <EditSetSheet
           exercise={exercise}
           setIndex={editingSet}
-          isLast={editingSet === logged - 1}
           colour={colour}
           ink={ink}
           onSave={saveSetEdit}
@@ -639,9 +647,11 @@ const styles = StyleSheet.create({
     letterSpacing: -1.9,
     padding: 0,
   },
-  // Laid out but never seen, and taken out of the flow so it cannot push
-  // anything around while it is being measured.
-  ghost: { position: 'absolute', opacity: 0 },
+  // Room for the caret to stand in once every digit has been deleted.
+  field: { minWidth: 16 },
+  // Over the visible digits and exactly aligned with them, but drawing none
+  // of its own — the caret and the selection show, the glyphs do not.
+  fieldInput: { ...StyleSheet.absoluteFillObject, color: 'transparent' },
   unit: { fontFamily: FONTS.bold, fontSize: 64, letterSpacing: -1.9 },
   unitDimmed: { opacity: 0.45 },
   dimmed: { opacity: 0.35 },
