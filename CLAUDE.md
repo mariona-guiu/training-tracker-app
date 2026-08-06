@@ -116,6 +116,16 @@ Porting a `line-height` from the CSS directly is the wrong move.
 If a figure looks cut, measure the font rather than trying numbers — the
 head/hhea/OS-2 tables give the answer in one pass.
 
+The same tables answer the other half of it: **a gap in a design is not a gap
+in a style.** Favorit Bold's ascent is 0.937em and its cap height 0.700em, so
+every line of it carries 0.237em of empty space above the capitals and 0.312em
+below the baseline. Two stacked figures are already 0.549em apart before any
+gap is set — 39.5pt at 72pt type. A design asking for 20pt of visible
+separation therefore wants a **negative** margin, not `gap: 20`.
+
+Work it out rather than nudging it: `visible - (ascent - capHeight + descent)
+× size`.
+
 ## Theming
 
 `LIGHT` and `DARK` in `src/theme/` replace the web app's two sets of CSS

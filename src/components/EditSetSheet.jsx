@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  InputAccessoryView,
-  Keyboard,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native'
+import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import Animated, {
   FadeIn,
   FadeOut,
@@ -16,10 +8,12 @@ import Animated, {
   withDelay,
   withRepeat,
   withSequence,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated'
 
 import { CloseIcon } from './WorkoutIcons.jsx'
+import { SHEET_SPRING } from '../data/motion.js'
 import { FONTS, SPACE } from '../theme/index.js'
 
 // Correcting a set already logged.
@@ -28,25 +22,21 @@ import { FONTS, SPACE } from '../theme/index.js'
 // takes it back, which is the thing being done every thirty seconds with
 // tired hands, so it stays the cheapest gesture.
 //
-// The panel is an InputAccessoryView: iOS's own mechanism for something
-// attached to the top of the keyboard. That matters more than it sounds.
-// Every earlier attempt animated the panel alongside the keyboard and tried
-// to keep the two in step — matching the system's duration and easing,
-// starting on the tap rather than on the notification, removing the entrance
-// so both covered the same distance — and every one of them staggered. Two
-// reasons: the panel and the keyboard were covering different distances, and
-// a JavaScript animation cannot be relied on to begin in the same frame as a
-// native one.
+// The panel is animated by hand rather than hung off the keyboard as an
+// InputAccessoryView, so its pace is ours to choose. An accessory is in step
+// with the keyboard by construction, but it also moves at the keyboard's
+// speed, and that is brisker than this wants to be. Commit 112b2be has the
+// attached version if this needs putting back.
 //
-// There is nothing to keep in step here. The panel is part of the keyboard,
-// so it moves when the keyboard moves. It also lands flush against it, which
-// removes the notches its rounded top corners used to leave.
-//
-// iOS only. Android would need this drawn and animated by hand.
-const ACCESSORY = 'edit-set-sheet'
+// What makes hand-timing workable is the skirt: the panel's colour runs a
+// long way below its own bottom edge, so it is behind the keypad whatever
+// either of them is doing. There is no seam between the two to keep shut, and
+// the only thing that can be seen moving is the panel's top edge. Every
+// earlier attempt had a visible join, which is why they all read as staggered
+// however the timing was tuned.
 
-// How long iOS takes to put its keyboard away — used only to hold the panel
-// on screen long enough to ride it down before this unmounts.
+// How long iOS takes to put its keyboard away, used to hold the panel on
+// screen long enough to leave with it before this unmounts.
 const KEYBOARD_MS = 250
 
 // A caret of our own, drawn rather than the system's. 3pt wide and 0.72em
@@ -77,10 +67,10 @@ function Caret({ ink }) {
 // app settled on. A transparent field laid over the digits is only as big as
 // the number, tapping it is unreliable, and a tap that misses takes the touch
 // away and dismisses the keypad.
-function Figure({ value, unit, ink, active, asleep, onPress }) {
+function Figure({ value, unit, ink, active, asleep, stacked, onPress }) {
   return (
     <Pressable
-      style={[styles.value, asleep && styles.dimmed]}
+      style={[styles.value, stacked && styles.stacked, asleep && styles.dimmed]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Edit ${unit} for this set`}
@@ -101,25 +91,50 @@ export function EditSetSheet({ exercise, setIndex, colour, ink, onSave, onRemove
   // weight never lifted is stored as null, but 0 is what it means.
   const [weight, setWeight] = useState(String(set.weight ?? 0))
   const [active, setActive] = useState('reps')
+  const [measured, setMeasured] = useState(false)
   const field = useRef(null)
+  const height = useRef(0)
   const unit = exercise.tracksWeight ? 'kg' : 'sec'
 
-  // One parked field for both figures, not one each.
-  //
-  // An InputAccessoryView belongs to whichever input is focused, so moving
-  // focus from one field to another detaches it and reattaches it — and in
-  // between, the panel drops off the screen. With a single field there is no
-  // handover: switching values only changes which number this is pointed at,
-  // and focus never moves. Everything on screen is drawn anyway, so a second
-  // input was never buying anything.
+  // One parked field for both figures, not one each. Switching values only
+  // changes which number it is pointed at, so focus never moves and the keypad
+  // never flickers. Everything on screen is drawn anyway.
   const value = active === 'reps' ? reps : weight
   const onChange = (text) =>
     active === 'reps'
       ? setReps(text.replace(/[^0-9]/g, ''))
       : setWeight(text.replace(/[^0-9.]/g, ''))
 
-  // Puts the keyboard away first and waits long enough for the panel to ride
-  // it down, rather than having both vanish the moment this unmounts.
+  // Where the panel sits: its own height means fully below the screen, a
+  // negative value means that far above the bottom edge.
+  const y = useSharedValue(0)
+  const slide = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }))
+
+  const measure = useCallback(
+    (event) => {
+      if (height.current) return
+      height.current = event.nativeEvent.layout.height
+      y.value = height.current
+      setMeasured(true)
+    },
+    [y],
+  )
+
+  useEffect(() => {
+    const shown = Keyboard.addListener('keyboardWillShow', (event) => {
+      y.value = withSpring(-event.endCoordinates.height, SHEET_SPRING)
+    })
+    const hidden = Keyboard.addListener('keyboardWillHide', () => {
+      y.value = withTiming(height.current, { duration: KEYBOARD_MS })
+    })
+    return () => {
+      shown.remove()
+      hidden.remove()
+    }
+  }, [y])
+
+  // Puts the keyboard away first and waits long enough for the panel to leave
+  // with it, rather than having both vanish the moment this unmounts.
   const leave = useCallback((then) => {
     Keyboard.dismiss()
     setTimeout(then, KEYBOARD_MS)
@@ -138,110 +153,118 @@ export function EditSetSheet({ exercise, setIndex, colour, ink, onSave, onRemove
         />
       </Animated.View>
 
-      {/* Parked, focusable and never seen. It holds what is typed and is
-          what keeps the panel on screen; everything visible is drawn. */}
+      {/* Parked, focusable and never seen. It holds what is typed and summons
+          the keypad; everything visible is drawn. */}
       <TextInput
         ref={field}
         value={value}
         onChangeText={onChange}
         // Reps strips anything but digits, so the decimal key does nothing
-        // there — and one keypad for both avoids iOS dismissing and
-        // re-presenting the keyboard when the type would change.
+        // there — and one keypad for both means iOS never dismisses and
+        // re-presents it on a change of type.
         keyboardType="decimal-pad"
-        inputAccessoryViewID={ACCESSORY}
         autoFocus
         caretHidden
         style={styles.parked}
       />
 
-      <InputAccessoryView nativeID={ACCESSORY} backgroundColor="transparent">
-        {/* No corner radius on this wrapper, so the skirt below is free to
-            overflow it. Put inside the rounded panel instead, the radius
-            clips it away and the notches stay. */}
-        <View style={styles.assembly}>
-          <View style={[styles.sheet, { backgroundColor: colour }]}>
-            <View style={styles.head}>
-              <Text style={[styles.title, { color: ink }]}>
-                Editing set {setIndex + 1}/{exercise.targetSets}
-              </Text>
-              <Pressable
-                onPress={() => leave(onClose)}
-                accessibilityLabel="Close without saving"
-                accessibilityRole="button"
-                style={styles.close}
-              >
-                <CloseIcon size={26} color={ink} />
-              </Pressable>
-            </View>
-
-            <View style={styles.values}>
-              <Figure
-                value={reps}
-                unit={exercise.tracksWeight ? 'reps' : unit}
-                ink={ink}
-                active={active === 'reps'}
-                asleep={active !== 'reps'}
-                onPress={() => {
-                  setActive('reps')
-                  field.current?.focus()
-                }}
-              />
-              {exercise.tracksWeight ? (
-                <Figure
-                  value={weight}
-                  unit={unit}
-                  ink={ink}
-                  active={active === 'weight'}
-                  asleep={active !== 'weight'}
-                  onPress={() => {
-                    setActive('weight')
-                    field.current?.focus()
-                  }}
-                />
-              ) : null}
-            </View>
-
+      <Animated.View
+        style={[styles.dock, slide, !measured && styles.unmeasured]}
+        onLayout={measure}
+        pointerEvents="box-none"
+      >
+        <View style={[styles.sheet, { backgroundColor: colour }]}>
+          <View style={styles.head}>
+            <Text style={[styles.title, { color: ink }]}>
+              Editing set {setIndex + 1}/{exercise.targetSets}
+            </Text>
             <Pressable
-              onPress={() => leave(() => onSave(reps, weight))}
-              style={[styles.save, { backgroundColor: ink }]}
+              onPress={() => leave(onClose)}
+              accessibilityLabel="Close without saving"
+              accessibilityRole="button"
+              style={styles.close}
             >
-              <Text style={[styles.saveLabel, { color: colour }]}>Save</Text>
-            </Pressable>
-
-            {/* Offered for every set, not only the one at the end of the row.
-              Tapping a circle already takes any set back, so the row can have
-              a gap in it whatever this does. */}
-            <Pressable onPress={() => leave(onRemove)} style={styles.remove}>
-              <Text style={[styles.removeLabel, { color: ink }]}>Remove set</Text>
+              <CloseIcon size={26} color={ink} />
             </Pressable>
           </View>
 
-          {/* Carries the panel's colour on below its own bottom edge. The
-              keypad's top corners are rounded, and without this the two
-              notches they leave show what is behind. Hidden by the keypad
-              itself everywhere else. */}
-          <View style={[styles.skirt, { backgroundColor: colour }]} />
+          <View style={styles.values}>
+            <Figure
+              value={reps}
+              unit={exercise.tracksWeight ? 'reps' : unit}
+              ink={ink}
+              active={active === 'reps'}
+              asleep={active !== 'reps'}
+              onPress={() => {
+                setActive('reps')
+                field.current?.focus()
+              }}
+            />
+            {exercise.tracksWeight ? (
+              <Figure
+                value={weight}
+                unit={unit}
+                ink={ink}
+                stacked
+                active={active === 'weight'}
+                asleep={active !== 'weight'}
+                onPress={() => {
+                  setActive('weight')
+                  field.current?.focus()
+                }}
+              />
+            ) : null}
+          </View>
+
+          <Pressable
+            onPress={() => leave(() => onSave(reps, weight))}
+            style={[styles.save, { backgroundColor: ink }]}
+          >
+            <Text style={[styles.saveLabel, { color: colour }]}>Save changes</Text>
+          </Pressable>
+
+          {/* Offered for every set, not only the one at the end of the row.
+              Tapping a circle already takes any set back, so the row can have
+              a gap in it whatever this does. */}
+          <Pressable onPress={() => leave(onRemove)} style={styles.remove}>
+            <Text style={[styles.removeLabel, { color: ink }]}>Remove set</Text>
+          </Pressable>
         </View>
-      </InputAccessoryView>
+
+        {/* The panel's colour, carried far enough below its own bottom edge
+            that it sits behind the keypad whatever the two of them are doing.
+            This is what lets the panel be timed by hand at all: no seam to
+            keep shut, so nothing shows if it settles a moment after the keypad
+            does. It also fills the notches the keypad's rounded top corners
+            leave. */}
+        <View style={[styles.skirt, { backgroundColor: colour }]} />
+      </Animated.View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   backdrop: { backgroundColor: 'rgba(0,0,0,0.35)' },
-  assembly: {},
-  skirt: { position: 'absolute', left: 0, right: 0, top: '100%', height: 44 },
-  // Sits flush on top of the keyboard, so it needs no bottom padding of its
-  // own and leaves no gap for the backdrop to show through.
+  dock: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  // Held back for the one frame between being laid out and knowing how tall it
+  // is, so it is never seen sitting in the wrong place.
+  unmeasured: { opacity: 0 },
   sheet: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 24,
     paddingTop: 18,
-    paddingBottom: 24,
+    // The panel's bottom edge rests on the keypad, so this is the whole of
+    // the distance between the buttons and it.
+    paddingBottom: 8,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
-    gap: 18,
   },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  skirt: { position: 'absolute', left: 0, right: 0, top: '100%', marginTop: -1, height: 600 },
+  head: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 18,
+  },
   title: {
     fontFamily: FONTS.mono,
     fontSize: 12,
@@ -250,29 +273,39 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   close: { padding: SPACE[2], margin: -SPACE[2] },
-  values: { gap: 0 },
+  // The panel is anchored to the keypad, so opening this up lifts the figures
+  // rather than pushing the buttons down. Favorit already leaves 22.5pt below
+  // the baseline at 72pt, which this is on top of.
+  values: { marginBottom: 36 },
   // The whole row is the target, so it is never a question of hitting the
   // digits themselves.
-  value: { flexDirection: 'row', alignItems: 'center', paddingVertical: SPACE[1] },
+  value: { flexDirection: 'row', alignItems: 'center' },
+  // 20pt of visible separation, which is not 20pt of gap. At 72pt Favorit
+  // leaves 17.1pt above its capitals and 22.5pt below the baseline — 39.5pt
+  // of space between two rows before anything is added. Measured from the
+  // font rather than guessed; see native/CLAUDE.md.
+  stacked: { marginTop: 20 - 39.5 },
   // While one value is being edited the other steps back, so it is obvious
   // which number the keypad is pointed at.
   dimmed: { opacity: 0.35 },
   // In the flow rather than laid over the digits, matching .caret on the web:
   // outside it, the caret landed on top of the unit whenever the number was
   // short or had been cleared.
-  caret: { width: 3, height: 32, marginLeft: 2, marginRight: 1 },
+  caret: { width: 3, height: 52, marginLeft: 2, marginRight: 1 },
   parked: { position: 'absolute', left: 0, top: 0, width: 1, height: 1, opacity: 0, padding: 0 },
   // No line height stated: Favorit's own is 1.249em and anything below it
   // clips, because React Native cuts text to its line box where CSS lets it
   // spill out. See native/CLAUDE.md.
-  figure: { fontFamily: FONTS.bold, fontSize: 44, letterSpacing: -1.3 },
-  unit: { fontFamily: FONTS.bold, fontSize: 44, letterSpacing: -1.3 },
-  unitDimmed: { opacity: 0.45 },
+  figure: { fontFamily: FONTS.bold, fontSize: 72, letterSpacing: -2.16 },
+  unit: { fontFamily: FONTS.bold, fontSize: 72, letterSpacing: -2.16 },
+  unitDimmed: { opacity: 0.35 },
   save: {
-    minHeight: 62,
+    height: 52,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 69,
+    gap: 10,
   },
   saveLabel: {
     fontFamily: FONTS.mono,
@@ -280,6 +313,19 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1.3,
   },
-  remove: { alignItems: 'center', paddingVertical: SPACE[2] },
-  removeLabel: { fontFamily: FONTS.regular, fontSize: 16, opacity: 0.7 },
+  remove: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    paddingVertical: 18,
+    paddingHorizontal: 69,
+    gap: 10,
+  },
+  // At full strength rather than faded back — it is a choice, not a footnote.
+  removeLabel: {
+    fontFamily: FONTS.mono,
+    fontSize: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 1.3,
+  },
 })

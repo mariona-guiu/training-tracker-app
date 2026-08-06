@@ -38,6 +38,12 @@ export const PUSH_SPRING = { stiffness: 200, damping: 30, mass: 1 }
 // promptly instead of making a performance of it.
 export const CAROUSEL_SPRING = { stiffness: 320, damping: 34, mass: 0.9 }
 
+// A panel rising over the keyboard. Gentle on purpose — it should settle
+// rather than snap, and it is deliberately slower than the keyboard's own
+// ~250ms, which is the whole reason the panel is timed by hand rather than
+// hung off the keyboard.
+export const SHEET_SPRING = { stiffness: 190, damping: 26, mass: 1 }
+
 // How quickly an exercise fades as it leaves the middle of the screen. Above
 // 1 it is gone before it reaches the edge, so exercises hand over to each
 // other rather than both being legible at once.

@@ -686,7 +686,7 @@ const styles = StyleSheet.create({
   navRight: { textAlign: 'right' },
 
   primary: {
-    minHeight: 56,
+    height: 52,
     borderRadius: 999,
     borderWidth: 1.5,
     backgroundColor: 'transparent',
@@ -696,8 +696,8 @@ const styles = StyleSheet.create({
   primaryPressed: { transform: [{ scale: 0.99 }] },
   primaryLabel: {
     fontFamily: FONTS.mono,
-    fontSize: 15,
+    fontSize: 16,
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
+    letterSpacing: 1.3,
   },
 })
