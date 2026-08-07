@@ -1,11 +1,14 @@
+import { useEffect } from 'react'
 import { Tabs } from 'expo-router'
 import { Pressable, StyleSheet, View } from 'react-native'
-import { BlurView } from 'expo-blur'
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { SettingsIcon, StatsIcon, WorkoutIcon } from '../../src/components/TabIcons.jsx'
-import { LIGHT, NAV_FLOAT_GAP, NAV_HEIGHT } from '../../src/theme/index.js'
+import { Glass, LIQUID_GLASS } from '../../src/components/Glass.jsx'
+import { NAV_FLOAT_GAP, NAV_HEIGHT } from '../../src/theme/index.js'
+import { TAB_SPRING } from '../../src/data/motion.js'
 
 // The three tabbed screens and the floating bar that switches them. A workout
 // in progress deliberately sits outside this group, so it fills the display
@@ -30,8 +33,24 @@ const TABS = [
 
 const ICON_INK = '#191919'
 
+// One pill, moved — not one per tab, switched. The bar's own padding puts
+// the first item here, and each one after it is a width and a gap further
+// along, so where the pill belongs is arithmetic rather than measurement.
+const ITEM_WIDTH = 64
+const ITEM_HEIGHT = 44
+const ITEM_GAP = 4
+const BAR_PAD = 4
+const STEP = ITEM_WIDTH + ITEM_GAP
+
 function TabBar({ state, navigation }) {
   const insets = useSafeAreaInsets()
+  const pill = useSharedValue(state.index * STEP)
+
+  useEffect(() => {
+    pill.value = withSpring(state.index * STEP, TAB_SPRING)
+  }, [state.index, pill])
+
+  const pillStyle = useAnimatedStyle(() => ({ transform: [{ translateX: pill.value }] }))
 
   return (
     <View
@@ -43,11 +62,23 @@ function TabBar({ state, navigation }) {
         { bottom: Math.max(NAV_FLOAT_GAP, insets.bottom) },
       ]}
     >
-      <BlurView intensity={60} tint="light" style={styles.bar}>
-        <LinearGradient
-          colors={['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.32)']}
-          style={StyleSheet.absoluteFill}
-        />
+      {/* The system's own material where the phone has it. Where it does not,
+          the blur and the lit gradient ported from .bottom-nav — which is
+          what that CSS was approximating in the first place. */}
+      <Glass
+        intensity={60}
+        style={[styles.bar, !LIQUID_GLASS && styles.barFallback]}
+        fallback={
+          <LinearGradient
+            colors={['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.32)']}
+            style={StyleSheet.absoluteFill}
+          />
+        }
+      >
+        {/* Under the icons and over the surface, so it reads as part of the
+            bar rather than as something laid on top of it. */}
+        <Animated.View style={[styles.highlight, pillStyle]} pointerEvents="none" />
+
         {state.routes.map((route, index) => {
           const tab = TABS.find((t) => t.name === route.name)
           if (!tab) return null
@@ -69,12 +100,11 @@ function TabBar({ state, navigation }) {
               }}
               style={styles.item}
             >
-              {active ? <View style={styles.highlight} /> : null}
               <tab.Icon active={active} color={ICON_INK} />
             </Pressable>
           )
         })}
-      </BlurView>
+      </Glass>
     </View>
   )
 }
@@ -99,6 +129,10 @@ const styles = StyleSheet.create({
     height: NAV_HEIGHT,
     borderRadius: 35,
     overflow: 'hidden',
+  },
+  // Only for the blurred stand-in: the real material draws its own edge and
+  // casts its own shadow, and these on top of it read as a drawn outline.
+  barFallback: {
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.55)',
     shadowColor: '#000',
@@ -107,15 +141,22 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   item: {
-    width: 64,
-    height: 44,
+    width: ITEM_WIDTH,
+    height: ITEM_HEIGHT,
     borderRadius: 27,
     alignItems: 'center',
     justifyContent: 'center',
   },
   highlight: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    left: BAR_PAD,
+    top: BAR_PAD,
+    width: ITEM_WIDTH,
+    height: ITEM_HEIGHT,
     borderRadius: 27,
-    backgroundColor: 'rgba(10,10,10,0.16)',
+    // A quarter lighter than the web's 0.16 — the material underneath is the
+    // system's now rather than a blurred gradient, and the pill does not need
+    // to work as hard against it.
+    backgroundColor: 'rgba(10,10,10,0.12)',
   },
 })

@@ -15,14 +15,24 @@ still holds; what follows is only what differs on native.
 
 ```bash
 npm start        # Metro; open it in Expo Go on the phone
+npm run lint     # oxlint; must report nothing
 npm run ios      # simulator, if Xcode is installed
 npx expo export --platform ios --output-dir /tmp/x   # does it still bundle?
 ```
 
-There is no test suite here yet. `npx expo export` is the cheapest real check
-that nothing has broken at the module level — it catches bad imports, missing
-packages and anything that does not exist in this SDK, none of which show up
-until the bundle is built.
+There is no test suite here yet, so those two are the whole of the automated
+check and they cover different things.
+
+`npx expo export` catches bad *module* paths, missing packages and anything
+that does not exist in this SDK. It does **not** catch a name used but never
+imported — the bundler resolves modules, not identifiers, so that sails
+through and crashes on the device. `WORKOUT_REVEAL_FADE` did exactly that.
+
+`npm run lint` is what catches those. `.oxlintrc.json` turns on `no-undef` and
+`no-unused-vars` and declares the globals React Native provides, without which
+every `setTimeout` and `require` is a false positive. Run both.
+
+Neither sees layout, motion or touch behaviour. Those still need the phone.
 
 ## Pinned to SDK 54, deliberately
 
@@ -139,6 +149,26 @@ listed as a direct dependency.
 It arrives as a transitive one and then gets pruned the next time npm
 re-resolves, which shows up as `Unable to resolve module react-native-worklets`
 long after whatever removed it.
+
+## The confetti is a placeholder
+
+`src/components/Confetti.jsx` is drawn by hand, because `canvas-confetti` —
+which the web app vendors — has no native equivalent. It works but it does not
+look good, and the user has parked it rather than settle.
+
+The research, so it is not repeated: **`react-native-fast-confetti`** is the
+one worth having (560 stars, MIT, maintained, built for Reanimated 4, which is
+what this project runs). It needs `@shopify/react-native-skia` ≥2.0.0, and
+whether Expo Go for SDK 54 carries a new enough Skia is the open question —
+if not it needs a development build, which needs a paid Apple account.
+`react-native-simple-confetti` would certainly run, needing only Reanimated
+and react-native-svg, but it has three stars and nine commits.
+
+So: revisit when the app is on a development build anyway, at which point
+`react-native-fast-confetti` is a straightforward choice. Do not install
+anything here without asking — the user vendored `canvas-confetti` into the
+web repo rather than depending on it, and reviews dependencies before they
+land.
 
 ## Where the port has got to
 

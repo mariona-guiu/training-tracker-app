@@ -44,6 +44,11 @@ export const CAROUSEL_SPRING = { stiffness: 320, damping: 34, mass: 0.9 }
 // hung off the keyboard.
 export const SHEET_SPRING = { stiffness: 190, damping: 26, mass: 1 }
 
+// The pill sliding under the selected tab. Loose enough to overshoot a
+// little and settle, which is what makes switching tabs feel like something
+// moved rather than something appeared.
+export const TAB_SPRING = { stiffness: 320, damping: 22, mass: 0.8 }
+
 // How quickly an exercise fades as it leaves the middle of the screen. Above
 // 1 it is gone before it reaches the edge, so exercises hand over to each
 // other rather than both being legible at once.

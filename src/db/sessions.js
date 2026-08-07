@@ -130,7 +130,6 @@ export async function saveSession(session) {
 // who did it that day, and both of those change. Sessions recorded before
 // this existed simply carry neither, and show no estimate.
 export async function endSession(id, { endedEarly, bodyWeightKg, restMode }) {
-  const db = await getDB()
   const session = await getSession(id)
   return saveSession({
     ...session,

@@ -14,20 +14,25 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
+  Easing,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated'
 import * as Haptics from 'expo-haptics'
 
 import { deleteSession, endSession, getSession, saveSession } from '../../src/db/sessions.js'
 import { getSettings } from '../../src/db/settings.js'
-import { inkOn, styleFor } from '../../src/data/routineStyles.js'
+import { inkOn, restTintFor, styleFor } from '../../src/data/routineStyles.js'
+import { restSecondsFor } from '../../src/data/rest.js'
+import { CompletionScreen } from '../../src/components/CompletionScreen.jsx'
 import { useLaunch } from '../../src/components/LaunchOverlay.jsx'
 import { CheckIcon, CloseIcon, PencilIcon } from '../../src/components/WorkoutIcons.jsx'
 import { EditSetSheet } from '../../src/components/EditSetSheet.jsx'
 import {
+  WORKOUT_REVEAL_FADE,
   CAROUSEL_SPRING,
   DRAG_ELASTIC,
   FADE_RATE,
@@ -49,7 +54,10 @@ import { DARK, FONTS, SPACE } from '../../src/theme/index.js'
 // exercise, so they ride the track. The signposts either side and the button
 // belong to the workout, so they stay where they are and cross-fade.
 
-const isDone = (exercise) => exercise.sets.filter((set) => set.done).length >= exercise.targetSets
+// An exercise counts as done the moment one set is logged — the same
+// threshold that decides whether the session is worth keeping at all, and
+// what the stepper marks.
+const isDone = (exercise) => exercise.sets.some((set) => set.done)
 
 // One exercise. It carries its own animated style so the fade follows the
 // finger through the drag rather than waiting for it to end — read from the
@@ -60,7 +68,6 @@ function ExercisePanel({
   position,
   trackX,
   ink,
-  colour,
   live,
   editing,
   draft,
@@ -196,6 +203,10 @@ export default function WorkoutMode() {
   const [editing, setEditing] = useState(null)
   const [draft, setDraft] = useState('')
   const [editingSet, setEditingSet] = useState(null)
+  const [settings, setSettings] = useState(null)
+  const [restStartedAt, setRestStartedAt] = useState(null)
+  const [restLeft, setRestLeft] = useState(0)
+  const [finished, setFinished] = useState(false)
   const insets = useSafeAreaInsets()
   const screen = useWindowDimensions()
   const router = useRouter()
@@ -208,6 +219,11 @@ export default function WorkoutMode() {
   // can read them: it runs on the UI thread and cannot see React state.
   const live = useSharedValue(0)
   const count = useSharedValue(1)
+  // The rest sweep. Driven on the UI thread rather than re-rendered every
+  // frame — moving a block of colour sixty times a second in JavaScript
+  // would cost more than it buys and would stutter the swipe.
+  const sweep = useSharedValue(0)
+  const sweepOn = useSharedValue(0)
   // Whether the touch in progress turned out to be a swipe. Set the moment
   // the pan actually activates, and cleared when a fresh touch begins — so it
   // is still true when the finger lifts, which is when a press would fire.
@@ -215,6 +231,10 @@ export default function WorkoutMode() {
   const markSwiping = (value) => {
     swiping.current = value
   }
+
+  useEffect(() => {
+    getSettings().then(setSettings)
+  }, [])
 
   useEffect(() => {
     getSession(sessionId).then((loaded) => {
@@ -227,6 +247,25 @@ export default function WorkoutMode() {
     })
   }, [sessionId, width, trackX, live, count])
 
+  const restSeconds = session ? restSecondsFor(session.routineName, settings?.restMode) : 0
+
+  // Only the number on screen is kept in JavaScript, and only when the second
+  // it shows actually changes. The colour itself is already moving on the UI
+  // thread and needs nothing from here.
+  useEffect(() => {
+    if (restStartedAt === null) return
+    const tick = setInterval(() => {
+      const remaining = restSeconds - (Date.now() - restStartedAt) / 1000
+      if (remaining <= 0) {
+        setRestStartedAt(null)
+        setRestLeft(0)
+        return
+      }
+      setRestLeft((shown) => (Math.ceil(remaining) === shown ? shown : Math.ceil(remaining)))
+    }, 200)
+    return () => clearInterval(tick)
+  }, [restStartedAt, restSeconds])
+
   // Worn on the very first frame from the colour the card handed over —
   // without its '#', which a URL parameter cannot carry — so there is no
   // flash of anything else while the session loads.
@@ -235,6 +274,7 @@ export default function WorkoutMode() {
   const ink = inkOn(colour)
 
   function goTo(next) {
+    stopRest()
     setEditing(null)
     setIndex(next)
     setSession((current) => {
@@ -298,6 +338,10 @@ export default function WorkoutMode() {
     })
 
   const track = useAnimatedStyle(() => ({ transform: [{ translateX: trackX.value }] }))
+  const sweepStyle = useAnimatedStyle(() => ({
+    opacity: sweepOn.value,
+    transform: [{ scaleX: sweep.value }],
+  }))
 
   if (!session) return <View style={{ flex: 1, backgroundColor: colour }} />
 
@@ -319,6 +363,29 @@ export default function WorkoutMode() {
     }
   }
 
+  // Grows rather than drains: the leading edge travels left to right, and
+  // reaching the far side means rest is over. It clears itself afterwards
+  // rather than vanishing on the tick.
+  function startRest() {
+    setRestStartedAt(Date.now())
+    setRestLeft(restSeconds)
+    sweep.value = 0
+    sweepOn.value = 1
+    sweep.value = withTiming(1, { duration: restSeconds * 1000, easing: Easing.linear }, (done) => {
+      'worklet'
+      if (done) sweepOn.value = withTiming(0, { duration: WORKOUT_REVEAL_FADE.duration })
+    })
+  }
+
+  // A rest belongs to the exercise it was earned on. Moving to another one
+  // ends it — otherwise the sweep carries across and the new exercise looks
+  // like it started a rest of its own before a single set was logged.
+  function stopRest() {
+    if (restStartedAt === null) return
+    setRestStartedAt(null)
+    sweepOn.value = withTiming(0, { duration: WORKOUT_REVEAL_FADE.duration })
+  }
+
   // The circles fill from the same end, so any empty one logs the next.
   function logNextSet() {
     const next = exercise.sets.findIndex((set) => !set.done)
@@ -334,7 +401,11 @@ export default function WorkoutMode() {
             completedAt: Date.now(),
           },
     )
-    update(replaceExercise({ sets }))
+    update(replaceExercise({ sets, skipped: false }))
+    // Logging is the only signal that rest is over, and the only one that
+    // starts the next. Turned off in settings, logging a set simply logs a
+    // set.
+    if (settings?.restEnabled !== false) startRest()
   }
 
   function unlogSet(setIndex) {
@@ -408,9 +479,13 @@ export default function WorkoutMode() {
   // The colour is handed back still covering the screen: whichever tab we
   // land on opens underneath it and dissolves it away, so there is never a
   // frame of bare page between the two.
-  function leave() {
+  function leave(then) {
     beginReveal(colour)
     router.dismissTo('/')
+    // The tab is switched after the dismissal rather than dismissed straight
+    // to it: dismissTo only dismisses when its target is already in the
+    // history, and Stats never is.
+    if (then) setTimeout(() => router.navigate(then), 0)
   }
 
   // Opening a workout and doing nothing should leave no trace. Skipping every
@@ -431,13 +506,20 @@ export default function WorkoutMode() {
     // The body weight and rest setting in force are written onto the session
     // rather than read back later: what a workout cost depends on the person
     // who did it that day, and both of those change.
-    const settings = await getSettings()
-    await endSession(session.id, {
+    const current = await getSettings()
+    const ended = await endSession(session.id, {
       endedEarly,
-      bodyWeightKg: settings.bodyWeightKg,
-      restMode: settings.restEnabled ? settings.restMode : null,
+      bodyWeightKg: current.bodyWeightKg,
+      restMode: current.restEnabled ? current.restMode : null,
     })
-    leave()
+    // Walking out of a workout goes straight back. Seeing one through earns
+    // the completion screen.
+    if (endedEarly) {
+      leave()
+      return
+    }
+    setSession(ended)
+    setFinished(true)
   }
 
   function finish() {
@@ -463,6 +545,18 @@ export default function WorkoutMode() {
   if (isLastExercise) primaryLabel = 'Finish workout'
   else if (allSetsLogged) primaryLabel = 'Next exercise'
 
+  if (finished) {
+    return (
+      <CompletionScreen
+        session={session}
+        colour={colour}
+        ink={ink}
+        onSeeHistory={() => leave('/stats')}
+        onAgain={() => leave()}
+      />
+    )
+  }
+
   return (
     <View
       style={[styles.screen, { backgroundColor: colour }]}
@@ -485,6 +579,19 @@ export default function WorkoutMode() {
       {/* The clock and battery have to stay readable on the routine's colour,
           so they follow the same ink the screen picked. */}
       <StatusBar style={ink === '#ffffff' ? 'light' : 'dark'} />
+
+      {/* Behind everything and unreachable: the workout stays usable while
+          rest drains — you can log the next set, edit a value or move on
+          without waiting for it. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          styles.sweep,
+          { backgroundColor: restTintFor(session.routineName) },
+          sweepStyle,
+        ]}
+      />
 
       <View style={[styles.head, { paddingTop: insets.top + SPACE[3], opacity: editing ? 0 : 1 }]}>
         <Text style={[styles.routine, { color: ink }]}>{session.routineName} workout</Text>
@@ -528,7 +635,6 @@ export default function WorkoutMode() {
                 position={i}
                 trackX={trackX}
                 ink={ink}
-                colour={colour}
                 // Only the exercise you're on responds to anything. The
                 // others are along for the ride, so a tap that lands on a
                 // neighbour mid-swipe can't log a set on it.
@@ -541,7 +647,11 @@ export default function WorkoutMode() {
                 onLogSet={logNextSet}
                 onUnlogSet={unlogSet}
                 onEditSet={setEditingSet}
-                restLabel={null}
+                restLabel={
+                  i === index && restStartedAt !== null
+                    ? `Rest ${Math.floor(restLeft / 60)}:${String(restLeft % 60).padStart(2, '0')}`
+                    : null
+                }
               />
             ))}
           </Animated.View>
@@ -619,6 +729,9 @@ const styles = StyleSheet.create({
   close: { alignSelf: 'flex-end', marginTop: SPACE[3], marginRight: -SPACE[2], padding: SPACE[2] },
 
   window: { flex: 1, overflow: 'hidden', justifyContent: 'center' },
+  // Grows from the left edge, so the leading edge travels across and reaching
+  // the far side means rest is over.
+  sweep: { transformOrigin: 'left' },
   track: { flexDirection: 'row' },
   panel: { paddingHorizontal: SPACE[3] },
   name: { fontFamily: FONTS.bold, fontSize: 30, letterSpacing: -0.3, marginBottom: SPACE[2] },

@@ -1,48 +1,106 @@
 import { useCallback, useRef, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions } from 'react-native'
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import Animated, {
+  FadeIn,
+  FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated'
+import { Glass } from '../../src/components/Glass.jsx'
 import * as Haptics from 'expo-haptics'
 
 import { listRoutines } from '../../src/db/routines.js'
 import { startSession, getActiveSession } from '../../src/db/sessions.js'
-import { CANONICAL_ORDER, styleFor, inkFor } from '../../src/data/routineStyles.js'
+import { styleFor } from '../../src/data/routineStyles.js'
 import { originFrom, useLaunch } from '../../src/components/LaunchOverlay.jsx'
-import { FONTS, LIGHT, SPACE, TAB_BAR_CLEARANCE } from '../../src/theme/index.js'
+import { WorkoutStack } from '../../src/components/WorkoutStack.jsx'
+import { StackIcon, StackIconPressed } from '../../src/components/StackIcon.jsx'
+import { TuningPanel } from '../../src/components/TuningPanel.jsx'
+import { FONTS, LIGHT, SPACE } from '../../src/theme/index.js'
 
-// The Workouts screen. The card canvas itself is still to be ported — this
-// list is a stand-in — but tapping a card already does the real thing: the
-// routine's colour grows out of it and becomes the workout screen.
+// How the cards move. Held here rather than inside the stack so the tuning
+// panel can reach them — see TuningPanel, which is temporary scaffolding.
+const DEFAULT_TUNING = {
+  // How far a released card carries, as a fraction of its velocity — the
+  // same 0.15 the web hands Framer's inertia.
+  power: 0.15,
+  // And how it settles once thrown. Soft on purpose: a stiff spring arrives
+  // and stops, which is the abruptness this replaced.
+  glideStiffness: 70,
+  glideDamping: 22,
+  tilt: 0.12,
+  tiltMax: 25,
+  // Framer's dragElastic: how far past the boundary a card still follows.
+  elastic: 0.05,
+  // The restack, and the slight give while a card is held.
+  stiffness: 300,
+  damping: 28,
+  mass: 0.5,
+}
+
+// The Workouts screen: a canvas of cards you can push around, not a list.
+//
+// The web version has a good deal of machinery here that native does not need
+// — the canvas sits in the document flow and is a pixel taller than the
+// viewport, measured against 100lvh rather than 100dvh, because iOS only
+// grants a web app the full display once the document is scrollable. None of
+// that applies to an app that owns its window, so it is deliberately absent
+// rather than forgotten.
 export default function Workouts() {
   const [routines, setRoutines] = useState([])
+  // Where the cards have been pushed to is kept for as long as the screen
+  // lives — coming back from a workout leaves them where you left them. The
+  // restack button is the only thing that undoes it.
+  const [disturbed, setDisturbed] = useState(false)
+  const [resetAt, setResetAt] = useState(0)
+  const [tuning, setTuning] = useState(DEFAULT_TUNING)
+  const [tuner, setTuner] = useState(false)
   const insets = useSafeAreaInsets()
   const screen = useWindowDimensions()
   const router = useRouter()
   const { beginLaunch, endLaunch } = useLaunch()
-  const cards = useRef({})
   const launching = useRef(false)
 
-  // Reloads on every focus rather than once on mount: coming back from a
-  // finished workout, this screen is still mounted.
+  // Held or not, crossfaded between the two drawings. Short on purpose: this
+  // is feedback on a press, so it wants to be felt rather than watched.
+  const press = useSharedValue(0)
+  const restingIcon = useAnimatedStyle(() => ({ opacity: 1 - press.value }))
+  const pressedIcon = useAnimatedStyle(() => ({ opacity: press.value }))
+  // A touch of give, stated here rather than left to the material's own
+  // interactive response, which scales further than this wants to.
+  const pressScale = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 - press.value * 0.04 }],
+  }))
+
   useFocusEffect(
     useCallback(() => {
       launching.current = false
-      listRoutines().then((rows) =>
-        setRoutines(
-          [...rows].sort(
-            (a, b) => CANONICAL_ORDER.indexOf(a.type) - CANONICAL_ORDER.indexOf(b.type),
-          ),
-        ),
-      )
+      listRoutines().then(setRoutines)
     }, []),
   )
 
-  function start(routine, index) {
+  const disturb = useCallback(() => setDisturbed(true), [])
+
+  function restack() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    setResetAt(Date.now())
+    setDisturbed(false)
+    // Back to the resting drawing by hand. This button disappears the moment
+    // it is tapped, so onPressOut never arrives — and the value lives on the
+    // screen rather than the button, so it would still be held down the next
+    // time the button appeared.
+    press.value = 0
+  }
+
+  function start(routine, slotIndex, rect) {
     if (launching.current) return
     launching.current = true
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
 
-    const colour = styleFor(routine.name, index).background
+    const colour = styleFor(routine.name, slotIndex).background
     // The session is created while the colour is still expanding, so the
     // database write never shows up as a delay before the tap responds.
     const pending = (async () => (await getActiveSession()) ?? startSession(routine))()
@@ -53,82 +111,110 @@ export default function Workouts() {
         session = await pending
       } catch (error) {
         // A failure here would otherwise strand the screen: the colour has
-        // already filled it and there is nothing to navigate to, so it
-        // simply stays. Better to retreat than to hang with no way out.
+        // already filled it and there is nothing to navigate to, so it simply
+        // stays. Better to retreat than to hang with no way out.
         console.error('Could not start the workout', error)
         launching.current = false
         endLaunch()
         return
       }
-      // The colour is handed over as a parameter so the workout screen is
-      // already wearing it on its very first frame, rather than having to
-      // load the session to look it up.
       router.push({
         pathname: '/workout/[sessionId]',
-        // Without the leading '#': the colour travels as a URL parameter,
-        // and a hash there is a fragment delimiter, not part of the value.
+        // Without the leading '#': the colour travels as a URL parameter, and
+        // a hash there is a fragment delimiter, not part of the value.
         params: { sessionId: session.id, color: colour.replace('#', '') },
       })
       endLaunch()
     }
 
-    const card = cards.current[routine.id]
-    if (!card) {
-      arrive()
-      return
-    }
-    card.measureInWindow((x, y, width, height) => {
-      beginLaunch({
-        from: originFrom({ x, y, width, height }, screen),
-        color: colour,
-        onArrived: arrive,
-      })
-    })
+    beginLaunch({ from: originFrom(rect, screen), color: colour, onArrived: arrive })
   }
 
-  return (
-    <ScrollView
-      style={styles.page}
-      contentContainerStyle={{
-        paddingTop: insets.top + SPACE[4],
-        paddingBottom: insets.bottom + TAB_BAR_CLEARANCE + SPACE[4],
-        paddingHorizontal: SPACE[3],
-        gap: SPACE[3],
-      }}
-    >
-      <Text style={styles.title}>Workouts</Text>
+  const headerTop = insets.top + SPACE[4]
 
-      {routines.map((routine, index) => {
-        const ink = inkFor(routine.name, index)
-        return (
+  return (
+    <View style={styles.screen}>
+      <WorkoutStack
+        routines={routines}
+        tuning={tuning}
+        resetAt={resetAt}
+        onDisturb={disturb}
+        onStart={start}
+      />
+
+      {/* Above the cards, so they pass behind it. */}
+      <View style={[styles.header, { top: headerTop }]} pointerEvents="box-none">
+        <Pressable onLongPress={() => setTuner((open) => !open)} delayLongPress={600}>
+          <Text style={styles.title}>Workouts</Text>
+        </Pressable>
+
+        {/* Only once the cards have been moved: it is a way back, so there is
+            nothing for it to do until there is something to undo. */}
+        {disturbed ? (
           <Pressable
-            key={routine.id}
-            ref={(node) => {
-              cards.current[routine.id] = node
-            }}
             accessibilityRole="button"
-            accessibilityLabel={`Start ${routine.name} workout`}
-            onPress={() => start(routine, index)}
-            style={({ pressed }) => [
-              styles.card,
-              { backgroundColor: styleFor(routine.name, index).background },
-              pressed && styles.cardPressed,
-            ]}
+            accessibilityLabel="Restack the cards"
+            onPress={restack}
+            onPressIn={() => (press.value = withTiming(1, { duration: 120 }))}
+            onPressOut={() => (press.value = withTiming(0, { duration: 180 }))}
+            hitSlop={12}
           >
-            <Text style={[styles.cardTitle, { color: ink }]}>{routine.name}</Text>
-            <Text style={[styles.cardMeta, { color: ink }]}>{routine.slots.length} exercises</Text>
+            <Glass style={styles.restack} fallback={<View style={styles.restackWash} />}>
+              {/* Every fade here is inside the surface, never over it: the
+                  effect renders wrongly under any opacity, and both the
+                  appearance and the press are opacity. */}
+              <Animated.View
+                entering={FadeIn.duration(220)}
+                exiting={FadeOut.duration(180)}
+                style={[styles.icons, pressScale]}
+              >
+                <Animated.View style={restingIcon}>
+                  <StackIcon color={LIGHT.text} />
+                </Animated.View>
+                <Animated.View style={[styles.iconOver, pressedIcon]}>
+                  <StackIconPressed color={LIGHT.text} />
+                </Animated.View>
+              </Animated.View>
+            </Glass>
           </Pressable>
-        )
-      })}
-    </ScrollView>
+        ) : null}
+      </View>
+
+      {tuner ? (
+        <TuningPanel
+          tuning={tuning}
+          onChange={(key, value) => setTuning((t) => ({ ...t, [key]: value }))}
+          onReset={() => setTuning(DEFAULT_TUNING)}
+          onClose={() => setTuner(false)}
+        />
+      ) : null}
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: LIGHT.bg },
-  title: { fontFamily: FONTS.medium, fontSize: 20, color: LIGHT.text },
-  card: { borderRadius: 8, padding: SPACE[4], gap: SPACE[1] },
-  cardPressed: { opacity: 0.92 },
-  cardTitle: { fontFamily: FONTS.medium, fontSize: 24 },
-  cardMeta: { fontFamily: FONTS.regular, fontSize: 14, opacity: 0.8 },
+  screen: { flex: 1, backgroundColor: LIGHT.bg },
+  header: {
+    position: 'absolute',
+    left: SPACE[3],
+    right: SPACE[3],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    // Over the canvas, so a card dragged upward passes behind the title.
+    zIndex: 20,
+  },
+  title: { fontFamily: FONTS.medium, fontSize: 40, color: LIGHT.text },
+  restack: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  restackWash: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.5)' },
+  icons: { width: 24, height: 24 },
+  // Laid exactly over the resting one so the two crossfade in place.
+  iconOver: { ...StyleSheet.absoluteFillObject },
 })
