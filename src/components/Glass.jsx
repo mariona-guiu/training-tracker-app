@@ -1,5 +1,10 @@
+import Animated from 'react-native-reanimated'
 import { BlurView } from 'expo-blur'
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect'
+
+// The blurred stand-in, animatable. Opacity on it is only a problem for the
+// real material, so the fallback can be faded like anything else.
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView)
 
 // A glass surface: the real one where the system has it, a blur where it
 // does not.
@@ -11,27 +16,63 @@ import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect'
 // which would mean no glass *and* no blur, so the blur is kept as the
 // fallback rather than replaced.
 //
+// Off until it can be shown to work.
+//
+// GlassView is `requireNativeViewManager('ExpoGlassEffect')` — a native view
+// that has to be compiled into the app binary. Expo Go's binary is fixed and
+// does not carry it, so the view resolves to nothing and draws nothing: both
+// the tab bar and the restack button lost their surfaces entirely rather than
+// looking wrong. The package's own docs list expo-go as supported, which is
+// what this was adopted on; the phone says otherwise.
+//
+// Turn this on once the app is on a development build, where the module is
+// compiled in, and check both surfaces before trusting it. The rest of the
+// file is ready for it.
+const USE_LIQUID_GLASS = false
+
 // Decided once at module load: whether the system has the material cannot
 // change while the app is running.
-export const LIQUID_GLASS = isLiquidGlassAvailable()
+export const LIQUID_GLASS = USE_LIQUID_GLASS && isLiquidGlassAvailable()
 
-// One caveat worth repeating wherever these are used: **opacity below 1 on a
-// GlassView or any view above it stops the effect rendering properly.** So a
-// glass surface must not be faded in by its parent — fade what is inside it,
-// or let the material animate itself with `glassEffectStyle`.
-export function Glass({ style, children, fallback, intensity = 40, tint = 'light', ...rest }) {
+// `hidden` takes the surface away without ever putting an opacity on it or on
+// anything above it. **Opacity below 1 on a GlassView or any view above it
+// stops the effect rendering**, so the material is switched between 'regular'
+// and 'none' and animates itself. The blurred stand-in has no such rule and
+// simply carries the opacity.
+export function Glass({
+  style,
+  children,
+  fallback,
+  hidden = false,
+  fadeStyle,
+  intensity = 40,
+  tint = 'light',
+  ...rest
+}) {
   if (LIQUID_GLASS) {
     return (
-      <GlassView style={style} glassEffectStyle="regular" colorScheme={tint} {...rest}>
+      <GlassView
+        style={style}
+        glassEffectStyle={{ style: hidden ? 'none' : 'regular', animate: true }}
+        colorScheme={tint}
+        {...rest}
+      >
         {children}
       </GlassView>
     )
   }
 
   return (
-    <BlurView intensity={intensity} tint={tint} style={style} {...rest}>
+    <AnimatedBlurView
+      intensity={intensity}
+      tint={tint}
+      // `fadeStyle` when the caller wants it animated; the flat `hidden`
+      // otherwise, for surfaces that simply are or are not there.
+      style={[style, fadeStyle ?? (hidden && { opacity: 0 })]}
+      {...rest}
+    >
       {fallback}
       {children}
-    </BlurView>
+    </AnimatedBlurView>
   )
 }

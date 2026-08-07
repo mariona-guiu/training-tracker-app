@@ -50,6 +50,14 @@ export default function RootLayout() {
             screenOptions={{ headerShown: false, contentStyle: { backgroundColor: LIGHT.bg } }}
           >
             <Stack.Screen name="(tabs)" />
+            {/* Pushed over the tabs from the right and dragged back the same
+                way, so "back" is a movement rather than a button — which is
+                what the web arranges by hand and the native stack gives for
+                nothing. */}
+            <Stack.Screen
+              name="history"
+              options={{ animation: 'slide_from_right', animationDuration: 600 }}
+            />
             {/* A workout is pushed over the tabs rather than living inside
                 them, so it covers the tab bar. The colour already fills the
                 screen before this navigates, and covers it again before it

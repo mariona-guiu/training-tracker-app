@@ -551,7 +551,7 @@ export default function WorkoutMode() {
         session={session}
         colour={colour}
         ink={ink}
-        onSeeHistory={() => leave('/stats')}
+        onSeeHistory={() => leave({ pathname: '/history', params: { expand: session.id } })}
         onAgain={() => leave()}
       />
     )

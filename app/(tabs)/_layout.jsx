@@ -1,7 +1,14 @@
 import { useEffect } from 'react'
-import { Tabs } from 'expo-router'
+import { withLayoutContext } from 'expo-router'
 import { Pressable, StyleSheet, View } from 'react-native'
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -14,16 +21,14 @@ import { TAB_SPRING } from '../../src/data/motion.js'
 // in progress deliberately sits outside this group, so it fills the display
 // with no bar over it — the same split the web app makes, for the same reason.
 //
-// The bar is drawn here rather than using the default tab bar because it is a
-// floating pill the content runs behind, not a docked strip. Everything about
-// it is ported from .bottom-nav: 64x44 items so the selected lozenge is wider
-// than it is tall and still past the 44pt minimum for something tapped
-// mid-workout, and a blurred, gradient-lit surface.
-//
-// The one web-only concern that does not come with it is the stale-pixel
-// workaround — each icon needed its own compositing layer because Safari
-// leaves blank pixels where a layer above a backdrop-filter is removed. That
-// is a Safari bug, not an iOS one, and there is no WebKit here.
+// Built on material top tabs with the bar moved to the bottom, rather than on
+// bottom tabs. The reason is the swipe: a bottom-tab navigator mounts one
+// screen at a time and stacks them, so there is never a neighbour on screen to
+// follow your finger. This one lays them side by side on a pager, which is how
+// the web's tab transition behaves — each screen entering and leaving from its
+// own side.
+const { Navigator } = createMaterialTopTabNavigator()
+const MaterialTopTabs = withLayoutContext(Navigator)
 
 const TABS = [
   { name: 'index', Icon: WorkoutIcon, label: 'Workouts' },
@@ -33,14 +38,20 @@ const TABS = [
 
 const ICON_INK = '#191919'
 
-// One pill, moved — not one per tab, switched. The bar's own padding puts
-// the first item here, and each one after it is a width and a gap further
-// along, so where the pill belongs is arithmetic rather than measurement.
+// One pill, moved — not one per tab, switched. The bar's own padding puts the
+// first item here, and each one after it is a width and a gap further along,
+// so where the pill belongs is arithmetic rather than measurement.
 const ITEM_WIDTH = 64
 const ITEM_HEIGHT = 44
 const ITEM_GAP = 4
 const BAR_PAD = 4
 const STEP = ITEM_WIDTH + ITEM_GAP
+
+// The cards own the middle of the Workouts screen, so the pager's own swipe is
+// turned off there and only a drag begun at the right edge leaves the tab —
+// the same rule the web uses, for the same reason.
+const EDGE_BAND = 32
+const EDGE_SWIPE = 48
 
 function TabBar({ state, navigation }) {
   const insets = useSafeAreaInsets()
@@ -63,8 +74,8 @@ function TabBar({ state, navigation }) {
       ]}
     >
       {/* The system's own material where the phone has it. Where it does not,
-          the blur and the lit gradient ported from .bottom-nav — which is
-          what that CSS was approximating in the first place. */}
+          the blur and the lit gradient ported from .bottom-nav — which is what
+          that CSS was approximating in the first place. */}
       <Glass
         intensity={60}
         style={[styles.bar, !LIQUID_GLASS && styles.barFallback]}
@@ -91,12 +102,7 @@ function TabBar({ state, navigation }) {
               accessibilityState={{ selected: active }}
               accessibilityLabel={tab.label}
               onPress={() => {
-                const event = navigation.emit({
-                  type: 'tabPress',
-                  target: route.key,
-                  canPreventDefault: true,
-                })
-                if (!active && !event.defaultPrevented) navigation.navigate(route.name)
+                if (!active) navigation.navigate(route.name)
               }}
               style={styles.item}
             >
@@ -109,23 +115,64 @@ function TabBar({ state, navigation }) {
   )
 }
 
+// A drag begun within a thumb's width of the right edge of the Workouts screen
+// moves on to Stats. It does not follow the finger the way the pager does — it
+// cannot, since the pager's own swipe is off on this screen — but it leaves
+// the cards the whole canvas, which matters more.
+function HomeEdgeSwipe({ navigation, state }) {
+  const onHome = state.index === 0
+
+  const swipe = Gesture.Pan()
+    .activeOffsetX([-20, 20])
+    .failOffsetY([-24, 24])
+    .onEnd((event) => {
+      // Only ever forwards: there is nothing to the left of Workouts.
+      if (event.translationX > -EDGE_SWIPE) return
+      runOnJS(navigation.navigate)('stats')
+    })
+
+  if (!onHome) return null
+
+  return (
+    <GestureDetector gesture={swipe}>
+      <View style={[styles.edge, { width: EDGE_BAND }]} />
+    </GestureDetector>
+  )
+}
+
 export default function TabsLayout() {
   return (
-    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
-      <Tabs.Screen name="index" />
-      <Tabs.Screen name="stats" />
-      <Tabs.Screen name="settings" />
-    </Tabs>
+    <MaterialTopTabs
+      tabBarPosition="bottom"
+      tabBar={(props) => (
+        <>
+          <HomeEdgeSwipe {...props} />
+          <TabBar {...props} />
+        </>
+      )}
+    >
+      {/* The cards need the whole canvas, so the pager does not take swipes
+          here — the edge strip stands in for it. */}
+      <MaterialTopTabs.Screen name="index" options={{ swipeEnabled: false }} />
+      <MaterialTopTabs.Screen name="stats" />
+      <MaterialTopTabs.Screen name="settings" />
+    </MaterialTopTabs>
   )
 }
 
 const styles = StyleSheet.create({
-  dock: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  dock: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 2 },
+  // A strip down the right-hand side of the Workouts screen, invisible and
+  // narrow enough that the cards keep everything else.
+  // Starts below the header. Run to the top and it lies over the restack
+  // button, which sits 16 from the same edge — the strip is invisible, so
+  // what looks like a missing control is a missing *tap*.
+  edge: { position: 'absolute', right: 0, top: 140, bottom: 0, zIndex: 1 },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 4,
-    gap: 4,
+    padding: BAR_PAD,
+    gap: ITEM_GAP,
     height: NAV_HEIGHT,
     borderRadius: 35,
     overflow: 'hidden',

@@ -1,15 +1,13 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, {
-  FadeIn,
-  FadeOut,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated'
-import { Glass } from '../../src/components/Glass.jsx'
+import { Glass, LIQUID_GLASS } from '../../src/components/Glass.jsx'
 import * as Haptics from 'expo-haptics'
 
 import { listRoutines } from '../../src/db/routines.js'
@@ -67,6 +65,11 @@ export default function Workouts() {
   // Held or not, crossfaded between the two drawings. Short on purpose: this
   // is feedback on a press, so it wants to be felt rather than watched.
   const press = useSharedValue(0)
+  // Always mounted, never faded in by a layout animation. `entering` runs
+  // after the element has painted once, which is exactly the appear-vanish-
+  // fade the button was doing. One shared value, one mechanism, no first
+  // frame to get wrong.
+  const shown = useSharedValue(0)
   const restingIcon = useAnimatedStyle(() => ({ opacity: 1 - press.value }))
   const pressedIcon = useAnimatedStyle(() => ({ opacity: press.value }))
   // A touch of give, stated here rather than left to the material's own
@@ -83,6 +86,12 @@ export default function Workouts() {
   )
 
   const disturb = useCallback(() => setDisturbed(true), [])
+
+  useEffect(() => {
+    shown.value = withTiming(disturbed ? 1 : 0, { duration: disturbed ? 220 : 180 })
+  }, [disturbed, shown])
+
+  const restackStyle = useAnimatedStyle(() => ({ opacity: shown.value }))
 
   function restack() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
@@ -149,8 +158,15 @@ export default function Workouts() {
         </Pressable>
 
         {/* Only once the cards have been moved: it is a way back, so there is
-            nothing for it to do until there is something to undo. */}
-        {disturbed ? (
+            nothing for it to do until there is something to undo. Present
+            either way, so nothing has to appear. */}
+        <Animated.View
+          pointerEvents={disturbed ? 'auto' : 'none'}
+          // Opacity over a GlassView stops it rendering, so this is only for
+          // the blurred stand-in; the material switches itself off instead,
+          // through `hidden` below.
+          style={!LIQUID_GLASS && restackStyle}
+        >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Restack the cards"
@@ -159,15 +175,17 @@ export default function Workouts() {
             onPressOut={() => (press.value = withTiming(0, { duration: 180 }))}
             hitSlop={12}
           >
-            <Glass style={styles.restack} fallback={<View style={styles.restackWash} />}>
+            <Glass
+              style={styles.restack}
+              // The real material cannot be faded by anything above it, so it
+              // switches itself off; the blurred stand-in just fades.
+              hidden={LIQUID_GLASS && !disturbed}
+              fallback={<View style={styles.restackWash} />}
+            >
               {/* Every fade here is inside the surface, never over it: the
                   effect renders wrongly under any opacity, and both the
                   appearance and the press are opacity. */}
-              <Animated.View
-                entering={FadeIn.duration(220)}
-                exiting={FadeOut.duration(180)}
-                style={[styles.icons, pressScale]}
-              >
+              <Animated.View style={[styles.icons, pressScale]}>
                 <Animated.View style={restingIcon}>
                   <StackIcon color={LIGHT.text} />
                 </Animated.View>
@@ -177,7 +195,7 @@ export default function Workouts() {
               </Animated.View>
             </Glass>
           </Pressable>
-        ) : null}
+        </Animated.View>
       </View>
 
       {tuner ? (
@@ -216,5 +234,11 @@ const styles = StyleSheet.create({
   restackWash: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.5)' },
   icons: { width: 24, height: 24 },
   // Laid exactly over the resting one so the two crossfade in place.
-  iconOver: { ...StyleSheet.absoluteFillObject },
+  //
+  // Invisible in its own right, not only by way of its animated style. The
+  // group fades in with a layout animation while these carry animated styles
+  // of their own, and the two do not necessarily land on the same first
+  // frame — so without this the pressed drawing painted at full strength for
+  // a frame as the button appeared, and both were briefly on screen at once.
+  iconOver: { ...StyleSheet.absoluteFillObject, opacity: 0 },
 })

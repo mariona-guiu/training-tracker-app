@@ -42,9 +42,10 @@ export function WorkoutIcon({ active, color }) {
   )
 }
 
-// Three rising bars. One shape for both states — being selected is said by
-// the pill behind it, not by the icon changing.
-export function StatsIcon({ color }) {
+// Three rising bars, drawn heavier once selected. The same shape either way —
+// the weight is the whole difference, so there is one set of paths and one
+// number that changes.
+export function StatsIcon({ active, color }) {
   return (
     <Icon>
       {['M18 20V10', 'M12 20V4', 'M6 20V14'].map((d) => (
@@ -52,7 +53,7 @@ export function StatsIcon({ color }) {
           key={d}
           d={d}
           stroke={color}
-          strokeWidth={2}
+          strokeWidth={active ? 3 : 2}
           strokeLinecap="round"
           strokeLinejoin="round"
         />

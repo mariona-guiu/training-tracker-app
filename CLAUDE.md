@@ -150,6 +150,48 @@ It arrives as a transitive one and then gets pruned the next time npm
 re-resolves, which shows up as `Unable to resolve module react-native-worklets`
 long after whatever removed it.
 
+## Waiting on a development build
+
+A growing list, all blocked by the same thing rather than by separate ones:
+running a build of this app rather than Expo Go, which needs the Apple
+Developer Program. Keep adding to it rather than deciding each in isolation.
+
+| Waiting for | What it unblocks |
+| --- | --- |
+| A development build (any SDK) | **Liquid Glass.** `expo-glass-effect` is installed and wired; flip `USE_LIQUID_GLASS` in `src/components/Glass.jsx`. Both the tab bar and the restack button become the system's material. |
+| A development build | **Confetti.** `react-native-fast-confetti` needs Skia, which Expo Go does not carry either. Replaces the hand-drawn `src/components/Confetti.jsx`. |
+| SDK 56+ | **`@expo/ui`'s PagerView**, the drop-in for `react-native-pager-view` that Expo now prefers. The drop-in replacements arrived in 56; SDK 54's `@expo/ui` is 0.2.0-beta.9 and has none of them. |
+| SDK 56+ | Whatever else has landed since. Read the changelogs at the time rather than trusting this list to be complete. |
+| A real build | **The app on the home screen** with its own icon and name, rather than living inside Expo Go. |
+
+Two habits that would have saved time here. Expo's docs default to the newest
+SDK: a URL without `/v54.0.0/` in it may describe something this project does
+not have. And a package being "supported in Expo Go" in its own docs is not
+the same as its **native view being compiled into Expo Go's binary** — which
+is what actually decides it, and what caught out both the glass and Skia.
+
+## Liquid Glass does not work in Expo Go
+
+`expo-glass-effect` is installed and wired up, and `USE_LIQUID_GLASS` in
+`src/components/Glass.jsx` is **false**.
+
+`GlassView` on iOS is `requireNativeViewManager('ExpoGlassEffect')` — a native
+view compiled into the app binary. Expo Go's binary is fixed and does not
+carry it, so the view resolves to nothing and draws nothing: the tab bar and
+the restack button both lost their surfaces entirely rather than looking
+wrong. The package's docs list expo-go among its platforms, which is what it
+was adopted on; the phone disagreed.
+
+So every glass surface goes through `Glass`, which falls back to a blur. Turn
+the flag on once the app is on a development build and check both surfaces
+before trusting it.
+
+Its one rule, for when that happens: **opacity below 1 on a GlassView or any
+view above it stops the effect rendering.** Fading a glass surface in by
+wrapping it is the obvious move and it makes the surface disappear. Fade what
+is inside it, or switch `glassEffectStyle` between 'regular' and 'none' and
+let the material animate itself — which is what `hidden` does.
+
 ## The confetti is a placeholder
 
 `src/components/Confetti.jsx` is drawn by hand, because `canvas-confetti` —
