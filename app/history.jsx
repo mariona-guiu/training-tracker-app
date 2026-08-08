@@ -359,6 +359,11 @@ export default function History() {
   // Seeded from what Stats has just read, so the push carries a full page in
   // rather than a white one that fills after it lands. Still loaded below —
   // the seed is a first paint, not the truth.
+  //
+  // Arriving from the completion screen can still land cold, since Stats may
+  // not have been focused since launch. Not fixed rather than not noticed: it
+  // would mean warming the cache when a workout ends, and that path already
+  // opens with a cell expanded, which covers it.
   const [sessions, setSessions] = useState(cachedCompletedSessions)
   // A workout arrived at from the completion screen opens already expanded,
   // rather than as a list to go hunting through for the thing you were just
