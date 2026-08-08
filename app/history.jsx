@@ -38,7 +38,7 @@ import {
 } from '../src/components/HistoryIcons.jsx'
 import { Glass } from '../src/components/Glass.jsx'
 import { EXPAND_SPRING } from '../src/data/motion.js'
-import { FONTS, LIGHT, RADIUS, SPACE } from '../src/theme/index.js'
+import { FONTS, LIGHT, RADIUS, SPACE, TYPE } from '../src/theme/index.js'
 
 const MONTH = new Intl.DateTimeFormat('en-GB', { month: 'long' })
 
@@ -161,7 +161,13 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete }) {
 
   useEffect(() => {
     height.value = withSpring(open ? bodyHeight : 0, EXPAND_SPRING)
-    turn.value = withTiming(open ? 1 : 0, { duration: 240 })
+    // On the cell's own spring rather than a timing curve of its own. The
+    // chevron and the body are one movement, and they read as one only if they
+    // share a curve — a spring that settles beside a 240ms ease that stops dead
+    // is what made this feel abrupt. It also arrives a little slower, and
+    // overshoots 180 by a hair before coming back, which is the difference
+    // between a mark turning over and a mark being flipped.
+    turn.value = withSpring(open ? 1 : 0, EXPAND_SPRING)
     // Set going here rather than from the press, so the page and the cell
     // start in the same effect on the same frame. measureInWindow answers
     // asynchronously, so a spring started from inside its callback begins a
@@ -324,7 +330,7 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete }) {
           </View>
         ) : null}
 
-        <Animated.View style={chevron}>
+        <Animated.View style={[styles.chevron, chevron]}>
           <ChevronIcon size={24} color={ink} />
         </Animated.View>
       </Pressable>
@@ -585,31 +591,17 @@ const styles = StyleSheet.create({
   },
   back: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   barHeading: { alignItems: 'center' },
-  barYear: {
-    fontFamily: FONTS.regular,
-    fontSize: 15,
-    color: LIGHT.text,
-    overflow: 'hidden',
-  },
-  title: { fontFamily: FONTS.medium, fontSize: 20, color: LIGHT.text },
-  year: {
-    fontFamily: FONTS.bold,
-    fontSize: 22,
-    letterSpacing: -0.22,
-    color: LIGHT.text,
-    marginTop: SPACE[4],
-  },
+  barYear: { ...TYPE.body, color: LIGHT.text, overflow: 'hidden' },
+  title: { ...TYPE.title, color: LIGHT.text },
+  year: { ...TYPE.title, fontFamily: FONTS.bold, color: LIGHT.text, marginTop: SPACE[4] },
   weekLabel: {
-    fontFamily: FONTS.mono,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.44,
+    ...TYPE.label,
     color: LIGHT.textDim,
     paddingTop: SPACE[3],
     paddingBottom: SPACE[2],
   },
   weekList: { gap: SPACE[2] },
-  cell: { borderRadius: 8, overflow: 'hidden' },
+  cell: { borderRadius: RADIUS.card, overflow: 'hidden' },
   head: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -617,14 +609,15 @@ const styles = StyleSheet.create({
     gap: SPACE[2],
     padding: SPACE[3],
   },
-  heading: { flex: 1, minWidth: 0, gap: 10 },
-  name: { fontFamily: FONTS.medium, fontSize: 20, letterSpacing: -0.2 },
-  when: {
-    fontFamily: FONTS.mono,
-    fontSize: 12,
-    letterSpacing: -0.12,
-    textTransform: 'uppercase',
-  },
+  heading: { flex: 1, minWidth: 0, gap: SPACE[2] },
+  // The head is flex-start so the heading block starts at the top of the
+  // padding rather than floating in it. The two things beside it are single
+  // objects and centre against that block instead — which the tag already
+  // did with alignSelf, and the chevron did not, so they sat at different
+  // heights in the same row.
+  chevron: { alignSelf: 'center' },
+  name: { ...TYPE.title },
+  when: { ...TYPE.label },
   // The routine's own colour with the light turned down — the same shade the
   // rest sweep paints during a workout, so the app has one idea of "this
   // colour, deeper" rather than two.
@@ -636,12 +629,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     borderRadius: RADIUS.chip,
   },
-  tagText: {
-    fontFamily: FONTS.mono,
-    fontSize: 12,
-    letterSpacing: -0.12,
-    textTransform: 'uppercase',
-  },
+  tagText: { ...TYPE.label },
   // Laid out for its height only: out of the flow so it adds none, and
   // invisible so it shows none.
   measure: { position: 'absolute', left: 0, right: 0, top: 0, opacity: 0, zIndex: -1 },
@@ -649,14 +637,9 @@ const styles = StyleSheet.create({
   body: { paddingTop: SPACE[4], paddingHorizontal: SPACE[3], paddingBottom: SPACE[3] },
   summary: { gap: SPACE[1] },
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE[2] },
-  summaryText: {
-    fontFamily: FONTS.mono,
-    fontSize: 12,
-    letterSpacing: -0.12,
-    textTransform: 'uppercase',
-  },
+  summaryText: { ...TYPE.label },
   // Level with the duration, which is the first line of the body.
-  delete: { position: 'absolute', top: SPACE[3], right: SPACE[2], padding: 4 },
+  delete: { position: 'absolute', top: SPACE[3], right: SPACE[2], padding: SPACE[1] },
   lifts: { marginTop: SPACE[3] },
   // Name against the left edge, sets against the right, so a long name that
   // wraps still reads across to its own figures.
@@ -667,13 +650,7 @@ const styles = StyleSheet.create({
     gap: SPACE[3],
     paddingVertical: SPACE[2],
   },
-  liftName: {
-    flexShrink: 1,
-    fontFamily: FONTS.mono,
-    fontSize: 12,
-    letterSpacing: -0.12,
-    textTransform: 'uppercase',
-  },
+  liftName: { flexShrink: 1, ...TYPE.label },
   // Groups run along the row and wrap onto further lines when a session had
   // too many different sets to fit — right-aligned, so however many lines it
   // takes the figures stay in one column.
@@ -683,32 +660,23 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'flex-end',
     maxWidth: '60%',
-    gap: 4,
-    columnGap: 10,
+    gap: SPACE[1],
+    columnGap: SPACE[2],
   },
   liftRun: {
-    fontFamily: FONTS.mono,
-    fontSize: 12,
-    letterSpacing: -0.12,
+    ...TYPE.label,
+    // Mixed case on purpose — the x in "4x 8x45kg" is not a capital — and
+    // mixed case tracks in where capitals track out.
+    textTransform: 'none',
+    letterSpacing: TYPE.caption.letterSpacing,
     textAlign: 'right',
   },
   // Sets that were never logged, and exercises passed over entirely: still
   // shown, carrying what they were going to be, but stepped back so the row
   // reads as something that did not happen.
   faded: { opacity: 0.4 },
-  footnote: {
-    fontFamily: FONTS.mono,
-    fontSize: 12,
-    letterSpacing: -0.12,
-    textTransform: 'uppercase',
-    marginTop: SPACE[3],
-  },
+  footnote: { ...TYPE.label, marginTop: SPACE[3] },
   // A sentence, where the marks above it are labels.
   sentence: { fontFamily: FONTS.regular, textTransform: 'none', letterSpacing: 0 },
-  empty: {
-    fontFamily: FONTS.regular,
-    fontSize: 15,
-    color: LIGHT.textDim,
-    marginTop: SPACE[5],
-  },
+  empty: { ...TYPE.body, color: LIGHT.textDim, marginTop: SPACE[5] },
 })
