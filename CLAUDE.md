@@ -145,9 +145,19 @@ the week grouping, the routine colours, slot resolution. Keep them that way:
 a change to one should be made in both copies, and anything that cannot be is
 a sign it belongs in a screen instead.
 
-`src/data/motion.js` is deliberately **not** copied. Those are Framer Motion
-configs and Reanimated does not take them; the timings will be ported
-alongside the animation work that needs them.
+`src/data/motion.js` **has** been ported, and carries the same rule with one
+addition. Framer Motion and Reanimated describe a spring identically —
+stiffness, damping and mass, fed to the same physics — so the numbers crossed
+over unchanged and the two apps genuinely share a feel rather than
+approximating each other. **A spring retuned in one app must be retuned in the
+other.** Durations are the one difference: seconds on the web, milliseconds
+here.
+
+Not everything in it is shared, though, because the same name can drive
+different things in the two apps. `PUSH_SPRING` settles the web's History push
+*and* its tab changes; here it drives only the tab pager, because History is
+pushed by the native stack, whose speed is `animationDuration` on the route in
+`app/_layout.jsx`. Check which one a screen actually uses before retuning it.
 
 `src/db/` is rewritten rather than copied — it is the one layer that could not
 come across, since IndexedDB does not exist here.
@@ -335,8 +345,10 @@ Marked TEMPORARY in `app/(tabs)/stats.jsx`. Delete it and the web app's
 **Every screen is ported.** The card canvas, the workout with its carousel,
 rest sweep and completion screen, Stats and its weekly chart, History, and
 Settings. The colour grows out of a tapped card and hands itself back on the
-way out. The tabs and the push to History settle on the same springs the web
-uses, from the same `motion.js`.
+way out. The tabs settle on the same spring the web uses, from the same
+`motion.js`. The push to History does **not** — it is the native stack's
+`simple_push`, timed by `animationDuration` in `app/_layout.jsx`, and no
+spring is involved.
 
 What is left is not screens. It is the list under "Waiting on a development
 build" — the glass, the confetti, `@expo/ui`'s PagerView, and the app on the
