@@ -317,6 +317,19 @@ anything here without asking — the user vendored `canvas-confetti` into the
 web repo rather than depending on it, and reviews dependencies before they
 land.
 
+## Temporary scaffolding to remove
+
+Long-pressing **"My workouts"** on Stats cycles fabricated training —
+`typical`, then `dense`, then back to the real database. It writes nothing.
+`typical` is copied verbatim from the web app's `/stats?mock` so the two
+charts can be put side by side against identical data; `dense` runs 1 to 17
+workouts a week, because the chart's scale only animates when the busiest
+visible week changes and a real install almost never swings it far enough to
+show a fault. It was what made the segment easing bug visible at all.
+
+Marked TEMPORARY in `app/(tabs)/stats.jsx`. Delete it and the web app's
+`/stats?mock` together, once Stats is settled.
+
 ## Where the port has got to
 
 **Every screen is ported.** The card canvas, the workout with its carousel,
