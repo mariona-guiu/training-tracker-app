@@ -16,7 +16,7 @@ import { styleFor } from '../../src/data/routineStyles.js'
 import { originFrom, useLaunch } from '../../src/components/LaunchOverlay.jsx'
 import { WorkoutStack } from '../../src/components/WorkoutStack.jsx'
 import { StackIcon, StackIconPressed } from '../../src/components/StackIcon.jsx'
-import { FONTS, LIGHT, SPACE } from '../../src/theme/index.js'
+import { LIGHT, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
 
 // The Workouts screen: a canvas of cards you can push around, not a list.
 //
@@ -187,11 +187,11 @@ const styles = StyleSheet.create({
     // Over the canvas, so a card dragged upward passes behind the title.
     zIndex: 20,
   },
-  title: { fontFamily: FONTS.medium, fontSize: 40, color: LIGHT.text },
+  title: { ...TYPE.screenTitle, color: LIGHT.text },
   restack: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: RADIUS.pill,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',

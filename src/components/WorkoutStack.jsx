@@ -11,7 +11,7 @@ import Svg, { Circle, Path } from 'react-native-svg'
 
 import { CANONICAL_ORDER, inkFor, styleFor } from '../data/routineStyles.js'
 import { GLIDE_SPRING, TILT_SPRING } from '../data/motion.js'
-import { FONTS } from '../theme/index.js'
+import { FONTS, RADIUS, SPACE } from '../theme/index.js'
 
 function sortForStack(routines) {
   return [...routines].sort((a, b) => {
@@ -334,13 +334,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 12.607,
+    borderRadius: RADIUS.card,
   },
   label: {
     position: 'absolute',
-    top: 15,
-    left: 15,
-    right: 15,
+    top: SPACE[3],
+    left: SPACE[3],
+    right: SPACE[3],
     fontFamily: FONTS.mono,
     fontSize: 28,
     textTransform: 'uppercase',
@@ -352,22 +352,32 @@ const styles = StyleSheet.create({
     left: CARD_WIDTH / 2 - 28,
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: RADIUS.pill,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
   },
   startPressed: { transform: [{ scale: 0.95 }] },
-  meta: { position: 'absolute', left: 0, right: 0, bottom: 15, alignItems: 'center', gap: 4 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  // Stepped back with opacity rather than a faded black, so it recedes the
-  // same amount whichever ink the card is using.
+  // Stepped back with opacity rather than a faded ink, so it recedes by the
+  // same amount whichever ink the card is using. On the whole block rather
+  // than on the text: the icons are part of the same statement, and with the
+  // opacity on the text alone they sat at full strength beside it — plainly
+  // so on the cards whose ink is white.
+  meta: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: SPACE[3],
+    alignItems: 'center',
+    gap: SPACE[1],
+    opacity: 0.75,
+  },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE[2] },
   metaText: {
     fontFamily: FONTS.mono,
     fontSize: 13,
     textTransform: 'uppercase',
     letterSpacing: 0.52,
-    opacity: 0.75,
   },
 })

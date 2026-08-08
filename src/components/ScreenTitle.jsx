@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 
 import { Glass } from './Glass.jsx'
-import { FONTS, LIGHT, SPACE } from '../theme/index.js'
+import { LIGHT, SPACE, TYPE } from '../theme/index.js'
 
 // A page title the content runs behind.
 //
@@ -52,5 +52,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE[3],
     paddingBottom: SPACE[2],
   },
-  title: { fontFamily: FONTS.medium, fontSize: 40, color: LIGHT.text },
+  title: { ...TYPE.screenTitle, color: LIGHT.text },
 })
