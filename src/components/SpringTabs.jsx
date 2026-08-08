@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { StyleSheet, View, useWindowDimensions } from 'react-native'
+import { Keyboard, StyleSheet, View, useWindowDimensions } from 'react-native'
 import {
   createNavigatorFactory,
   TabRouter,
@@ -58,6 +58,25 @@ function SpringTabsNavigator({ children, screenOptions, tabBar, initialRouteName
   // it begins, so a drag that started in the wrong place cannot become a swipe
   // halfway through.
   const allowed = useSharedValue(true)
+  // A raised keyboard belongs to a field on the screen it was raised from, so
+  // the pager stays put while one is up. Swiping away left the keyboard
+  // standing over a screen with nothing to type into, and the half-finished
+  // edit behind it. Same events the screens themselves listen to, so the
+  // three agree about when the keyboard is up.
+  const keyboardUp = useSharedValue(false)
+
+  useEffect(() => {
+    const shown = Keyboard.addListener('keyboardWillShow', () => {
+      keyboardUp.value = true
+    })
+    const hidden = Keyboard.addListener('keyboardWillHide', () => {
+      keyboardUp.value = false
+    })
+    return () => {
+      shown.remove()
+      hidden.remove()
+    }
+  }, [keyboardUp])
 
   // Tapping a tab lands the same way a swipe does.
   useEffect(() => {
@@ -76,7 +95,8 @@ function SpringTabsNavigator({ children, screenOptions, tabBar, initialRouteName
       start.value = offset.value
       // Workouts is the only screen with something else wanting horizontal
       // drags, so it is the only one with an edge to respect.
-      allowed.value = live.value !== 0 || event.x >= width - EDGE_BAND
+      allowed.value =
+        !keyboardUp.value && (live.value !== 0 || event.x >= width - EDGE_BAND)
     })
     .onUpdate((event) => {
       if (!allowed.value) return
