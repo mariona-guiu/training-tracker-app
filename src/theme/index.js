@@ -32,12 +32,14 @@ export const DARK = {
 export const LIGHT = {
   ...DARK,
   bg: '#fdfdfc',
-  bgRaised: '#f2f2ef',
+  // Taken from the Stats design, and the same card colour Settings already
+  // draws — the two screens had drifted a step apart from each other.
+  bgRaised: '#f7f7f6',
   border: '#e3e3de',
   text: '#0a0a0a',
   textDim: '#6f6f6a',
   surfaceFloating: 'rgba(253, 253, 252, 0.72)',
-  surfaceCard: 'rgba(242, 242, 239, 0.5)',
+  surfaceCard: 'rgba(247, 247, 246, 0.5)',
   scheme: 'light',
 }
 
