@@ -8,6 +8,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native'
+import * as Haptics from 'expo-haptics'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, {
   Easing,
@@ -371,7 +372,13 @@ export default function Settings() {
               <Text style={styles.label}>Show rest time between sets</Text>
               <Switch
                 value={restOn}
-                onChange={(next) => update({ restEnabled: next })}
+                // A light impact, the same one the restack button and logging
+                // a set use: this flips a thing, and it is the card growing
+                // or closing underneath that says which way.
+                onChange={(next) => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+                  update({ restEnabled: next })
+                }}
                 label="Show rest time between sets"
               />
             </View>
@@ -391,7 +398,19 @@ export default function Settings() {
                         accessibilityState={{ selected: chosen }}
                         // No confirming step: the choice is the tap, and the
                         // title and description below answer it.
-                        onPress={() => update({ restMode: option.id })}
+                        //
+                        // selectionAsync rather than an impact: this is one
+                        // choice among four, which is exactly what that
+                        // generator is for, and it reads as a tick rather
+                        // than a knock as you move along the row. Only when
+                        // the selection actually moves — re-tapping the pace
+                        // already in force changes nothing, and iOS's own
+                        // segmented controls stay quiet for it too.
+                        onPress={() => {
+                          if (chosen) return
+                          Haptics.selectionAsync()
+                          update({ restMode: option.id })
+                        }}
                         style={[styles.pace, chosen && styles.paceChosen]}
                       >
                         <Text style={[styles.paceLabel, chosen && styles.paceLabelChosen]}>
@@ -527,7 +546,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.24,
     color: INK,
   },
-  note: { fontFamily: FONTS.regular, fontSize: 13, lineHeight: 19, color: QUIET },
+  // Light rather than regular: this is the one thing on the page you read
+  // once and then stop seeing, so it steps back in weight as well as ink.
+  note: { fontFamily: FONTS.light, fontSize: 13, lineHeight: 19, color: QUIET },
   reveal: { overflow: 'hidden' },
   // Laid out, measured, and never seen or touched.
   measure: { position: 'absolute', left: 0, right: 0, opacity: 0 },
