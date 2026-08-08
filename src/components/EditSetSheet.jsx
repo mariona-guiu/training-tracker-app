@@ -14,7 +14,7 @@ import Animated, {
 
 import { CloseIcon } from './WorkoutIcons.jsx'
 import { SHEET_SPRING } from '../data/motion.js'
-import { FONTS, RADIUS, SPACE } from '../theme/index.js'
+import { RADIUS, SPACE, TYPE } from '../theme/index.js'
 
 // Correcting a set already logged.
 //
@@ -243,6 +243,11 @@ export function EditSetSheet({ exercise, setIndex, colour, ink, onSave, onRemove
   )
 }
 
+// How far the buttons are inset so they sit over the keypad's own width
+// rather than the screen's. Measured against the keypad, not chosen from a
+// scale — which is why it stays a named value instead of joining one.
+const KEYPAD_INSET = 69
+
 const styles = StyleSheet.create({
   backdrop: { backgroundColor: 'rgba(0,0,0,0.35)' },
   dock: { position: 'absolute', left: 0, right: 0, bottom: 0 },
@@ -263,15 +268,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 18,
+    marginBottom: SPACE[3],
   },
-  title: {
-    fontFamily: FONTS.mono,
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.96,
-    opacity: 0.85,
-  },
+  title: { ...TYPE.label, opacity: 0.85 },
   close: { padding: SPACE[2], margin: -SPACE[2] },
   // The panel is anchored to the keypad, so opening this up lifts the figures
   // rather than pushing the buttons down. Favorit already leaves 22.5pt below
@@ -296,36 +295,26 @@ const styles = StyleSheet.create({
   // No line height stated: Favorit's own is 1.249em and anything below it
   // clips, because React Native cuts text to its line box where CSS lets it
   // spill out. See native/CLAUDE.md.
-  figure: { fontFamily: FONTS.bold, fontSize: 72, letterSpacing: -2.16 },
-  unit: { fontFamily: FONTS.bold, fontSize: 72, letterSpacing: -2.16 },
+  figure: { ...TYPE.hero },
+  unit: { ...TYPE.hero },
   unitDimmed: { opacity: 0.35 },
   save: {
     height: 52,
     borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 69,
-    gap: 10,
+    paddingHorizontal: KEYPAD_INSET,
+    gap: SPACE[2],
   },
-  saveLabel: {
-    fontFamily: FONTS.mono,
-    fontSize: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 1.3,
-  },
+  saveLabel: { ...TYPE.control },
   remove: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
-    paddingVertical: 18,
-    paddingHorizontal: 69,
-    gap: 10,
+    marginTop: SPACE[2],
+    paddingVertical: SPACE[3],
+    paddingHorizontal: KEYPAD_INSET,
+    gap: SPACE[2],
   },
   // At full strength rather than faded back — it is a choice, not a footnote.
-  removeLabel: {
-    fontFamily: FONTS.mono,
-    fontSize: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 1.3,
-  },
+  removeLabel: { ...TYPE.control },
 })

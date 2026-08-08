@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { SettingsIcon, StatsIcon, WorkoutIcon } from '../../src/components/TabIcons.jsx'
 import { Glass, LIQUID_GLASS } from '../../src/components/Glass.jsx'
 import { createSpringTabNavigator } from '../../src/components/SpringTabs.jsx'
-import { NAV_FLOAT_GAP, NAV_HEIGHT } from '../../src/theme/index.js'
+import { LIGHT, NAV_FLOAT_GAP, NAV_HEIGHT, RADIUS } from '../../src/theme/index.js'
 import { TAB_SPRING } from '../../src/data/motion.js'
 
 // The three tabbed screens and the floating bar that switches them. A workout
@@ -27,7 +27,7 @@ const TABS = [
   { name: 'settings', Icon: SettingsIcon, label: 'Settings' },
 ]
 
-const ICON_INK = '#191919'
+const ICON_INK = LIGHT.text
 
 // One pill, moved — not one per tab, switched. The bar's own padding puts the
 // first item here, and each one after it is a width and a gap further along,
@@ -71,6 +71,8 @@ function TabBar({ state, navigation }) {
           />
         }
       >
+        {!LIQUID_GLASS && <View style={styles.barEdge} pointerEvents="none" />}
+
         {/* Under the icons and over the surface, so it reads as part of the
             bar rather than as something laid on top of it. */}
         <Animated.View style={[styles.highlight, pillStyle]} pointerEvents="none" />
@@ -118,23 +120,33 @@ const styles = StyleSheet.create({
     padding: BAR_PAD,
     gap: ITEM_GAP,
     height: NAV_HEIGHT,
-    borderRadius: 35,
+    borderRadius: RADIUS.pill,
     overflow: 'hidden',
   },
   // Only for the blurred stand-in: the real material draws its own edge and
   // casts its own shadow, and these on top of it read as a drawn outline.
   barFallback: {
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.55)',
     shadowColor: '#000',
     shadowOpacity: 0.07,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
   },
+  // The edge, drawn rather than bordered. A borderWidth on the bar comes out
+  // of its 52: it left 42 of content for a 44 item, so the items overflowed by
+  // two and alignItems centred them a pixel up, while the pill — positioned
+  // against the box rather than against them — stayed where it was told. Laid
+  // over instead, it is the same hairline at no cost in height, so the item
+  // fits its box exactly and the pill and the icons agree by construction.
+  barEdge: {
+    ...StyleSheet.absoluteFillObject,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.55)',
+    borderRadius: RADIUS.pill,
+  },
   item: {
     width: ITEM_WIDTH,
     height: ITEM_HEIGHT,
-    borderRadius: 27,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -144,7 +156,7 @@ const styles = StyleSheet.create({
     top: BAR_PAD,
     width: ITEM_WIDTH,
     height: ITEM_HEIGHT,
-    borderRadius: 27,
+    borderRadius: RADIUS.pill,
     // A quarter lighter than the web's 0.16 — the material underneath is the
     // system's now rather than a blurred gradient, and the pill does not need
     // to work as hard against it.

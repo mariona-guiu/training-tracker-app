@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar'
 import { Confetti } from './Confetti.jsx'
 import { caloriesFor, KCAL_DISCLAIMER } from '../data/calories.js'
 import { WORKOUT_CONTENT_FADE } from '../data/motion.js'
-import { FONTS, RADIUS, SPACE } from '../theme/index.js'
+import { FONTS, RADIUS, SPACE, TYPE } from '../theme/index.js'
 
 // What a finished workout leaves you with.
 //
@@ -93,28 +93,16 @@ export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { flex: 1, paddingHorizontal: SPACE[4] },
-  routine: {
-    fontFamily: FONTS.mono,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.88,
-    opacity: 0.85,
-  },
+  routine: { ...TYPE.label, opacity: 0.85 },
   // The same room the exercise had during the workout, so nothing moves
   // underneath you when the screen changes what it says.
   body: { flex: 1, justifyContent: 'center', gap: SPACE[2] },
   // No line height stated anywhere here: Favorit's own is 1.249em and
   // anything below it clips. See native/CLAUDE.md.
-  title: { fontFamily: FONTS.bold, fontSize: 40, marginBottom: SPACE[2] },
+  title: { ...TYPE.screenTitle, fontFamily: FONTS.bold, marginBottom: SPACE[2] },
   timeRow: { flexDirection: 'row', alignItems: 'baseline', gap: SPACE[2] },
-  time: { fontFamily: FONTS.bold, fontSize: 76, letterSpacing: -2.28 },
-  caption: {
-    fontFamily: FONTS.mono,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.88,
-    opacity: 0.7,
-  },
+  time: { ...TYPE.hero },
+  caption: { ...TYPE.label, opacity: 0.7 },
   stats: { fontFamily: FONTS.bold, fontSize: 30, marginTop: SPACE[4] },
   actions: { gap: SPACE[2] },
   primary: {
@@ -125,12 +113,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: SPACE[3],
   },
-  primaryLabel: {
-    fontFamily: FONTS.mono,
-    fontSize: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 1.3,
-  },
+  primaryLabel: { ...TYPE.control },
   // A footnote qualifying the figure above, not a caution about it.
-  note: { fontFamily: FONTS.regular, fontSize: 10, textAlign: 'center', opacity: 0.7, marginTop: SPACE[3] },
+  note: { ...TYPE.caption, textAlign: 'center', opacity: 0.7, marginTop: SPACE[3] },
 })
