@@ -68,7 +68,11 @@ export default function RootLayout() {
               // opposite directions.
               options={{
                 animation: 'simple_push',
-                animationDuration: 900,
+                // 600 rather than 900: this is navigation getting out of the
+                // way, and 900 made it a performance. It is also the value
+                // asked for back when the option was being ignored, so it is
+                // the first time that instinct has actually been felt.
+                animationDuration: 600,
                 animationMatchesGesture: true,
               }}
             />
