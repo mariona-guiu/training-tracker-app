@@ -29,7 +29,7 @@ import { getSettings, saveSettings } from '../../src/db/settings.js'
 import { REST_MODES, restModeById } from '../../src/data/rest.js'
 import { KCAL_NOTE } from '../../src/data/calories.js'
 import { ScreenTitle, TITLE_CLEARANCE } from '../../src/components/ScreenTitle.jsx'
-import { FONTS, LIGHT, RADIUS, SPACE, TAB_BAR_CLEARANCE } from '../../src/theme/index.js'
+import { LIGHT, RADIUS, SPACE, TAB_BAR_CLEARANCE, TYPE } from '../../src/theme/index.js'
 
 // iOS animates its keyboard over roughly this, on a curve of its own that is
 // private. The page travels on both, so the two move as one thing rather than
@@ -41,9 +41,12 @@ const KEYBOARD_MS = 250
 const SAVE_GAP = SPACE[3]
 const KEYBOARD_EASING = Easing.linear
 
-const INK = '#191919'
-const QUIET = '#8a8a8a'
-const CARD = '#f7f7f6'
+// The palette lives in the theme. This screen used to keep its own — a
+// near-black one step off the token's, and a grey two steps off it — which
+// is how Settings and every other screen came to disagree.
+const INK = LIGHT.text
+const QUIET = LIGHT.textDim
+const CARD = LIGHT.bgRaised
 
 // Digits and a single decimal point. Body weight is the one number here that
 // can sensibly carry one.
@@ -78,7 +81,7 @@ function Switch({ value, onChange, label }) {
   }, [value, on])
 
   const track = useAnimatedStyle(() => ({
-    backgroundColor: on.value > 0.5 ? INK : '#d9d9d7',
+    backgroundColor: on.value > 0.5 ? INK : LIGHT.controlTrack,
   }))
   const knob = useAnimatedStyle(() => ({ transform: [{ translateX: on.value * 18 }] }))
 
@@ -527,24 +530,17 @@ const styles = StyleSheet.create({
   section: { gap: SPACE[2] },
   // No stroke: the fill is enough to separate it from the page, and an
   // outline as well would make two statements about the same edge.
-  card: { paddingVertical: 15, paddingHorizontal: 16, borderRadius: RADIUS.card, backgroundColor: CARD },
+  card: { padding: SPACE[3], borderRadius: RADIUS.card, backgroundColor: CARD },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: SPACE[3],
   },
-  label: {
-    flex: 1,
-    fontFamily: FONTS.mono,
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.24,
-    color: INK,
-  },
+  label: { flex: 1, ...TYPE.label, color: INK },
   // Light rather than regular: this is the one thing on the page you read
   // once and then stop seeing, so it steps back in weight as well as ink.
-  note: { fontFamily: FONTS.light, fontSize: 13, lineHeight: 19, color: QUIET },
+  note: { ...TYPE.note, color: QUIET },
   reveal: { overflow: 'hidden' },
   // Laid out, measured, and never seen or touched.
   measure: { position: 'absolute', left: 0, right: 0, opacity: 0 },
@@ -559,67 +555,42 @@ const styles = StyleSheet.create({
   knob: {
     width: 22,
     height: 22,
-    borderRadius: 11,
-    backgroundColor: '#ffffff',
-    shadowColor: '#0a0a0a',
+    borderRadius: RADIUS.pill,
+    backgroundColor: LIGHT.onInk,
+    shadowColor: LIGHT.text,
     shadowOpacity: 0.22,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
   },
 
   paces: { paddingTop: SPACE[3] },
-  paceRow: { flexDirection: 'row', gap: 7 },
+  paceRow: { flexDirection: 'row', gap: SPACE[2] },
   pace: {
     flex: 1,
     height: 90,
     borderRadius: RADIUS.card,
-    backgroundColor: '#ffffff',
+    backgroundColor: LIGHT.onInk,
     alignItems: 'center',
     justifyContent: 'center',
   },
   paceChosen: { backgroundColor: INK },
   // Unchosen options step back rather than sitting at full strength — the row
   // reads as one selection among four, not four equal buttons.
-  paceLabel: { fontFamily: FONTS.medium, fontSize: 20, color: QUIET },
-  paceLabelChosen: { color: '#ffffff' },
-  paceName: {
-    marginTop: 20,
-    fontFamily: FONTS.mono,
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.24,
-    color: INK,
-  },
-  paceDescription: {
-    marginTop: 10,
-    fontFamily: FONTS.regular,
-    fontSize: 15,
-    lineHeight: 21,
-    color: INK,
-  },
-  spread: { marginTop: 20 },
+  paceLabel: { ...TYPE.title, color: QUIET },
+  paceLabelChosen: { color: LIGHT.onInk },
+  paceName: { marginTop: SPACE[4], ...TYPE.label, color: INK },
+  paceDescription: { marginTop: SPACE[2], ...TYPE.body, color: INK },
+  spread: { marginTop: SPACE[4] },
   spreadRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    paddingVertical: 7,
+    paddingVertical: SPACE[2],
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#e6e6e4',
+    borderTopColor: LIGHT.border,
   },
-  spreadOf: {
-    fontFamily: FONTS.mono,
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.24,
-    color: QUIET,
-  },
-  spreadSeconds: {
-    fontFamily: FONTS.mono,
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.24,
-    color: INK,
-  },
+  spreadOf: { ...TYPE.label, color: QUIET },
+  spreadSeconds: { ...TYPE.label, color: INK },
 
   weight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   // Outlined while it is being typed in, so it is obvious which card the
@@ -628,10 +599,10 @@ const styles = StyleSheet.create({
   weightValue: { flexDirection: 'row', alignItems: 'center' },
   // No line height stated: Favorit's own is 1.249em and anything below it
   // clips. See native/CLAUDE.md.
-  weightTyped: { fontFamily: FONTS.bold, fontSize: 34, letterSpacing: -0.68, color: INK },
+  weightTyped: { ...TYPE.figureInline, color: INK },
   // At rest the figure and its unit are one thing, in one ink. The unit only
   // steps back while the number is being typed.
-  weightUnit: { fontFamily: FONTS.bold, fontSize: 34, letterSpacing: -0.68, color: INK },
+  weightUnit: { ...TYPE.figureInline, color: INK },
   weightUnitDimmed: { opacity: 0.45 },
   caret: { width: 3, height: 24, marginLeft: 2, marginRight: 1, backgroundColor: INK },
   // Present, focusable and never seen. It holds what is typed and summons the
@@ -647,11 +618,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  saveLabel: {
-    fontFamily: FONTS.mono,
-    fontSize: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 1.3,
-    color: '#ffffff',
-  },
+  saveLabel: { ...TYPE.control, color: LIGHT.onInk },
 })
