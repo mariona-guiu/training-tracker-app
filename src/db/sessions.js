@@ -146,10 +146,26 @@ export async function deleteSession(id) {
   await db.runAsync('DELETE FROM sessions WHERE id = ?', [id])
 }
 
+// The last answer this gave, kept so a screen can open already populated.
+//
+// History is pushed over Stats, which has just read the same list — without
+// this it mounts empty, so the push carries a blank page in and the content
+// appears once it lands. Reading from SQLite is fast but it is not free, and
+// it cannot beat an animation that has already started.
+let lastCompleted = null
+
+// What listCompletedSessions answered last, or null if it has not run yet.
+// A seed for the first render only: whoever uses it should still load, since
+// this says nothing about what has changed since.
+export function cachedCompletedSessions() {
+  return lastCompleted
+}
+
 export async function listCompletedSessions() {
   const db = await getDB()
   const rows = await db.getAllAsync(
     "SELECT * FROM sessions WHERE status = 'completed' ORDER BY startedAt DESC",
   )
-  return rows.map(toRow)
+  lastCompleted = rows.map(toRow)
+  return lastCompleted
 }

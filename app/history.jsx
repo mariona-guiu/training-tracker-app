@@ -1,15 +1,29 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, {
+  scrollTo,
+  useAnimatedReaction,
+  useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
 } from 'react-native-reanimated'
 
-import { deleteSession, listCompletedSessions } from '../src/db/sessions.js'
+import {
+  cachedCompletedSessions,
+  deleteSession,
+  listCompletedSessions,
+} from '../src/db/sessions.js'
 import { caloriesFor, KCAL_DISCLAIMER } from '../src/data/calories.js'
 import { inkFor, inkOn, paleFor, restTintFor, styleFor } from '../src/data/routineStyles.js'
 import { addDays, startOfWeek } from '../src/data/weeks.js'
@@ -23,9 +37,28 @@ import {
   TrashIcon,
 } from '../src/components/HistoryIcons.jsx'
 import { Glass } from '../src/components/Glass.jsx'
+import { TuningPanel } from '../src/components/TuningPanel.jsx'
 import { FONTS, LIGHT, SPACE } from '../src/theme/index.js'
 
-const CELL_EXPAND = { stiffness: 190, damping: 25, mass: 1 }
+// Slower than the 190/25 this started at, and shared by both halves of the
+// movement — the cell growing and the page sliding to keep it in view. They
+// are one gesture as far as the eye is concerned, so they run on one spring.
+const CELL_EXPAND = { stiffness: 120, damping: 20, mass: 1 }
+
+// TEMPORARY: hold "My workouts" to dial these in, then write the numbers into
+// CELL_EXPAND above and delete this along with TuningPanel.jsx.
+const TUNING_CONTROLS = [
+  { key: 'expandStiffness', label: 'Expand stiffness', min: 40, max: 320, step: 5, hint: 'lower is slower' },
+  { key: 'expandDamping', label: 'Expand damping', min: 8, max: 50, step: 1, hint: 'higher stops sooner' },
+  { key: 'glideStiffness', label: 'Page stiffness', min: 40, max: 320, step: 5, hint: 'the scroll' },
+  { key: 'glideDamping', label: 'Page damping', min: 8, max: 50, step: 1 },
+]
+const DEFAULT_TUNING = {
+  expandStiffness: CELL_EXPAND.stiffness,
+  expandDamping: CELL_EXPAND.damping,
+  glideStiffness: CELL_EXPAND.stiffness,
+  glideDamping: CELL_EXPAND.damping,
+}
 
 const MONTH = new Intl.DateTimeFormat('en-GB', { month: 'long' })
 
@@ -129,7 +162,9 @@ function groupByWeek(sessions) {
 
 const sentenceCase = (name) => name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
 
-function WorkoutCell({ session, open, onToggle, onDelete }) {
+function WorkoutCell({ session, open, onToggle, onReveal, onDelete, spring }) {
+  const root = useRef(null)
+  const pending = useRef(null)
   const pale = paleFor(session.routineName)
   const ink = inkFor(session.routineName)
   const kcal = caloriesFor(session)
@@ -145,9 +180,17 @@ function WorkoutCell({ session, open, onToggle, onDelete }) {
   const turn = useSharedValue(open ? 1 : 0)
 
   useEffect(() => {
-    height.value = withSpring(open ? bodyHeight : 0, CELL_EXPAND)
+    height.value = withSpring(open ? bodyHeight : 0, spring)
     turn.value = withTiming(open ? 1 : 0, { duration: 240 })
-  }, [open, bodyHeight, height, turn])
+    // Set going here rather than from the press, so the page and the cell
+    // start in the same effect on the same frame. measureInWindow answers
+    // asynchronously, so a spring started from inside its callback begins a
+    // frame or two after this one and the two read as separate movements.
+    if (open && pending.current) {
+      onReveal(...pending.current)
+      pending.current = null
+    }
+  }, [open, bodyHeight, height, turn, spring, onReveal])
 
   // Never below nothing: the spring is underdamped, so on the way closed it
   // carries past zero and the layout clamps it, which reads as a snap.
@@ -257,11 +300,22 @@ function WorkoutCell({ session, open, onToggle, onDelete }) {
   )
 
   return (
-    <View style={styles.cell}>
+    <View ref={root} style={styles.cell}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
-        onPress={onToggle}
+        onPress={() => {
+          // Measured on the press, while the cell is still shut, so the
+          // numbers describe a settled layout rather than one already
+          // springing. Where it will end up is that plus the body, which has
+          // been measured out of the flow since before it was ever opened.
+          if (!open) {
+            root.current?.measureInWindow((x, y, w, h) => {
+              pending.current = [y, h + bodyHeight, bodyHeight]
+            })
+          }
+          onToggle()
+        }}
         style={[styles.head, { backgroundColor: styleFor(session.routineName).background }]}
       >
         <View style={styles.heading}>
@@ -318,7 +372,10 @@ function WorkoutCell({ session, open, onToggle, onDelete }) {
 
 export default function History() {
   const { expand } = useLocalSearchParams()
-  const [sessions, setSessions] = useState(null)
+  // Seeded from what Stats has just read, so the push carries a full page in
+  // rather than a white one that fills after it lands. Still loaded below —
+  // the seed is a first paint, not the truth.
+  const [sessions, setSessions] = useState(cachedCompletedSessions)
   // A workout arrived at from the completion screen opens already expanded,
   // rather than as a list to go hunting through for the thing you were just
   // doing.
@@ -330,6 +387,64 @@ export default function History() {
   const compressed = useSharedValue(0)
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const { height: windowHeight } = useWindowDimensions()
+
+  // An opening cell brings itself into view rather than growing off the
+  // bottom of the screen. The page slides on the same spring the cell grows
+  // on, so the two read as one movement instead of a card opening and a page
+  // catching up after it.
+  const scroller = useAnimatedRef()
+  const scrollY = useRef(0)
+  const viewport = useRef(0)
+  const content = useRef(0)
+  const glide = useSharedValue(0)
+  // TEMPORARY, with TUNING_CONTROLS above.
+  const [tuning, setTuning] = useState(DEFAULT_TUNING)
+  const [panel, setPanel] = useState(false)
+  // Memoised because the cell restarts its spring whenever this changes, and
+  // a fresh object every render would restart it on every render.
+  const expandSpring = useMemo(
+    () => ({ stiffness: tuning.expandStiffness, damping: tuning.expandDamping, mass: 1 }),
+    [tuning.expandStiffness, tuning.expandDamping],
+  )
+  useAnimatedReaction(
+    () => glide.value,
+    (y) => {
+      scrollTo(scroller, 0, y, false)
+    },
+  )
+
+  // What the floating bar covers, which is also the content's own top
+  // padding — a cell tucked under the bar is as hidden as one off the bottom.
+  const barClearance = insets.top + SPACE[2] + 32 + SPACE[2]
+
+  const revealInView = useCallback((top, finalHeight, grow) => {
+    const visibleTop = barClearance
+    const visibleBottom = windowHeight - insets.bottom - SPACE[4]
+    // How far past the bottom it would end up, and how much room there is
+    // above it before its own top disappears under the bar.
+    const below = top + finalHeight - visibleBottom
+    const above = top - visibleTop
+
+    let delta = 0
+    // Taller than the screen once open is not a failure — `above` caps the
+    // move, so a long cell settles with its top under the bar and its own
+    // scrolling takes over from there.
+    if (below > 0) delta = Math.min(below, above)
+    else if (above < 0) delta = above
+    if (delta === 0) return
+
+    // The content is about to grow by `grow`, so the end of the list moves
+    // too. Without that the last cell in the list has nowhere to scroll to.
+    const most = Math.max(0, content.current + grow - viewport.current)
+    const dest = Math.min(most, Math.max(0, scrollY.current + delta))
+    glide.value = scrollY.current
+    glide.value = withSpring(dest, {
+      stiffness: tuning.glideStiffness,
+      damping: tuning.glideDamping,
+      mass: 1,
+    })
+  }, [glide, barClearance, windowHeight, insets.bottom, tuning.glideStiffness, tuning.glideDamping])
 
   useEffect(() => {
     compressed.value = withTiming(scrolled ? 1 : 0, { duration: 220 })
@@ -394,7 +509,10 @@ export default function History() {
           <BackIcon color={LIGHT.text} />
         </Pressable>
         <View style={styles.barHeading}>
-          <Text style={styles.title}>My workouts</Text>
+          {/* TEMPORARY: holding the title opens the spring sliders. */}
+          <Pressable onLongPress={() => setPanel((on) => !on)} delayLongPress={600}>
+            <Text style={styles.title}>My workouts</Text>
+          </Pressable>
           {/* Joins the title only once the page has scrolled, so which year
               is under you is still answered when the heading below has gone.
               Its height animates too, so the title is not shunted upward the
@@ -408,9 +526,19 @@ export default function History() {
         <View style={styles.back} />
       </View>
 
-      <ScrollView
-        scrollEventThrottle={32}
-        onScroll={(e) => setScrolled(e.nativeEvent.contentOffset.y > 4)}
+      <Animated.ScrollView
+        ref={scroller}
+        scrollEventThrottle={16}
+        onLayout={(e) => {
+          viewport.current = e.nativeEvent.layout.height
+        }}
+        onContentSizeChange={(w, h) => {
+          content.current = h
+        }}
+        onScroll={(e) => {
+          scrollY.current = e.nativeEvent.contentOffset.y
+          setScrolled(scrollY.current > 4)
+        }}
         contentContainerStyle={{
           // Clears the floating bar: its own padding, the back control's
           // height, and the inset above it.
@@ -441,6 +569,8 @@ export default function History() {
                       session={session}
                       open={openIds.has(session.id)}
                       onToggle={() => toggle(session.id)}
+                      onReveal={revealInView}
+                      spring={expandSpring}
                       onDelete={() => confirmDelete(session)}
                     />
                   ))}
@@ -449,7 +579,19 @@ export default function History() {
             ))}
           </View>
         ))}
-      </ScrollView>
+      </Animated.ScrollView>
+
+      {/* TEMPORARY */}
+      {panel ? (
+        <TuningPanel
+          controls={TUNING_CONTROLS}
+          title="Cell expand"
+          tuning={tuning}
+          onChange={(key, value) => setTuning((current) => ({ ...current, [key]: value }))}
+          onReset={() => setTuning(DEFAULT_TUNING)}
+          onClose={() => setPanel(false)}
+        />
+      ) : null}
     </View>
   )
 }
