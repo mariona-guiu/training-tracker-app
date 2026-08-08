@@ -146,7 +146,7 @@ function groupByWeek(sessions) {
 
 const sentenceCase = (name) => name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
 
-function WorkoutCell({ session, open, onToggle, onReveal, onDelete }) {
+function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete }) {
   const root = useRef(null)
   const pending = useRef(null)
   const pale = paleFor(session.routineName)
@@ -182,8 +182,14 @@ function WorkoutCell({ session, open, onToggle, onReveal, onDelete }) {
   const chevron = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 180}deg` }] }))
 
   // Written once and rendered twice — once out of sight to be measured, once
-  // inside the wrapper to be seen.
-  const body = (
+  // inside the wrapper to be seen. That is two full bodies per cell, and with
+  // a page of them it was the whole cost of the first paint, which the push
+  // has to wait for before it can start moving. So a closed cell builds
+  // nothing until the page says it is past that first paint; an open one —
+  // arriving from the completion screen — still builds immediately, because
+  // it has to be measured to be opened.
+  const show = built || open
+  const body = show ? (
     <>
           <View style={styles.summary}>
             <View style={styles.summaryRow}>
@@ -281,7 +287,7 @@ function WorkoutCell({ session, open, onToggle, onReveal, onDelete }) {
             </Text>
           ) : null}
     </>
-  )
+  ) : null
 
   return (
     <View ref={root} style={styles.cell}>
@@ -369,6 +375,15 @@ export default function History() {
   // rather than as a list to go hunting through for the thing you were just
   // doing.
   const [openIds, setOpenIds] = useState(() => new Set(expand ? [expand] : []))
+  // The cell bodies are what the push was waiting on — see WorkoutCell. The
+  // first paint is headers only, which lets the slide start; the bodies are
+  // built on the next frame, during the movement. The slide runs on the
+  // native side, so that work cannot stutter it.
+  const [built, setBuilt] = useState(false)
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setBuilt(true))
+    return () => cancelAnimationFrame(frame)
+  }, [])
   const [scrolled, setScrolled] = useState(false)
   // The bar compresses rather than swapping: the surface, and the year that
   // joins the title, are both faded so nothing appears or jumps. The big year
@@ -541,6 +556,7 @@ export default function History() {
                       key={session.id}
                       session={session}
                       open={openIds.has(session.id)}
+                      built={built}
                       onToggle={() => toggle(session.id)}
                       onReveal={revealInView}
                       onDelete={() => confirmDelete(session)}
