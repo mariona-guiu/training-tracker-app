@@ -24,16 +24,12 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated'
 
+import { REVEAL_SPRING } from '../../src/data/motion.js'
 import { getSettings, saveSettings } from '../../src/db/settings.js'
 import { REST_MODES, restModeById } from '../../src/data/rest.js'
 import { KCAL_NOTE } from '../../src/data/calories.js'
 import { ScreenTitle, TITLE_CLEARANCE } from '../../src/components/ScreenTitle.jsx'
 import { FONTS, LIGHT, SPACE, TAB_BAR_CLEARANCE } from '../../src/theme/index.js'
-
-// Opening and closing the pace options. The card is growing and pushing the
-// page down with it, so it takes its time; damped just under critical, so it
-// settles with a little give rather than stopping dead.
-const CARD_EXPAND = { stiffness: 210, damping: 26, mass: 1 }
 
 // iOS animates its keyboard over roughly this, on a curve of its own that is
 // private. The page travels on both, so the two move as one thing rather than
@@ -136,7 +132,7 @@ function Reveal({ open, fade, children }) {
   const shown = useSharedValue(0)
 
   useEffect(() => {
-    shown.value = withSpring(open ? height : 0, CARD_EXPAND)
+    shown.value = withSpring(open ? height : 0, REVEAL_SPRING)
   }, [open, height, shown])
 
   // Never below nothing. This spring is deliberately underdamped so it

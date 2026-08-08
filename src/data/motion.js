@@ -49,6 +49,23 @@ export const SHEET_SPRING = { stiffness: 190, damping: 26, mass: 1 }
 // moved rather than something appeared.
 export const TAB_SPRING = { stiffness: 320, damping: 22, mass: 0.8 }
 
+// A history cell opening and the page scrolling to keep it in view. Slack
+// enough that a cell unfolds rather than snapping, and shared by both halves
+// deliberately — the cell and the page move as one thing.
+export const EXPAND_SPRING = { stiffness: 120, damping: 20, mass: 1 }
+
+// A settings card growing to reveal what a switch turned on. Tighter than
+// EXPAND_SPRING: this is a control answering a tap, not content unfolding.
+export const REVEAL_SPRING = { stiffness: 210, damping: 26, mass: 1 }
+
+// How a thrown card settles back into the stack. Deliberately loose — a stiff
+// spring here reads as the card being yanked rather than coming to rest.
+export const GLIDE_SPRING = { stiffness: 70, damping: 22, mass: 1 }
+
+// A card's tilt under a finger, and its return. Light mass so it answers the
+// drag immediately; well damped so it doesn't wobble afterwards.
+export const TILT_SPRING = { stiffness: 300, damping: 28, mass: 0.5 }
+
 // How quickly an exercise fades as it leaves the middle of the screen. Above
 // 1 it is gone before it reaches the edge, so exercises hand over to each
 // other rather than both being legible at once.

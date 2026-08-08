@@ -37,12 +37,8 @@ import {
   TrashIcon,
 } from '../src/components/HistoryIcons.jsx'
 import { Glass } from '../src/components/Glass.jsx'
+import { EXPAND_SPRING } from '../src/data/motion.js'
 import { FONTS, LIGHT, SPACE } from '../src/theme/index.js'
-
-// Slower than the 190/25 this started at, and shared by both halves of the
-// movement — the cell growing and the page sliding to keep it in view. They
-// are one gesture as far as the eye is concerned, so they run on one spring.
-const CELL_EXPAND = { stiffness: 120, damping: 20, mass: 1 }
 
 const MONTH = new Intl.DateTimeFormat('en-GB', { month: 'long' })
 
@@ -164,7 +160,7 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete }) {
   const turn = useSharedValue(open ? 1 : 0)
 
   useEffect(() => {
-    height.value = withSpring(open ? bodyHeight : 0, CELL_EXPAND)
+    height.value = withSpring(open ? bodyHeight : 0, EXPAND_SPRING)
     turn.value = withTiming(open ? 1 : 0, { duration: 240 })
     // Set going here rather than from the press, so the page and the cell
     // start in the same effect on the same frame. measureInWindow answers
@@ -434,7 +430,7 @@ export default function History() {
     const most = Math.max(0, content.current + grow - viewport.current)
     const dest = Math.min(most, Math.max(0, scrollY.current + delta))
     glide.value = scrollY.current
-    glide.value = withSpring(dest, CELL_EXPAND)
+    glide.value = withSpring(dest, EXPAND_SPRING)
   }, [glide, barClearance, windowHeight, insets.bottom])
 
   useEffect(() => {

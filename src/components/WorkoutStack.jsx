@@ -10,6 +10,7 @@ import Animated, {
 import Svg, { Circle, Path } from 'react-native-svg'
 
 import { CANONICAL_ORDER, inkFor, styleFor } from '../data/routineStyles.js'
+import { GLIDE_SPRING, TILT_SPRING } from '../data/motion.js'
 import { FONTS } from '../theme/index.js'
 
 function sortForStack(routines) {
@@ -95,17 +96,14 @@ const DISTURBED = 8
 // the velocity away and halts, or stops dead against the boundary, which reads
 // as abrupt however the friction is set. THROW is the fraction of the
 // velocity it carries — the same 0.15 the web hands Framer's inertia — and
-// GLIDE is how it settles once thrown, deliberately loose, because a stiff
-// spring arrives and stops.
+// GLIDE_SPRING, in motion.js, is how it settles once thrown.
 const THROW = 0.15
-const GLIDE = { stiffness: 70, damping: 22, mass: 1 }
 
 // The tilt is a target the angle springs toward, not the angle itself. That
 // lag behind the finger is the whole of the lean; set directly, the card stays
 // straight however far it is dragged.
 const TILT_PER_PX = 0.12
 const TILT_MAX = 25
-const TILT_SPRING = { stiffness: 300, damping: 28, mass: 0.5 }
 
 // Framer's dragElastic: how far past the boundary a card still follows.
 const ELASTIC = 0.05
@@ -201,9 +199,9 @@ function StackCard({ routine, slotIndex, zIndex, canvas, resetAt, onLift, onDist
       // of starting again from rest.
       const glide = {
         velocity: event.velocityX,
-        stiffness: GLIDE.stiffness,
-        damping: GLIDE.damping,
-        mass: GLIDE.mass,
+        stiffness: GLIDE_SPRING.stiffness,
+        damping: GLIDE_SPRING.damping,
+        mass: GLIDE_SPRING.mass,
       }
       const throwTo = (from, velocity, min, max) =>
         Math.min(Math.max(from + velocity * THROW, min), max)
