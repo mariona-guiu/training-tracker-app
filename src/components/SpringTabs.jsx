@@ -131,7 +131,7 @@ function SpringTabsNavigator({ children, screenOptions, tabBar, initialRouteName
         <GestureDetector gesture={pan}>
           <Animated.View style={[styles.track, { width: width * count }, track]}>
             {state.routes.map((route) => (
-              <View key={route.key} style={{ width }}>
+              <View key={route.key} style={[styles.page, { width }]}>
                 {descriptors[route.key].render()}
               </View>
             ))}
@@ -148,4 +148,15 @@ export const createSpringTabNavigator = createNavigatorFactory(SpringTabsNavigat
 const styles = StyleSheet.create({
   host: { flex: 1 },
   track: { flex: 1, flexDirection: 'row' },
+  // A screen keeps to its own width. The card canvas deliberately draws past
+  // the edge — the top card sits half off-screen — and with the screens laid
+  // side by side in one track, past the edge meant on top of the next tab: an
+  // orange card over Stats mid-swipe, and a sliver of it left behind after.
+  //
+  // Clipping here rather than on the canvas, because it is the track that
+  // makes "past the edge" mean "over the neighbour". Safe in a way the web's
+  // equivalent was not: overflow on a React Native View clips and nothing
+  // else, where CSS overflow made an ancestor a scroll container and unstuck
+  // every page title.
+  page: { overflow: 'hidden' },
 })
