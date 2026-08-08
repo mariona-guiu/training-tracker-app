@@ -6,7 +6,7 @@ import Svg, { Path } from 'react-native-svg'
 
 import { listCompletedSessions } from '../../src/db/sessions.js'
 import { WeeklyChart } from '../../src/components/WeeklyChart.jsx'
-import { addDays, buildWeeks, startOfDay } from '../../src/data/weeks.js'
+import { addDays, buildWeeks, startOfDay, startOfWeek } from '../../src/data/weeks.js'
 import { ScreenTitle, TITLE_CLEARANCE } from '../../src/components/ScreenTitle.jsx'
 import { FONTS, LIGHT, SPACE, TAB_BAR_CLEARANCE } from '../../src/theme/index.js'
 
@@ -50,11 +50,68 @@ function ArrowIcon({ color }) {
   )
 }
 
+// TEMPORARY: long-press "My workouts" to preview this page against a few
+// months of plausible training, without writing anything to the database.
+// Copied verbatim from the web app's `/stats?mock` so the two can be compared
+// against identical data — the chart's scale animation only shows when the
+// busiest visible week changes, which a real install rarely does. Delete both
+// copies together once Stats is settled.
+// Hand-picked rather than drawn at random, because uniform randomness looks
+// less human than this does: good stretches, a couple of quiet weeks, and one
+// missed entirely. Index 0 is the current (partial) week.
+//
+// `typical` is the web app's own set, so the two charts can be put side by
+// side. `dense` is here for the scale animation specifically: the segments
+// only move when the busiest visible week changes, and how badly they move
+// depends on how far it changes by. The 17 and the 12 sit among ones and twos
+// so scrolling past them swings the scale as hard as it can swing.
+const MOCK_COUNTS = {
+  typical: [2, 4, 3, 5, 1, 4, 4, 0, 3, 6, 2, 4, 3, 5, 2, 0, 4, 3, 5, 1, 3],
+  dense: [8, 11, 9, 14, 2, 17, 10, 1, 12, 16, 3, 9, 13, 6, 11, 2, 15, 7, 12, 4, 9],
+}
+
+function mockSessions(mode) {
+  const routines = ['Upper Body', 'Lower Body', 'Glutes', 'Core', 'Full Body', 'Stretching']
+  const WEEKLY_COUNTS = MOCK_COUNTS[mode]
+
+  // Seeded so the preview looks the same on every render — otherwise it
+  // reshuffles itself while you're looking at it.
+  let seed = 20260730
+  const random = () => {
+    seed = (seed * 1103515245 + 12345) % 2147483648
+    return seed / 2147483648
+  }
+
+  const sessions = []
+  const thisWeek = startOfWeek(Date.now())
+  WEEKLY_COUNTS.forEach((count, weeksAgo) => {
+    const weekStart = addDays(thisWeek, -7 * weeksAgo)
+    // Distinct days, so a week of three workouts shows as three separate
+    // days rather than doubling up on one. A dense week wants more workouts
+    // than there are days, so the list repeats rather than being capped.
+    const days = [0, 1, 2, 3, 4, 5, 6]
+    for (let i = days.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1))
+      ;[days[i], days[j]] = [days[j], days[i]]
+    }
+    Array.from({ length: count }, (_, i) => days[i % 7]).forEach((dayOfWeek, i) => {
+      sessions.push({
+        id: `mock-${weeksAgo}-${i}`,
+        startedAt: addDays(weekStart, dayOfWeek) + 10 * 3600 * 1000,
+        routineName: routines[Math.floor(random() * routines.length)],
+      })
+    })
+  })
+  return sessions
+}
+
 export default function Stats() {
   // null = still loading, [] = loaded and genuinely empty. Kept distinct so
   // the loading screen and the empty state are not confused with each other.
   const [sessions, setSessions] = useState(null)
   const [scrolled, setScrolled] = useState(false)
+  // TEMPORARY, with mockSessions above: null, then 'typical', then 'dense'.
+  const [mock, setMock] = useState(null)
   const insets = useSafeAreaInsets()
   const router = useRouter()
 
@@ -63,8 +120,9 @@ export default function Stats() {
   // happens.
   useFocusEffect(
     useCallback(() => {
-      listCompletedSessions().then(setSessions)
-    }, []),
+      if (mock) setSessions(mockSessions(mock))
+      else listCompletedSessions().then(setSessions)
+    }, [mock]),
   )
 
   const stats = useMemo(() => {
@@ -104,7 +162,17 @@ export default function Stats() {
 
             <View style={styles.section}>
               <View style={styles.sectionHead}>
-                <Text style={styles.sectionTitle}>My workouts</Text>
+                {/* TEMPORARY: long-press cycles the mock training above. */}
+                <Pressable
+                  onLongPress={() =>
+                    setMock((now) => (now === null ? 'typical' : now === 'typical' ? 'dense' : null))
+                  }
+                  delayLongPress={600}
+                >
+                  <Text style={styles.sectionTitle}>
+                    My workouts{mock === 'typical' ? ' ·' : mock === 'dense' ? ' ··' : ''}
+                  </Text>
+                </Pressable>
                 {/* Per-workout detail and earlier months live in History, a
                   view pushed over this one rather than a tab of its own. */}
                 <Pressable

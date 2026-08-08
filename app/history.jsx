@@ -141,12 +141,10 @@ function WorkoutCell({ session, open, onToggle, onDelete }) {
   // the body itself: padding on a collapsed element still occupies space, so
   // the cell would never close all the way.
   const [bodyHeight, setBodyHeight] = useState(0)
-  const [mounted, setMounted] = useState(open)
   const height = useSharedValue(0)
   const turn = useSharedValue(open ? 1 : 0)
 
   useEffect(() => {
-    if (open) setMounted(true)
     height.value = withSpring(open ? bodyHeight : 0, CELL_EXPAND)
     turn.value = withTiming(open ? 1 : 0, { duration: 240 })
   }, [open, bodyHeight, height, turn])
@@ -155,6 +153,108 @@ function WorkoutCell({ session, open, onToggle, onDelete }) {
   // carries past zero and the layout clamps it, which reads as a snap.
   const reveal = useAnimatedStyle(() => ({ height: Math.max(0, height.value) }))
   const chevron = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 180}deg` }] }))
+
+  // Written once and rendered twice — once out of sight to be measured, once
+  // inside the wrapper to be seen.
+  const body = (
+    <>
+          <View style={styles.summary}>
+            <View style={styles.summaryRow}>
+              <ClockIcon size={24} color={pale.ink} />
+              <Text style={[styles.summaryText, { color: pale.ink }]}>
+                {durationLabel(session) ?? '—'}
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <DumbbellIcon size={24} color={pale.ink} />
+              <Text style={[styles.summaryText, { color: pale.ink }]}>
+                {exercisesDone}/{exercises} exercises completed
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <RepeatIcon size={24} color={pale.ink} />
+              <Text style={[styles.summaryText, { color: pale.ink }]}>
+                {setsDone}/{sets} sets completed
+              </Text>
+            </View>
+            {/* Left out entirely for a workout recorded without a body
+                weight — there is nothing honest to put here. */}
+            {kcal !== null ? (
+              <View style={styles.summaryRow}>
+                <BoltIcon size={24} color={pale.ink} />
+                <Text style={[styles.summaryText, { color: pale.ink }]}>~{kcal} kcal*</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {/* The one control here that destroys something, so it keeps its
+              own red on every colour rather than joining the palette — and
+              it only exists once the cell is open and you can see what you
+              would be deleting. */}
+          <Pressable
+            onPress={onDelete}
+            accessibilityRole="button"
+            accessibilityLabel={`Delete this ${session.routineName} workout`}
+            hitSlop={10}
+            style={styles.delete}
+          >
+            <TrashIcon size={24} color={LIGHT.danger} />
+          </Pressable>
+
+          <View style={styles.lifts}>
+            {session.exercises.map((exercise, i) => {
+              // Not the stored `skipped` flag: that records pressing Skip,
+              // which is true of an exercise you logged sets on before
+              // moving off it. What was done is what counts, so an exercise
+              // only reads as skipped when nothing was logged for it at all.
+              const untouched = !exercise.sets.some((set) => set.done)
+              return (
+                <View key={`${exercise.exerciseId}-${i}`} style={styles.lift}>
+                  <Text
+                    style={[
+                      styles.liftName,
+                      { color: pale.ink },
+                      untouched && styles.faded,
+                    ]}
+                  >
+                    {exercise.exerciseName}
+                    {untouched ? '*' : ''}
+                  </Text>
+                  <View style={styles.liftSets}>
+                    {setRuns(exercise).map((run, j) => (
+                      <Text
+                        key={j}
+                        style={[
+                          styles.liftRun,
+                          { color: pale.ink },
+                          // Not both. A missed set inside a skipped exercise
+                          // was being faded twice over, which read as a
+                          // third state that does not exist.
+                          (untouched || !run.done) && styles.faded,
+                        ]}
+                      >
+                        {runLabel(run, exercise.tracksWeight)}
+                        {run.done ? '' : '*'}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+              )
+            })}
+          </View>
+
+          {anySkipped ? (
+            <Text style={[styles.footnote, { color: pale.ink }, styles.faded]}>*Skipped</Text>
+          ) : null}
+          {/* After the skipped note when both are here, so the marks are
+              explained in the order they appear above. */}
+          {kcal !== null ? (
+            <Text style={[styles.footnote, styles.sentence, { color: pale.ink }, styles.faded]}>
+              {KCAL_DISCLAIMER}
+            </Text>
+          ) : null}
+    </>
+  )
 
   return (
     <View style={styles.cell}>
@@ -191,116 +291,27 @@ function WorkoutCell({ session, open, onToggle, onDelete }) {
 
       {/* A wash of the routine's own colour rather than a fresh surface, with
           the colour itself as ink wherever it holds up against that wash. */}
-      <Animated.View style={[styles.reveal, { backgroundColor: pale.background }, reveal]}>
-        {mounted ? (
-          <View
-            style={styles.body}
-            onLayout={(e) => {
-              // Once only. The wrapper's height is what animates, and the body
-              // is laid out again as it changes — so measuring every pass fed
-              // the collapse its own animation and made it stutter.
-              const measured = e.nativeEvent.layout.height
-              setBodyHeight((current) => (current === 0 ? measured : current))
-            }}
-          >
-            <View style={styles.summary}>
-              <View style={styles.summaryRow}>
-                <ClockIcon size={24} color={pale.ink} />
-                <Text style={[styles.summaryText, { color: pale.ink }]}>
-                  {durationLabel(session) ?? '—'}
-                </Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <DumbbellIcon size={24} color={pale.ink} />
-                <Text style={[styles.summaryText, { color: pale.ink }]}>
-                  {exercisesDone}/{exercises} exercises completed
-                </Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <RepeatIcon size={24} color={pale.ink} />
-                <Text style={[styles.summaryText, { color: pale.ink }]}>
-                  {setsDone}/{sets} sets completed
-                </Text>
-              </View>
-              {/* Left out entirely for a workout recorded without a body
-                  weight — there is nothing honest to put here. */}
-              {kcal !== null ? (
-                <View style={styles.summaryRow}>
-                  <BoltIcon size={24} color={pale.ink} />
-                  <Text style={[styles.summaryText, { color: pale.ink }]}>~{kcal} kcal*</Text>
-                </View>
-              ) : null}
-            </View>
-
-            {/* The one control here that destroys something, so it keeps its
-                own red on every colour rather than joining the palette — and
-                it only exists once the cell is open and you can see what you
-                would be deleting. */}
-            <Pressable
-              onPress={onDelete}
-              accessibilityRole="button"
-              accessibilityLabel={`Delete this ${session.routineName} workout`}
-              hitSlop={10}
-              style={styles.delete}
-            >
-              <TrashIcon size={24} color={LIGHT.danger} />
-            </Pressable>
-
-            <View style={styles.lifts}>
-              {session.exercises.map((exercise, i) => {
-                // Not the stored `skipped` flag: that records pressing Skip,
-                // which is true of an exercise you logged sets on before
-                // moving off it. What was done is what counts, so an exercise
-                // only reads as skipped when nothing was logged for it at all.
-                const untouched = !exercise.sets.some((set) => set.done)
-                return (
-                  <View key={`${exercise.exerciseId}-${i}`} style={styles.lift}>
-                    <Text
-                      style={[
-                        styles.liftName,
-                        { color: pale.ink },
-                        untouched && styles.faded,
-                      ]}
-                    >
-                      {exercise.exerciseName}
-                      {untouched ? '*' : ''}
-                    </Text>
-                    <View style={styles.liftSets}>
-                      {setRuns(exercise).map((run, j) => (
-                        <Text
-                          key={j}
-                          style={[
-                            styles.liftRun,
-                            { color: pale.ink },
-                            // Not both. A missed set inside a skipped exercise
-                            // was being faded twice over, which read as a
-                            // third state that does not exist.
-                            (untouched || !run.done) && styles.faded,
-                          ]}
-                        >
-                          {runLabel(run, exercise.tracksWeight)}
-                          {run.done ? '' : '*'}
-                        </Text>
-                      ))}
-                    </View>
-                  </View>
-                )
-              })}
-            </View>
-
-            {anySkipped ? (
-              <Text style={[styles.footnote, { color: pale.ink }]}>*Skipped</Text>
-            ) : null}
-            {/* After the skipped note when both are here, so the marks are
-                explained in the order they appear above. */}
-            {kcal !== null ? (
-              <Text style={[styles.footnote, styles.sentence, { color: pale.ink }]}>
-                {KCAL_DISCLAIMER}
-              </Text>
-            ) : null}
-          </View>
-        ) : null}
-      </Animated.View>
+      <View>
+        {/* Measured here, out of the flow, rather than inside the wrapper.
+            Measuring the copy inside is circular: it sits in a box whose
+            height is the very thing being measured, and is clipped to it, so
+            the first pass comes back short — and being kept, the cell opens
+            short from then on. Settings' Reveal was fixed this way; this was
+            missed. */}
+        <View
+          style={[styles.body, styles.measure]}
+          pointerEvents="none"
+          onLayout={(e) => {
+            const measured = e.nativeEvent.layout.height
+            setBodyHeight((current) => (Math.abs(current - measured) > 1 ? measured : current))
+          }}
+        >
+          {body}
+        </View>
+        <Animated.View style={[styles.reveal, { backgroundColor: pale.background }, reveal]}>
+          <View style={styles.body}>{body}</View>
+        </Animated.View>
+      </View>
     </View>
   )
 }
@@ -516,6 +527,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.12,
     textTransform: 'uppercase',
   },
+  // Laid out for its height only: out of the flow so it adds none, and
+  // invisible so it shows none.
+  measure: { position: 'absolute', left: 0, right: 0, top: 0, opacity: 0, zIndex: -1 },
   reveal: { overflow: 'hidden' },
   body: { paddingTop: SPACE[4], paddingHorizontal: SPACE[3], paddingBottom: SPACE[3] },
   summary: { gap: SPACE[1] },

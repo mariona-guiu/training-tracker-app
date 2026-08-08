@@ -34,6 +34,12 @@ every `setTimeout` and `require` is a false positive. Run both.
 
 Neither sees layout, motion or touch behaviour. Those still need the phone.
 
+Neither sees stray text either. JSX strips whitespace at line boundaries but
+keeps it *within* a line, so `) : null}    </>` on one line leaves four spaces
+as a string child and React Native throws "Text strings must be rendered
+within a `<Text>` component" — at runtime, on the phone, past both checks.
+Worth knowing because scripted edits that join lines produce exactly this.
+
 ## Working agreement: how to not loop
 
 Agreed with the user on 2026-08-08, after the set-edit panel's keyboard
@@ -193,6 +199,14 @@ not.
 | `line-height: 1.05` on a 64px figure | CSS lets glyphs spill outside their line box, so a tight one just overflows | React Native **clips** to it, so it cut the tops and tails off |
 | `gap: 20` between two figures | The designer's 20 was measured against boxes already carrying the font's leading | The same 20 *added* to that leading, and the pair sat 60 apart |
 | `rgba(253,253,252,0.72)` on a bar | Tints a `backdrop-filter`, which does the blurring | Laid over a `BlurView` that already frosts, it came out solid white |
+
+A fourth, the same shape but about animation: the web transitions a
+segment's `height`, and the port eased the **row count** the height is derived
+from. Height is `230 / rows`, a curve — so easing rows from 17 to 1 leaves the
+segment at 25pt when the animation is half over and does the whole visible
+change in the last moments. It stalls, then snaps. **Interpolate the value the
+eye is watching, not an input to a non-linear function.** CSS only ever offers
+the former, so a ported transition has to be pointed at the same quantity.
 
 So: when porting a value, port what it was doing, not what it said. If the
 mechanism underneath is different — a line box that clips, a leading that is

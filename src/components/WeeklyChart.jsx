@@ -49,10 +49,10 @@ function segmentHeight(rows) {
 // is read as a fraction of it — which means a column's height is only
 // comparable within one screenful. That is the trade for never wasting the
 // card on a quiet stretch.
-function Segment({ workout, rows, dimmed, last }) {
+function Segment({ workout, height, gap, dimmed, last }) {
   const style = useAnimatedStyle(() => ({
-    height: segmentHeight(rows.value),
-    marginBottom: last ? 0 : gapFor(rows.value),
+    height: height.value,
+    marginBottom: last ? 0 : gap.value,
   }))
 
   return (
@@ -87,9 +87,20 @@ export function WeeklyChart({ weeks }) {
     return { first, last, rows }
   })
 
-  // Mirrored where the animation can read it. The scale changing under your
-  // finger is worth animating, so this eases rather than jumping.
-  const rows = useSharedValue(view.rows)
+  // What the animation actually runs on: the segment's height in points, not
+  // the row count it is derived from.
+  //
+  // Driving `rows` and computing the height from it each frame looks like the
+  // same thing and is not, because height is 230/rows — a curve, not a line.
+  // Easing rows from 17 to 1 leaves the segment at 25pt when the animation is
+  // half over and then does the whole visible change in the last moments, so
+  // it sits still and then snaps. The web transitions the height itself, and
+  // this now does too.
+  const height = useSharedValue(segmentHeight(view.rows))
+  // The gap is not animated, matching the web, where only `height` and
+  // `opacity` are transitioned and the track's `gap` changes outright. It is
+  // at most 5pt, so there is nothing to see.
+  const gap = useSharedValue(gapFor(view.rows))
   // What the scale was last *told* to become, which is not the same as what
   // it currently is: mid-animation the shared value is somewhere between the
   // two, so comparing against it re-fires the animation on every scroll frame
@@ -123,15 +134,19 @@ export function WeeklyChart({ weeks }) {
       )
       if (next !== target.current) {
         target.current = next
+        gap.value = gapFor(next)
         if (settled.current) {
-          rows.value = withTiming(next, { duration: 320, easing: Easing.bezier(0.4, 0, 0.2, 1) })
+          height.value = withTiming(segmentHeight(next), {
+            duration: 320,
+            easing: Easing.bezier(0.4, 0, 0.2, 1),
+          })
         } else {
-          rows.value = next
+          height.value = segmentHeight(next)
         }
       }
       settled.current = true
     },
-    [columnWidth, weeks, rows],
+    [columnWidth, weeks, height, gap],
   )
 
   // Which workout is under the finger. Rows are counted up from the baseline
@@ -232,7 +247,8 @@ export function WeeklyChart({ weeks }) {
                   <Segment
                     key={workout.id}
                     workout={workout}
-                    rows={rows}
+                    height={height}
+                    gap={gap}
                     last={i === week.workouts.length - 1}
                     // While a workout is being read the rest of the chart
                     // steps back, so the readout is unambiguously about one

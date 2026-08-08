@@ -205,9 +205,9 @@ export default function Settings() {
   // changes shape while the field is open.
   const keypadHeight = useRef(0)
   const field = useRef(null)
-  // Recorded before focus is lost, because losing focus is also what the
-  // keypad's own dismissal does, and from here the two are identical.
-  const abandoned = useRef(false)
+  // Set by the save button, which fires on press-in — before the field loses
+  // focus. Everything else that ends an edit is a cancel.
+  const saved = useRef(false)
   const insets = useSafeAreaInsets()
   const screen = useWindowDimensions()
 
@@ -302,6 +302,7 @@ export default function Settings() {
   }, [])
 
   function saveWeight() {
+    saved.current = true
     const value = weightDraft.trim()
     // Clearing the field is a real answer — it means "don't estimate for me" —
     // so an empty box stores nothing rather than being ignored.
@@ -311,18 +312,25 @@ export default function Settings() {
   }
 
   function abandonWeight() {
-    abandoned.current = true
     setWeightDraft(settings.bodyWeightKg == null ? '' : String(settings.bodyWeightKg))
     setEditing(false)
     Keyboard.dismiss()
   }
 
-  // Whatever put the keypad away — the tick, swiping it down, tapping
-  // elsewhere — the edit is over, so the caret goes with it. Typing is kept
-  // unless a tap on the page said otherwise first.
+  // Losing focus ends the edit and keeps nothing. The save button is the only
+  // thing that stores what was typed, and it fires on press-in, before focus
+  // goes — so by the time this runs, anything but a save is a cancel.
+  //
+  // Driven from the field itself rather than from a tap handler on the page:
+  // the scroller claims taps before anything above it sees them, so a
+  // responder up there is never offered the touch. Whatever takes the keypad
+  // away takes focus with it, and that is the one signal that always arrives.
   function handleBlur() {
-    if (!abandoned.current) saveWeight()
-    abandoned.current = false
+    if (saved.current) {
+      saved.current = false
+      return
+    }
+    abandonWeight()
   }
 
   if (!settings) {
@@ -339,11 +347,6 @@ export default function Settings() {
   return (
     <View
       style={styles.screen}
-      // Anything else tapped while the field is open abandons the edit — the
-      // one exit that does not keep what was typed. Children are asked first,
-      // so the field, its card and the save button all still work.
-      onStartShouldSetResponder={editing ? () => true : undefined}
-      onResponderRelease={editing ? abandonWeight : undefined}
     >
       {/* Frosted while the page is lifted as well as while it is scrolled.
           Lifting moves content under the title without changing the scroll
