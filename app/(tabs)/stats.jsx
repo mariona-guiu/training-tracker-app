@@ -8,7 +8,12 @@ import { listCompletedSessions } from '../../src/db/sessions.js'
 import { WeeklyChart } from '../../src/components/WeeklyChart.jsx'
 import { addDays, buildWeeks, startOfDay, startOfWeek } from '../../src/data/weeks.js'
 import { ScreenTitle, TITLE_CLEARANCE } from '../../src/components/ScreenTitle.jsx'
-import { FONTS, LIGHT, RADIUS, SPACE, TAB_BAR_CLEARANCE } from '../../src/theme/index.js'
+import { FONTS, LIGHT, RADIUS, SPACE, TAB_BAR_CLEARANCE, TYPE } from '../../src/theme/index.js'
+
+// What Favorit reserves below the baseline at `figure` size and a row of
+// digits never uses. Measured from the font, not guessed — see the note on
+// line heights in native/CLAUDE.md.
+const FIGURE_DESCENDER = 17.5
 
 function monthsBefore(ts, months) {
   const d = new Date(ts)
@@ -196,39 +201,36 @@ export default function Stats() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: LIGHT.bg },
   counters: { flexDirection: 'row', gap: SPACE[2] },
-  // Height, padding and radius as designed. The width is the one value not
-  // taken literally: the mock's 168 is half a ~375 frame, so the pair already
-  // spans the row — as equal flex they keep doing that on every phone instead
-  // of leaving a strip of dead space on a wider one.
+  // Height and radius as designed; the padding has been moved onto the
+  // spacing scale — 21/19/30 became 24/16/24, which is a deliberate change
+  // to the design rather than a rounding of it. The width is the one value
+  // that was never literal: the mock's 168 is half a ~375 frame, so the pair
+  // already spans the row — as equal flex they keep doing that on every
+  // phone instead of leaving a strip of dead space on a wider one.
   counter: {
     flex: 1,
     height: 153,
-    paddingTop: 21,
-    paddingHorizontal: 19,
-    paddingBottom: 30,
+    paddingTop: SPACE[4],
+    paddingHorizontal: SPACE[3],
+    paddingBottom: SPACE[4],
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     borderRadius: RADIUS.card,
     backgroundColor: LIGHT.bgRaised,
   },
-  counterLabel: {
-    fontFamily: FONTS.mono,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.66,
-    color: LIGHT.text,
-  },
+  counterLabel: { ...TYPE.label, color: LIGHT.text },
   // Sized for three digits. No line height stated — Favorit's own is 1.249em
   // and anything below it clips, which is why the web's trick of trimming to
   // the cap height cannot be ported directly. See native/CLAUDE.md.
   counterValue: {
-    fontFamily: FONTS.bold,
-    fontSize: 56,
+    ...TYPE.figure,
     color: LIGHT.text,
-    // The gap under the figure is the card's 30 of padding plus the 17.5 of
-    // descender depth Favorit reserves at this size and digits never use.
-    // Half of the two together, pulled back.
-    marginBottom: -24,
+    // The gap under the figure is the card's bottom padding plus the depth
+    // Favorit reserves for descenders at this size, which digits never use.
+    // Half of the two together, pulled back — written as the sum rather than
+    // as -24, so that moving the padding onto the scale moved this with it
+    // instead of leaving the figure sitting wrong.
+    marginBottom: -(SPACE[4] + FIGURE_DESCENDER) / 2,
   },
   section: { gap: SPACE[2] },
   sectionHead: {
@@ -238,10 +240,9 @@ const styles = StyleSheet.create({
     gap: SPACE[2],
   },
   // Sentence case: this reads as a section of the page, not a label on it.
-  sectionTitle: {
-    fontFamily: FONTS.bold,
-    fontSize: 20,
-    letterSpacing: -0.2,
-    color: LIGHT.text,
-  },
+  // `title` sets the size and tracking; the weight is the screen's choice.
+  // 20 carries two jobs in this app — a section heading in bold here, an
+  // object's own name in medium on a history cell — and that is a real
+  // difference rather than a drift, so the role does not fix the weight.
+  sectionTitle: { ...TYPE.title, fontFamily: FONTS.bold, color: LIGHT.text },
 })

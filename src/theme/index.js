@@ -81,6 +81,12 @@ export const FONTS = {
 // off numerals. Recover tightness with margins, which do not clip.
 export const TYPE = {
   label: { fontFamily: FONTS.mono, fontSize: 12, letterSpacing: 12 * 0.02, textTransform: 'uppercase' },
+  // Small text that is neither a label nor prose — a chart's year and its
+  // week-endings. Same size as `label` and deliberately not the same role: it
+  // is set in the text cut rather than the mono one, mixed case, and tracks
+  // in rather than out, because it is being read as data rather than announced
+  // as a heading.
+  caption: { fontFamily: FONTS.regular, fontSize: 12, letterSpacing: 12 * -0.01 },
   note: { fontFamily: FONTS.light, fontSize: 13, lineHeight: 19 },
   body: { fontFamily: FONTS.regular, fontSize: 16 },
   control: { fontFamily: FONTS.mono, fontSize: 16, letterSpacing: 16 * 0.08, textTransform: 'uppercase' },

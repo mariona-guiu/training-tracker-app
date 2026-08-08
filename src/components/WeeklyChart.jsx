@@ -13,7 +13,7 @@ import Animated, {
 
 import { inkFor, styleFor } from '../data/routineStyles.js'
 import { VISIBLE_WEEKS, yearOfWeek } from '../data/weeks.js'
-import { FONTS, LIGHT, RADIUS, SPACE } from '../theme/index.js'
+import { FONTS, LIGHT, RADIUS, SPACE, TYPE } from '../theme/index.js'
 
 // How long a finger has to stay put before the press is read as "show me this
 // workout" rather than the beginning of a scroll. Short enough to feel
@@ -269,13 +269,13 @@ export function WeeklyChart({ weeks }) {
 const styles = StyleSheet.create({
   chart: {
     backgroundColor: LIGHT.bgRaised,
-    borderRadius: 16,
-    paddingTop: 16,
+    borderRadius: RADIUS.card,
+    paddingTop: SPACE[3],
     paddingHorizontal: 12,
-    paddingBottom: 24,
+    paddingBottom: SPACE[4],
   },
   caption: { height: 50, justifyContent: 'flex-start' },
-  year: { fontFamily: FONTS.regular, fontSize: 12, letterSpacing: -0.12, color: '#191919' },
+  year: { ...TYPE.caption, color: LIGHT.text },
   // Full width so a long routine name never truncates, and carrying that
   // routine's colour — which is what ties it to the segment under the finger,
   // since it is not sitting next to it.
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     height: 33,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: RADIUS.card,
   },
   readoutText: {
     fontFamily: FONTS.bold,
@@ -311,9 +311,7 @@ const styles = StyleSheet.create({
   label: {
     width: 29,
     textAlign: 'center',
-    fontFamily: FONTS.regular,
-    fontSize: 12,
-    letterSpacing: -0.12,
-    color: '#191919',
+    ...TYPE.caption,
+    color: LIGHT.text,
   },
 })
