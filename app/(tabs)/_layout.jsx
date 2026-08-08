@@ -1,19 +1,13 @@
 import { useEffect } from 'react'
 import { withLayoutContext } from 'expo-router'
 import { Pressable, StyleSheet, View } from 'react-native'
-import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs'
-import { Gesture, GestureDetector } from 'react-native-gesture-handler'
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated'
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { SettingsIcon, StatsIcon, WorkoutIcon } from '../../src/components/TabIcons.jsx'
 import { Glass, LIQUID_GLASS } from '../../src/components/Glass.jsx'
+import { createSpringTabNavigator } from '../../src/components/SpringTabs.jsx'
 import { NAV_FLOAT_GAP, NAV_HEIGHT } from '../../src/theme/index.js'
 import { TAB_SPRING } from '../../src/data/motion.js'
 
@@ -21,14 +15,11 @@ import { TAB_SPRING } from '../../src/data/motion.js'
 // in progress deliberately sits outside this group, so it fills the display
 // with no bar over it — the same split the web app makes, for the same reason.
 //
-// Built on material top tabs with the bar moved to the bottom, rather than on
-// bottom tabs. The reason is the swipe: a bottom-tab navigator mounts one
-// screen at a time and stacks them, so there is never a neighbour on screen to
-// follow your finger. This one lays them side by side on a pager, which is how
-// the web's tab transition behaves — each screen entering and leaving from its
-// own side.
-const { Navigator } = createMaterialTopTabNavigator()
-const MaterialTopTabs = withLayoutContext(Navigator)
+// The screens lie side by side and settle on a spring — see SpringTabs, which
+// exists because no pager on offer lets its landing be configured, and the web
+// app lands on PUSH_SPRING rather than stopping dead.
+const { Navigator } = createSpringTabNavigator()
+const SpringTabs = withLayoutContext(Navigator)
 
 const TABS = [
   { name: 'index', Icon: WorkoutIcon, label: 'Workouts' },
@@ -46,12 +37,6 @@ const ITEM_HEIGHT = 44
 const ITEM_GAP = 4
 const BAR_PAD = 4
 const STEP = ITEM_WIDTH + ITEM_GAP
-
-// The cards own the middle of the Workouts screen, so the pager's own swipe is
-// turned off there and only a drag begun at the right edge leaves the tab —
-// the same rule the web uses, for the same reason.
-const EDGE_BAND = 32
-const EDGE_SWIPE = 48
 
 function TabBar({ state, navigation }) {
   const insets = useSafeAreaInsets()
@@ -115,59 +100,18 @@ function TabBar({ state, navigation }) {
   )
 }
 
-// A drag begun within a thumb's width of the right edge of the Workouts screen
-// moves on to Stats. It does not follow the finger the way the pager does — it
-// cannot, since the pager's own swipe is off on this screen — but it leaves
-// the cards the whole canvas, which matters more.
-function HomeEdgeSwipe({ navigation, state }) {
-  const onHome = state.index === 0
-
-  const swipe = Gesture.Pan()
-    .activeOffsetX([-20, 20])
-    .failOffsetY([-24, 24])
-    .onEnd((event) => {
-      // Only ever forwards: there is nothing to the left of Workouts.
-      if (event.translationX > -EDGE_SWIPE) return
-      runOnJS(navigation.navigate)('stats')
-    })
-
-  if (!onHome) return null
-
-  return (
-    <GestureDetector gesture={swipe}>
-      <View style={[styles.edge, { width: EDGE_BAND }]} />
-    </GestureDetector>
-  )
-}
-
 export default function TabsLayout() {
   return (
-    <MaterialTopTabs
-      tabBarPosition="bottom"
-      tabBar={(props) => (
-        <>
-          <HomeEdgeSwipe {...props} />
-          <TabBar {...props} />
-        </>
-      )}
-    >
-      {/* The cards need the whole canvas, so the pager does not take swipes
-          here — the edge strip stands in for it. */}
-      <MaterialTopTabs.Screen name="index" options={{ swipeEnabled: false }} />
-      <MaterialTopTabs.Screen name="stats" />
-      <MaterialTopTabs.Screen name="settings" />
-    </MaterialTopTabs>
+    <SpringTabs tabBar={(props) => <TabBar {...props} />}>
+      <SpringTabs.Screen name="index" />
+      <SpringTabs.Screen name="stats" />
+      <SpringTabs.Screen name="settings" />
+    </SpringTabs>
   )
 }
 
 const styles = StyleSheet.create({
   dock: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 2 },
-  // A strip down the right-hand side of the Workouts screen, invisible and
-  // narrow enough that the cards keep everything else.
-  // Starts below the header. Run to the top and it lies over the restack
-  // button, which sits 16 from the same edge — the strip is invisible, so
-  // what looks like a missing control is a missing *tap*.
-  edge: { position: 'absolute', right: 0, top: 140, bottom: 0, zIndex: 1 },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',

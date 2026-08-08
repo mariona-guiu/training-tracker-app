@@ -56,7 +56,21 @@ export default function RootLayout() {
                 nothing. */}
             <Stack.Screen
               name="history"
-              options={{ animation: 'slide_from_right', animationDuration: 600 }}
+              // `simple_push` rather than `slide_from_right`, because on iOS
+              // the duration is only honoured for slide_from_bottom,
+              // fade_from_bottom, fade and simple_push. Set against
+              // slide_from_right it is ignored outright, which is why asking
+              // for 450 and then 600 changed nothing at all.
+              // `animationMatchesGesture` defaults to false, which means a
+              // swipe back is completed by iOS at its own quick pace rather
+              // than by the animation set here — so going in took 900ms and
+              // coming out did not. On, the two are the same movement in
+              // opposite directions.
+              options={{
+                animation: 'simple_push',
+                animationDuration: 900,
+                animationMatchesGesture: true,
+              }}
             />
             {/* A workout is pushed over the tabs rather than living inside
                 them, so it covers the tab bar. The colour already fills the

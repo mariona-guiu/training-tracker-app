@@ -252,32 +252,45 @@ export default function Settings() {
         easing: KEYBOARD_EASING,
       })
     }
+    const fade = (to, duration) => {
+      editingNow.value = withTiming(to, {
+        duration: duration || KEYBOARD_MS,
+        easing: KEYBOARD_EASING,
+      })
+    }
+    let clearing
     const shown = Keyboard.addListener('keyboardWillShow', (event) => {
       keypadHeight.current = event.endCoordinates.height
       restore.current = scrollY.current
       offset.value = scrollY.current
       setKeypadRoom(event.endCoordinates.height)
       move(offsetFor(event.endCoordinates.height), event.duration)
+      fade(1, event.duration)
     })
     const hidden = Keyboard.addListener('keyboardWillHide', (event) => {
       keypadHeight.current = 0
       move(restore.current, event.duration)
-      setKeypadRoom(0)
+      // Trying it without a fade on the way out: the button simply goes, and
+      // the page travels back on its own. Set outright rather than asked for
+      // with a zero duration — `fade` falls back to its default on anything
+      // falsy, and 0 is falsy. `fade(0, event.duration)` puts the fade back.
+      editingNow.value = 0
+      // Held until the page has finished travelling. Taken away at once, the
+      // content shortens underneath a scroll still in flight and the position
+      // it is heading for stops existing.
+      clearing = setTimeout(() => setKeypadRoom(0), event.duration || KEYBOARD_MS)
     })
     return () => {
       shown.remove()
       hidden.remove()
+      clearTimeout(clearing)
     }
-  }, [offset, offsetFor])
+  }, [offset, offsetFor, editingNow])
 
   // Driven straight onto the scroller every frame, on the UI thread.
   useDerivedValue(() => {
     scrollTo(scroller, 0, offset.value, false)
   })
-
-  useEffect(() => {
-    editingNow.value = withTiming(editing ? 1 : 0, { duration: 200 })
-  }, [editing, editingNow])
 
   // Only ever a fade. It sits in the page and travels with it, so it needs no
   // movement of its own — and a height would give it a sweep.
@@ -405,15 +418,13 @@ export default function Settings() {
             </Reveal>
           </View>
 
-          {/* Gone rather than merely invisible: faded on its own it kept its
-              height, and the gap it left between the two cards was the size
-              of the paragraph nobody could read. */}
-          <Reveal open={!restOn} fade>
-            <Text style={styles.note}>
-              When you turn Rest Time on, after logging a set you will see a countdown for your rest
-              time between sets. You can also choose what pace you want your rest time to be.
-            </Text>
-          </Reveal>
+          {/* Always there rather than only while rest is off. The second
+              sentence went with it — the pace options are on screen saying
+              that themselves. */}
+          <Text style={styles.note}>
+            When you turn Rest Time on, after logging a set you will see a countdown for your rest
+            time between sets.
+          </Text>
         </View>
 
         <View
