@@ -326,10 +326,7 @@ export default function Settings() {
   // responder up there is never offered the touch. Whatever takes the keypad
   // away takes focus with it, and that is the one signal that always arrives.
   function handleBlur() {
-    if (saved.current) {
-      saved.current = false
-      return
-    }
+    if (saved.current) return
     abandonWeight()
   }
 
@@ -448,7 +445,14 @@ export default function Settings() {
           }}
         >
           <Pressable
-            onPress={() => setEditing(true)}
+            onPress={() => {
+              // A new edit owes nothing to the last one. Saving sets the flag
+              // below and then unmounts the field, and unmounting does not
+              // blur — so without this the flag stays raised for good and the
+              // next tap outside is swallowed as though it were a save.
+              saved.current = false
+              setEditing(true)
+            }}
             style={[styles.card, styles.weight, editing && styles.weightEditing]}
           >
             <Text style={styles.label}>Body weight</Text>
