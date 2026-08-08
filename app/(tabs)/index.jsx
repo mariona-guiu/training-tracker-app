@@ -16,28 +16,7 @@ import { styleFor } from '../../src/data/routineStyles.js'
 import { originFrom, useLaunch } from '../../src/components/LaunchOverlay.jsx'
 import { WorkoutStack } from '../../src/components/WorkoutStack.jsx'
 import { StackIcon, StackIconPressed } from '../../src/components/StackIcon.jsx'
-import { TuningPanel } from '../../src/components/TuningPanel.jsx'
 import { FONTS, LIGHT, SPACE } from '../../src/theme/index.js'
-
-// How the cards move. Held here rather than inside the stack so the tuning
-// panel can reach them — see TuningPanel, which is temporary scaffolding.
-const DEFAULT_TUNING = {
-  // How far a released card carries, as a fraction of its velocity — the
-  // same 0.15 the web hands Framer's inertia.
-  power: 0.15,
-  // And how it settles once thrown. Soft on purpose: a stiff spring arrives
-  // and stops, which is the abruptness this replaced.
-  glideStiffness: 70,
-  glideDamping: 22,
-  tilt: 0.12,
-  tiltMax: 25,
-  // Framer's dragElastic: how far past the boundary a card still follows.
-  elastic: 0.05,
-  // The restack, and the slight give while a card is held.
-  stiffness: 300,
-  damping: 28,
-  mass: 0.5,
-}
 
 // The Workouts screen: a canvas of cards you can push around, not a list.
 //
@@ -54,8 +33,6 @@ export default function Workouts() {
   // restack button is the only thing that undoes it.
   const [disturbed, setDisturbed] = useState(false)
   const [resetAt, setResetAt] = useState(0)
-  const [tuning, setTuning] = useState(DEFAULT_TUNING)
-  const [tuner, setTuner] = useState(false)
   const insets = useSafeAreaInsets()
   const screen = useWindowDimensions()
   const router = useRouter()
@@ -145,7 +122,6 @@ export default function Workouts() {
     <View style={styles.screen}>
       <WorkoutStack
         routines={routines}
-        tuning={tuning}
         resetAt={resetAt}
         onDisturb={disturb}
         onStart={start}
@@ -153,9 +129,7 @@ export default function Workouts() {
 
       {/* Above the cards, so they pass behind it. */}
       <View style={[styles.header, { top: headerTop }]} pointerEvents="box-none">
-        <Pressable onLongPress={() => setTuner((open) => !open)} delayLongPress={600}>
-          <Text style={styles.title}>Workouts</Text>
-        </Pressable>
+        <Text style={styles.title}>Workouts</Text>
 
         {/* Only once the cards have been moved: it is a way back, so there is
             nothing for it to do until there is something to undo. Present
@@ -197,15 +171,6 @@ export default function Workouts() {
           </Pressable>
         </Animated.View>
       </View>
-
-      {tuner ? (
-        <TuningPanel
-          tuning={tuning}
-          onChange={(key, value) => setTuning((t) => ({ ...t, [key]: value }))}
-          onReset={() => setTuning(DEFAULT_TUNING)}
-          onClose={() => setTuner(false)}
-        />
-      ) : null}
     </View>
   )
 }

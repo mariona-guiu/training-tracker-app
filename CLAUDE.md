@@ -77,6 +77,27 @@ can drive. `src/components/TuningPanel.jsx` is the model.
 so the parts that "were applied" silently were not. Grep the result before
 describing it. Lint caught this twice today; that was luck.
 
+### Build the user a panel
+
+When something is visual — a spring, a spacing, a fade — **build a panel of
+sliders and hand it over.** Do not iterate on numbers by description. The user
+asked for this explicitly: adjusting it themselves, on the phone, is far
+faster and less taxing than saying "a bit slower" and waiting a round to see.
+
+`src/components/TuningPanel.jsx` was the shape of it, and it is worth copying
+from the commit that removed it (values live in the screen's state, sliders
+drive them, a Defaults button, and the whole thing behind a long-press on the
+title). It cost one round to build and ended an exchange that had already run
+several. The card canvas's `THROW`, `GLIDE`, `TILT_PER_PX` and `ELASTIC` are
+the numbers it landed on.
+
+Mark it TEMPORARY, and when the values settle write them into the component as
+named constants — with the reasoning, not just the number — and delete the
+panel.
+
+This is a **first** resort for styling work, not something to reach for only
+once stuck.
+
 ### What the user has agreed to do
 
 - Say whether it is the **same** wrong or a **different** wrong. That one
@@ -284,17 +305,16 @@ land.
 
 ## Where the port has got to
 
-Working: storage and seeding, theme tokens, all eight font cuts, the tab bar
-and its three screens, and a workout you can open, log sets in, and end —
-which lands in Stats.
+**Every screen is ported.** The card canvas, the workout with its carousel,
+rest sweep and completion screen, Stats and its weekly chart, History, and
+Settings. The colour grows out of a tapped card and hands itself back on the
+way out. The tabs and the push to History settle on the same springs the web
+uses, from the same `motion.js`.
 
-The screens are deliberately plain. Every one of them is a placeholder for a
-design that either exists on the web and has not been ported yet (Stats,
-History, Settings) or is waiting on the user's cue cards (the four-tab
-restructure). Do not polish them speculatively.
+What is left is not screens. It is the list under "Waiting on a development
+build" — the glass, the confetti, `@expo/ui`'s PagerView, and the app on the
+home screen with its own icon. All four want the same thing.
 
-What has not been attempted yet is the part the port exists for: the colour
-growing out of a tapped card, the swipeable exercise carousel, the rest sweep,
-the completion screen. Those need Reanimated and Gesture Handler and should be
-built one at a time against the real thing on a phone, since none of it can be
-judged from a simulator or a test.
+Still standing after that: the four-tab restructure from the roadmap, which
+waits on the user's cue cards and is a change to both apps rather than to this
+one. Read `docs/routines-as-slots.md` and the roadmap before starting it.

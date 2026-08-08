@@ -86,6 +86,30 @@ const OVERFLOW_Y = CARD_HEIGHT * 0.3
 // that was only tapped does not summon the restack button.
 const DISTURBED = 8
 
+// How the cards move. Arrived at on the phone with a panel of sliders, now
+// that they are settled — the panel is gone, and these are the numbers it
+// ended on.
+//
+// A released card is thrown to a projected target and springs into it, rather
+// than decaying. `withDecay` is the obvious tool and the wrong feel: it bleeds
+// the velocity away and halts, or stops dead against the boundary, which reads
+// as abrupt however the friction is set. THROW is the fraction of the
+// velocity it carries — the same 0.15 the web hands Framer's inertia — and
+// GLIDE is how it settles once thrown, deliberately loose, because a stiff
+// spring arrives and stops.
+const THROW = 0.15
+const GLIDE = { stiffness: 70, damping: 22, mass: 1 }
+
+// The tilt is a target the angle springs toward, not the angle itself. That
+// lag behind the finger is the whole of the lean; set directly, the card stays
+// straight however far it is dragged.
+const TILT_PER_PX = 0.12
+const TILT_MAX = 25
+const TILT_SPRING = { stiffness: 300, damping: 28, mass: 0.5 }
+
+// Framer's dragElastic: how far past the boundary a card still follows.
+const ELASTIC = 0.05
+
 // Past the boundary the card keeps following the finger, but only by this
 // fraction of the overshoot — Framer's dragElastic. It gives the edge some
 // give instead of the card simply stopping against it.
@@ -96,7 +120,7 @@ function rubber(value, min, max, elastic) {
   return value
 }
 
-function StackCard({ routine, slotIndex, zIndex, canvas, tuning, resetAt, onLift, onDisturb, onStart }) {
+function StackCard({ routine, slotIndex, zIndex, canvas, resetAt, onLift, onDisturb, onStart }) {
   const style = styleFor(routine.name, slotIndex)
   const ink = inkFor(routine.name, slotIndex)
   const card = useRef(null)
@@ -127,14 +151,12 @@ function StackCard({ routine, slotIndex, zIndex, canvas, tuning, resetAt, onLift
   // gesture to set a flag that is already set.
   const reported = useSharedValue(false)
 
-  const spring = { stiffness: tuning.stiffness, damping: tuning.damping, mass: tuning.mass }
-
   // Back to where it began, angle and all.
   useEffect(() => {
     if (!resetAt) return
-    x.value = withSpring(0, spring)
-    y.value = withSpring(0, spring)
-    turn.value = withSpring(restAngle, spring)
+    x.value = withSpring(0, TILT_SPRING)
+    y.value = withSpring(0, TILT_SPRING)
+    turn.value = withSpring(restAngle, TILT_SPRING)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetAt])
 
@@ -145,22 +167,22 @@ function StackCard({ routine, slotIndex, zIndex, canvas, tuning, resetAt, onLift
       // Cumulative from the start of the gesture, so this is the baseline the
       // tilt is added on top of.
       startTurn.value = turn.value
-      held.value = withSpring(1, spring)
+      held.value = withSpring(1, TILT_SPRING)
       reported.value = false
       runOnJS(onLift)(routine.id)
     })
     .onUpdate((event) => {
-      x.value = rubber(startX.value + event.translationX, minX, maxX, tuning.elastic)
-      y.value = rubber(startY.value + event.translationY, minY, maxY, tuning.elastic)
+      x.value = rubber(startX.value + event.translationX, minX, maxX, ELASTIC)
+      y.value = rubber(startY.value + event.translationY, minY, maxY, ELASTIC)
       // The angle is a target, not the angle itself: the card leans toward it
       // on a spring, so the tilt eases in behind the finger rather than being
       // pinned to it. That lag is the whole of the lean. Re-aiming a spring
       // that is already running keeps its velocity, which is what makes this
       // continuous rather than a series of jumps.
-      const proposed = startTurn.value + event.translationX * tuning.tilt
+      const proposed = startTurn.value + event.translationX * TILT_PER_PX
       turn.value = withSpring(
-        Math.min(Math.max(proposed, -tuning.tiltMax), tuning.tiltMax),
-        { stiffness: tuning.stiffness, damping: tuning.damping, mass: tuning.mass },
+        Math.min(Math.max(proposed, -TILT_MAX), TILT_MAX),
+        TILT_SPRING,
       )
       if (!reported.value && (Math.abs(x.value) > DISTURBED || Math.abs(y.value) > DISTURBED)) {
         reported.value = true
@@ -179,12 +201,12 @@ function StackCard({ routine, slotIndex, zIndex, canvas, tuning, resetAt, onLift
       // of starting again from rest.
       const glide = {
         velocity: event.velocityX,
-        stiffness: tuning.glideStiffness,
-        damping: tuning.glideDamping,
-        mass: 1,
+        stiffness: GLIDE.stiffness,
+        damping: GLIDE.damping,
+        mass: GLIDE.mass,
       }
       const throwTo = (from, velocity, min, max) =>
-        Math.min(Math.max(from + velocity * tuning.power, min), max)
+        Math.min(Math.max(from + velocity * THROW, min), max)
       // A card let go beyond the boundary is already outside it; the target
       // above is clamped back inside, so the same spring brings it home.
 
@@ -195,7 +217,7 @@ function StackCard({ routine, slotIndex, zIndex, canvas, tuning, resetAt, onLift
       })
     })
     .onFinalize(() => {
-      held.value = withSpring(0, spring)
+      held.value = withSpring(0, TILT_SPRING)
     })
 
   const moved = useAnimatedStyle(() => ({
@@ -271,7 +293,7 @@ function StackCard({ routine, slotIndex, zIndex, canvas, tuning, resetAt, onLift
 // only by picking a card up, so cards never jump about when one is brought to
 // the front. Where a card has been dragged to is kept for as long as the
 // screen lives; the restack button is the only thing that undoes it.
-export function WorkoutStack({ routines, tuning, resetAt, onDisturb, onStart }) {
+export function WorkoutStack({ routines, resetAt, onDisturb, onStart }) {
   const { width, height } = useWindowDimensions()
   const stack = useMemo(() => sortForStack(routines), [routines])
   const [zOrder, setZOrder] = useState(() => stack.map((r) => r.id))
@@ -298,7 +320,6 @@ export function WorkoutStack({ routines, tuning, resetAt, onDisturb, onStart }) 
           slotIndex={slotIndex}
           zIndex={zOrder.indexOf(routine.id) + 1}
           canvas={{ width, height }}
-          tuning={tuning}
           resetAt={resetAt}
           onLift={lift}
           onDisturb={onDisturb}
