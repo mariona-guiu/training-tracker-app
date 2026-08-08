@@ -39,7 +39,7 @@ import {
   SWIPE_DISTANCE,
   SWIPE_VELOCITY,
 } from '../../src/data/motion.js'
-import { DARK, FONTS, RADIUS, SPACE } from '../../src/theme/index.js'
+import { DARK, FONTS, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
 
 // A workout in progress. It lives outside the (tabs) group so it fills the
 // display with no tab bar over it — the same split the web app makes.
@@ -665,21 +665,31 @@ export default function WorkoutMode() {
         <View style={[styles.nav, { opacity: editing ? 0 : 1 }]}>
           {index > 0 ? (
             <Pressable onPress={() => slideTo(index - 1)} style={styles.navLink}>
+              {/* The arrow is its own element rather than a character inside
+                  the name. Inline, a name that wrapped either pushed the arrow
+                  onto a line of its own or left it stranded beside the first
+                  line — the arrow points at the whole name, so it centres
+                  against the whole block. */}
+              <Text style={[styles.navArrow, { color: ink }]}>←</Text>
               <Text style={[styles.navLabel, { color: ink }]} numberOfLines={2}>
-                ← {session.exercises[index - 1].exerciseName}
+                {session.exercises[index - 1].exerciseName}
               </Text>
             </Pressable>
           ) : (
             <View style={styles.navLink} />
           )}
           {!isLastExercise ? (
-            <Pressable onPress={() => slideTo(index + 1)} style={styles.navLink}>
+            <Pressable
+              onPress={() => slideTo(index + 1)}
+              style={[styles.navLink, styles.navLinkRight]}
+            >
               <Text
                 style={[styles.navLabel, styles.navRight, { color: ink }]}
                 numberOfLines={2}
               >
-                {session.exercises[index + 1].exerciseName} →
+                {session.exercises[index + 1].exerciseName}
               </Text>
+              <Text style={[styles.navArrow, { color: ink }]}>→</Text>
             </Pressable>
           ) : (
             <View style={styles.navLink} />
@@ -713,18 +723,21 @@ export default function WorkoutMode() {
   )
 }
 
+// Favorit Bold's own line height, read from the font — ascent 937 plus
+// descent 312 on a 1000 unit em — and the tighter one the design asks for.
+// React Native clips to the line box where CSS lets glyphs spill, so the box
+// keeps the font's own height and the difference is taken back out with a
+// margin, which does not clip. Stated as ratios so this follows the type
+// scale rather than staying a number measured against a 64pt figure.
+const FAVORIT_LINE = 1.249
+const DESIGN_LINE = 1.05
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
 
   head: { paddingHorizontal: SPACE[3] },
-  routine: {
-    fontFamily: FONTS.mono,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.88,
-    opacity: 0.85,
-  },
-  stepper: { flexDirection: 'row', gap: 6, marginTop: SPACE[2] },
+  routine: { ...TYPE.label, opacity: 0.85 },
+  stepper: { flexDirection: 'row', gap: SPACE[2], marginTop: SPACE[2] },
   step: { flex: 1, height: 3, borderRadius: RADIUS.pill },
   close: { alignSelf: 'flex-end', marginTop: SPACE[3], marginRight: -SPACE[2], padding: SPACE[2] },
 
@@ -751,21 +764,16 @@ const styles = StyleSheet.create({
   // be cut. The tight stack the design wants is recovered by pulling the
   // second figure up by the difference (1.249em - 1.05em = 12.7pt), which a
   // margin does without touching the line box.
-  valueStacked: { marginTop: -12.7 },
+  valueStacked: { marginTop: -(FAVORIT_LINE - DESIGN_LINE) * TYPE.hero.fontSize },
   figureRow: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0 },
   figurePress: { flex: 1, minWidth: 0, justifyContent: 'center' },
-  figure: {
-    fontFamily: FONTS.bold,
-    fontSize: 64,
-    letterSpacing: -1.9,
-    padding: 0,
-  },
+  figure: { ...TYPE.hero, padding: 0 },
   // Room for the caret to stand in once every digit has been deleted.
   field: { minWidth: 16 },
   // Over the visible digits and exactly aligned with them, but drawing none
   // of its own — the caret and the selection show, the glyphs do not.
   fieldInput: { ...StyleSheet.absoluteFillObject, color: 'transparent' },
-  unit: { fontFamily: FONTS.bold, fontSize: 64, letterSpacing: -1.9 },
+  unit: { ...TYPE.hero },
   unitDimmed: { opacity: 0.45 },
   dimmed: { opacity: 0.35 },
   // Centred against the figure explicitly rather than relying on the row to
@@ -779,23 +787,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  setsLabel: {
-    fontFamily: FONTS.mono,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.88,
-  },
+  setsLabel: { ...TYPE.label },
   sets: { flexDirection: 'row', gap: SPACE[2], marginTop: SPACE[2] },
   muted: { opacity: 0 },
-  dot: { width: 46, height: 46, borderRadius: 23, borderWidth: 2, backgroundColor: 'transparent' },
+  dot: { width: 46, height: 46, borderRadius: RADIUS.pill, borderWidth: 2, backgroundColor: 'transparent' },
   dotPressed: { transform: [{ scale: 0.94 }] },
 
   foot: { paddingHorizontal: SPACE[3], gap: SPACE[3] },
   // Held at two lines whether or not the names need them, so the button
   // below doesn't move as you go through the workout.
   nav: { flexDirection: 'row', justifyContent: 'space-between', gap: SPACE[3] },
-  navLink: { flex: 1, paddingVertical: SPACE[2] },
-  navLabel: { fontFamily: FONTS.regular, fontSize: 16, lineHeight: 21.6, opacity: 0.8 },
+  navLink: {
+    flex: 1,
+    paddingVertical: SPACE[2],
+    flexDirection: 'row',
+    // Against the whole name, not its first line, so a wrapped name keeps its
+    // arrow beside the middle of it.
+    alignItems: 'center',
+    gap: SPACE[1],
+  },
+  navLinkRight: { justifyContent: 'flex-end' },
+  // Sized and faded with the name it belongs to, but never wrapping or
+  // shrinking — it is one glyph and the name takes what is left.
+  navArrow: { ...TYPE.body, lineHeight: 21.6, opacity: 0.8 },
+  navLabel: { ...TYPE.body, lineHeight: 21.6, opacity: 0.8, flexShrink: 1 },
   navRight: { textAlign: 'right' },
 
   primary: {
@@ -807,10 +822,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryPressed: { transform: [{ scale: 0.99 }] },
-  primaryLabel: {
-    fontFamily: FONTS.mono,
-    fontSize: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 1.3,
-  },
+  primaryLabel: { ...TYPE.control },
 })
