@@ -492,28 +492,32 @@ export default function History() {
         <Animated.View style={[StyleSheet.absoluteFill, surface]} pointerEvents="none">
           <Glass intensity={70} style={StyleSheet.absoluteFill} />
         </Animated.View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back to stats"
-          onPress={() => router.back()}
-          hitSlop={10}
-          style={styles.back}
-        >
-          <BackIcon color={LIGHT.text} />
-        </Pressable>
-        <View style={styles.barHeading}>
+        {/* The title and the control beside it are one row, and its height
+            never changes. The year grows underneath rather than inside it —
+            in one row with the title, the block grew when the year arrived and
+            the row grew with it, so the title drifted up while the back
+            control, centring against a taller row, dropped. They moved in
+            opposite directions, about twenty points apart. */}
+        <View style={styles.barRow}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back to stats"
+            onPress={() => router.back()}
+            hitSlop={10}
+            style={styles.back}
+          >
+            <BackIcon color={LIGHT.text} />
+          </Pressable>
           <Text style={styles.title}>My workouts</Text>
-          {/* Joins the title only once the page has scrolled, so which year
-              is under you is still answered when the heading below has gone.
-              Its height animates too, so the title is not shunted upward the
-              moment it arrives. */}
-          <Animated.Text numberOfLines={1} style={[styles.barYear, barYear]}>
-            {years[0]?.year ?? ''}
-          </Animated.Text>
+          {/* Balances the back control, so the title sits centred on the
+              screen rather than on the space left beside it. */}
+          <View style={styles.back} />
         </View>
-        {/* Balances the back control, so the title sits centred on the screen
-            rather than on the space left beside it. */}
-        <View style={styles.back} />
+        {/* Joins the title only once the page has scrolled, so which year is
+            under you is still answered when the heading below has gone. */}
+        <Animated.Text numberOfLines={1} style={[styles.barYear, barYear]}>
+          {years[0]?.year ?? ''}
+        </Animated.Text>
       </View>
 
       <Animated.ScrollView
@@ -583,15 +587,12 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     zIndex: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: SPACE[3],
     paddingBottom: SPACE[2],
   },
+  barRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   back: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  barHeading: { alignItems: 'center' },
-  barYear: { ...TYPE.body, color: LIGHT.text, overflow: 'hidden' },
+  barYear: { ...TYPE.body, color: LIGHT.text, textAlign: 'center', overflow: 'hidden' },
   title: { ...TYPE.title, color: LIGHT.text },
   year: { ...TYPE.title, fontFamily: FONTS.bold, color: LIGHT.text, marginTop: SPACE[4] },
   weekLabel: {
