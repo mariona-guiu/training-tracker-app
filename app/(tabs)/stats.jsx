@@ -7,6 +7,7 @@ import Svg, { Path } from 'react-native-svg'
 import { listCompletedSessions } from '../../src/db/sessions.js'
 import { WeeklyChart } from '../../src/components/WeeklyChart.jsx'
 import { addDays, buildWeeks, startOfDay } from '../../src/data/weeks.js'
+import { ScreenTitle, TITLE_CLEARANCE } from '../../src/components/ScreenTitle.jsx'
 import { FONTS, LIGHT, SPACE, TAB_BAR_CLEARANCE } from '../../src/theme/index.js'
 
 function monthsBefore(ts, months) {
@@ -53,6 +54,7 @@ export default function Stats() {
   // null = still loading, [] = loaded and genuinely empty. Kept distinct so
   // the loading screen and the empty state are not confused with each other.
   const [sessions, setSessions] = useState(null)
+  const [scrolled, setScrolled] = useState(false)
   const insets = useSafeAreaInsets()
   const router = useRouter()
 
@@ -78,52 +80,53 @@ export default function Stats() {
   }, [sessions])
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={{
-        paddingTop: insets.top + SPACE[4],
-        paddingBottom: insets.bottom + TAB_BAR_CLEARANCE + SPACE[4],
-        paddingHorizontal: SPACE[3],
-        gap: SPACE[4],
-      }}
-    >
-      <Text style={styles.title}>Stats</Text>
-
-      {/* No empty state of its own: with nothing logged the counters read 0
-          and the chart draws eight empty weeks, which says the same thing
-          without a separate screen to maintain. */}
-      {stats ? (
-        <>
-          <View style={styles.counters}>
-            <Counter label="Last 30 days" value={stats.last30} />
-            <Counter label="Last 12 months" value={stats.last12} />
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>My workouts</Text>
-              {/* Per-workout detail and earlier months live in History, a
-                  view pushed over this one rather than a tab of its own. */}
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="All past workouts"
-                onPress={() => router.push('/history')}
-                hitSlop={10}
-              >
-                <ArrowIcon color={LIGHT.text} />
-              </Pressable>
+    <View style={styles.screen}>
+      <ScreenTitle title="Stats" scrolled={scrolled} top={insets.top + SPACE[4]} />
+      <ScrollView
+        scrollEventThrottle={32}
+        onScroll={(e) => setScrolled(e.nativeEvent.contentOffset.y > 4)}
+        contentContainerStyle={{
+          paddingTop: insets.top + SPACE[4] + TITLE_CLEARANCE,
+          paddingBottom: insets.bottom + TAB_BAR_CLEARANCE + SPACE[4],
+          paddingHorizontal: SPACE[3],
+          gap: SPACE[4],
+        }}
+      >
+        {/* No empty state of its own: with nothing logged the counters read 0
+            and the chart draws eight empty weeks, which says the same thing
+            without a separate screen to maintain. */}
+        {stats ? (
+          <>
+            <View style={styles.counters}>
+              <Counter label="Last 30 days" value={stats.last30} />
+              <Counter label="Last 12 months" value={stats.last12} />
             </View>
-            <WeeklyChart weeks={stats.weeks} />
-          </View>
-        </>
-      ) : null}
-    </ScrollView>
+
+            <View style={styles.section}>
+              <View style={styles.sectionHead}>
+                <Text style={styles.sectionTitle}>My workouts</Text>
+                {/* Per-workout detail and earlier months live in History, a
+                  view pushed over this one rather than a tab of its own. */}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="All past workouts"
+                  onPress={() => router.push('/history')}
+                  hitSlop={10}
+                >
+                  <ArrowIcon color={LIGHT.text} />
+                </Pressable>
+              </View>
+              <WeeklyChart weeks={stats.weeks} />
+            </View>
+          </>
+        ) : null}
+      </ScrollView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: LIGHT.bg },
-  title: { fontFamily: FONTS.medium, fontSize: 40, color: LIGHT.text },
   counters: { flexDirection: 'row', gap: SPACE[2] },
   // Height, padding and radius as designed. The width is the one value not
   // taken literally: the mock's 168 is half a ~375 frame, so the pair already

@@ -34,6 +34,58 @@ every `setTimeout` and `require` is a false positive. Run both.
 
 Neither sees layout, motion or touch behaviour. Those still need the phone.
 
+## Working agreement: how to not loop
+
+Agreed with the user on 2026-08-08, after the set-edit panel's keyboard
+stagger took six attempts and several other bugs took three or four. The cost
+is real — it is slow, and it is taxing for the person having to be the test
+harness every round.
+
+**The shape of the trap.** Nothing here can see the screen. Every visual or
+motion problem needs the user as the sensor, so the loop is: change something,
+ask them to look, repeat. That is fine once. It is corrosive by the fourth
+round, and the fourth round is usually a *worse* guess than the first, because
+by then the reasoning has drifted from the evidence.
+
+**What actually ended the loops, every time it happened:** getting information
+instead of trying another value. Reading the font's own tables rather than
+nudging a line height. Reading the library's source and finding
+`requireNativeViewManager`, which explained why the glass drew nothing.
+Checking the docs and finding `useAnimatedKeyboard` deprecated. And building
+the tuning panel — one round to make, and it ended a conversation that would
+otherwise have run and run.
+
+### Rules
+
+**One change per reported bug.** Two changes means a failure cannot be
+attributed, and the next round starts from a worse position than the last. If
+two things genuinely need changing, say which is the fix and which is
+speculative, or split them across rounds.
+
+**Never say "fixed" for anything visual.** `npm run lint` and `npx expo
+export` prove that modules resolve and identifiers exist. They prove nothing
+whatever about behaviour. Say what was changed, what was verified, and what
+was not.
+
+**Two failed attempts is a hard stop.** This rule is already in the root
+CLAUDE.md and was ignored all day. At the second failure: no third code
+change. Either ask the one question that separates the remaining hypotheses,
+or build something that measures — an on-screen readout, a control the user
+can drive. `src/components/TuningPanel.jsx` is the model.
+
+**Check the patch landed.** A scripted edit that fails partway writes nothing,
+so the parts that "were applied" silently were not. Grep the result before
+describing it. Lint caught this twice today; that was luck.
+
+### What the user has agreed to do
+
+- Say whether it is the **same** wrong or a **different** wrong. That one
+  distinction says whether the model is broken or only the number.
+- For motion: **which element leads, which lags**, and whether it is wrong at
+  the start, the middle or the end.
+- Call it out when two changes are made for one bug, or when something
+  unverifiable is described as fixed.
+
 ## Pinned to SDK 54, deliberately
 
 Since May 2026 the App Store build of Expo Go is frozen at **SDK 54** and no
@@ -107,6 +159,24 @@ Every cut of Favorit is registered as its own family name (`src/theme/fonts.js`)
 React Native has no family/weight pairing: asking for weight 500 on a family
 that shipped one file gets a synthesised bold, not Favorit Medium. Style with
 `FONTS.medium`, never with `fontWeight`.
+
+## A CSS value carries its mechanism with it
+
+Three separate bugs today were the same mistake: taking a number out of the
+web app's stylesheet and putting it in a React Native style, where the thing
+underneath it works differently. The number was right; what it was doing was
+not.
+
+| The value | On the web | Here |
+| --- | --- | --- |
+| `line-height: 1.05` on a 64px figure | CSS lets glyphs spill outside their line box, so a tight one just overflows | React Native **clips** to it, so it cut the tops and tails off |
+| `gap: 20` between two figures | The designer's 20 was measured against boxes already carrying the font's leading | The same 20 *added* to that leading, and the pair sat 60 apart |
+| `rgba(253,253,252,0.72)` on a bar | Tints a `backdrop-filter`, which does the blurring | Laid over a `BlurView` that already frosts, it came out solid white |
+
+So: when porting a value, port what it was doing, not what it said. If the
+mechanism underneath is different — a line box that clips, a leading that is
+already there, a blur that already tints — the number has to be worked out
+again for this one. The next two sections are the worked examples.
 
 ## Type: never set a line height below the font's own
 

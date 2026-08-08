@@ -151,7 +151,9 @@ function WorkoutCell({ session, open, onToggle, onDelete }) {
     turn.value = withTiming(open ? 1 : 0, { duration: 240 })
   }, [open, bodyHeight, height, turn])
 
-  const reveal = useAnimatedStyle(() => ({ height: height.value }))
+  // Never below nothing: the spring is underdamped, so on the way closed it
+  // carries past zero and the layout clamps it, which reads as a snap.
+  const reveal = useAnimatedStyle(() => ({ height: Math.max(0, height.value) }))
   const chevron = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 180}deg` }] }))
 
   return (
@@ -369,7 +371,7 @@ export default function History() {
             arrives only once a coloured cell is passing underneath and the
             title needs something to sit on. */}
         <Animated.View style={[StyleSheet.absoluteFill, surface]} pointerEvents="none">
-          <Glass style={StyleSheet.absoluteFill} fallback={<View style={styles.barWash} />} />
+          <Glass intensity={70} style={StyleSheet.absoluteFill} />
         </Animated.View>
         <Pressable
           accessibilityRole="button"
@@ -455,7 +457,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE[3],
     paddingBottom: SPACE[2],
   },
-  barWash: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(253,253,252,0.72)' },
   back: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   barHeading: { alignItems: 'center' },
   barYear: {
