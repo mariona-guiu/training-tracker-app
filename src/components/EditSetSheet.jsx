@@ -14,7 +14,7 @@ import Animated, {
 
 import { CloseIcon } from './WorkoutIcons.jsx'
 import { SHEET_SPRING } from '../data/motion.js'
-import { FONTS, SPACE } from '../theme/index.js'
+import { FONTS, RADIUS, SPACE } from '../theme/index.js'
 
 // Correcting a set already logged.
 //
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   unitDimmed: { opacity: 0.35 },
   save: {
     height: 52,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 69,

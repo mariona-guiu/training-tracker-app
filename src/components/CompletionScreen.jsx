@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar'
 import { Confetti } from './Confetti.jsx'
 import { caloriesFor, KCAL_DISCLAIMER } from '../data/calories.js'
 import { WORKOUT_CONTENT_FADE } from '../data/motion.js'
-import { FONTS, SPACE } from '../theme/index.js'
+import { FONTS, RADIUS, SPACE } from '../theme/index.js'
 
 // What a finished workout leaves you with.
 //
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   actions: { gap: SPACE[2] },
   primary: {
     height: 52,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',

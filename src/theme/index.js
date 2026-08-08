@@ -59,6 +59,16 @@ export const FONTS = {
 
 export const SPACE = { 1: 4, 2: 8, 3: 16, 4: 24, 5: 32, 6: 48 }
 
+// Three shapes, which is all this app turns out to need: a chip, a card, and
+// anything fully rounded. The app had twelve radius values, several of them
+// one shape written four ways — see docs/design-tokens.json.
+//
+// Not every literal has moved onto these yet. What is left is the set where
+// adopting the token would *change* the shape (a history cell at 8, the chart
+// card at 16, the tab bar's 27 and 35), and those are a visible change rather
+// than a rename, so they go one at a time with a look on the device.
+export const RADIUS = { chip: 4, card: 12, pill: 999 }
+
 export const NAV_HEIGHT = 52
 // Breathing room between the floating tab bar and the system's bottom inset
 // (gesture bar / home indicator), which is added on top of this.

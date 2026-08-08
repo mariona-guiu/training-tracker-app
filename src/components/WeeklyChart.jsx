@@ -13,7 +13,7 @@ import Animated, {
 
 import { inkFor, styleFor } from '../data/routineStyles.js'
 import { VISIBLE_WEEKS, yearOfWeek } from '../data/weeks.js'
-import { FONTS, LIGHT, SPACE } from '../theme/index.js'
+import { FONTS, LIGHT, RADIUS, SPACE } from '../theme/index.js'
 
 // How long a finger has to stay put before the press is read as "show me this
 // workout" rather than the beginning of a scroll. Short enough to feel
@@ -300,11 +300,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     width: TRACK_WIDTH,
     height: TRACK_HEIGHT,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     backgroundColor: LIGHT.bg,
     overflow: 'hidden',
   },
-  segment: { width: TRACK_WIDTH, borderRadius: 999 },
+  segment: { width: TRACK_WIDTH, borderRadius: RADIUS.pill },
   segmentDimmed: { opacity: 0.3 },
   // Fixed width and centred, so the date sits under the middle of its column
   // whatever the column works out to on a given phone.

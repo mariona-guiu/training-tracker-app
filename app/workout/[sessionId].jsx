@@ -39,7 +39,7 @@ import {
   SWIPE_DISTANCE,
   SWIPE_VELOCITY,
 } from '../../src/data/motion.js'
-import { DARK, FONTS, SPACE } from '../../src/theme/index.js'
+import { DARK, FONTS, RADIUS, SPACE } from '../../src/theme/index.js'
 
 // A workout in progress. It lives outside the (tabs) group so it fills the
 // display with no tab bar over it — the same split the web app makes.
@@ -725,7 +725,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   stepper: { flexDirection: 'row', gap: 6, marginTop: SPACE[2] },
-  step: { flex: 1, height: 3, borderRadius: 999 },
+  step: { flex: 1, height: 3, borderRadius: RADIUS.pill },
   close: { alignSelf: 'flex-end', marginTop: SPACE[3], marginRight: -SPACE[2], padding: SPACE[2] },
 
   window: { flex: 1, overflow: 'hidden', justifyContent: 'center' },
@@ -800,7 +800,7 @@ const styles = StyleSheet.create({
 
   primary: {
     height: 52,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     borderWidth: 1.5,
     backgroundColor: 'transparent',
     alignItems: 'center',

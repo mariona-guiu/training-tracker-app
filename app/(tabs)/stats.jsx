@@ -8,7 +8,7 @@ import { listCompletedSessions } from '../../src/db/sessions.js'
 import { WeeklyChart } from '../../src/components/WeeklyChart.jsx'
 import { addDays, buildWeeks, startOfDay, startOfWeek } from '../../src/data/weeks.js'
 import { ScreenTitle, TITLE_CLEARANCE } from '../../src/components/ScreenTitle.jsx'
-import { FONTS, LIGHT, SPACE, TAB_BAR_CLEARANCE } from '../../src/theme/index.js'
+import { FONTS, LIGHT, RADIUS, SPACE, TAB_BAR_CLEARANCE } from '../../src/theme/index.js'
 
 function monthsBefore(ts, months) {
   const d = new Date(ts)
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    borderRadius: 12,
+    borderRadius: RADIUS.card,
     backgroundColor: LIGHT.bgRaised,
   },
   counterLabel: {

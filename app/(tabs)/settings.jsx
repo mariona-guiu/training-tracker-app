@@ -29,7 +29,7 @@ import { getSettings, saveSettings } from '../../src/db/settings.js'
 import { REST_MODES, restModeById } from '../../src/data/rest.js'
 import { KCAL_NOTE } from '../../src/data/calories.js'
 import { ScreenTitle, TITLE_CLEARANCE } from '../../src/components/ScreenTitle.jsx'
-import { FONTS, LIGHT, SPACE, TAB_BAR_CLEARANCE } from '../../src/theme/index.js'
+import { FONTS, LIGHT, RADIUS, SPACE, TAB_BAR_CLEARANCE } from '../../src/theme/index.js'
 
 // iOS animates its keyboard over roughly this, on a curve of its own that is
 // private. The page travels on both, so the two move as one thing rather than
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
   section: { gap: SPACE[2] },
   // No stroke: the fill is enough to separate it from the page, and an
   // outline as well would make two statements about the same edge.
-  card: { paddingVertical: 15, paddingHorizontal: 16, borderRadius: 12, backgroundColor: CARD },
+  card: { paddingVertical: 15, paddingHorizontal: 16, borderRadius: RADIUS.card, backgroundColor: CARD },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 28,
     padding: 3,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     justifyContent: 'center',
   },
   knob: {
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
   pace: {
     flex: 1,
     height: 90,
-    borderRadius: 12,
+    borderRadius: RADIUS.card,
     backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     // Clear of the note above it, which the button was sitting on top of.
     marginTop: SPACE[4],
     height: 52,
-    borderRadius: 999,
+    borderRadius: RADIUS.pill,
     backgroundColor: INK,
     alignItems: 'center',
     justifyContent: 'center',

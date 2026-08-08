@@ -38,7 +38,7 @@ import {
 } from '../src/components/HistoryIcons.jsx'
 import { Glass } from '../src/components/Glass.jsx'
 import { EXPAND_SPRING } from '../src/data/motion.js'
-import { FONTS, LIGHT, SPACE } from '../src/theme/index.js'
+import { FONTS, LIGHT, RADIUS, SPACE } from '../src/theme/index.js'
 
 const MONTH = new Intl.DateTimeFormat('en-GB', { month: 'long' })
 
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
     paddingTop: 7.5,
     paddingBottom: 4.5,
     paddingHorizontal: 9,
-    borderRadius: 4,
+    borderRadius: RADIUS.chip,
   },
   tagText: {
     fontFamily: FONTS.mono,
