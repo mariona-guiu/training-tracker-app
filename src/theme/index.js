@@ -54,18 +54,26 @@ LIGHT.controlTrack = '#d9d9d7'
 DARK.onInk = '#0a0a0a'
 DARK.controlTrack = '#2e2e2e'
 
-// Favorit throughout: weight does the differentiating, and the mono cut
-// covers tabular numbers. These names are what the font loader registers, so
-// the two have to agree.
+// Two families rather than one, and the split is by job rather than by size.
+//
+// Funnel Sans is what gets read: labels, prose, controls, anything you are
+// working through. Funnel Display is what gets looked at — the routine card,
+// the page title, the exercise you are on, the figure you are lifting.
+//
+// The mono cut is gone. It was the app's voice, and there is no Funnel Mono to
+// replace it, so the tracked capitals are now set in Sans. What that would
+// have cost is the column alignment in History's set lists — recovered with
+// tabular figures, which Funnel Sans carries.
+//
+// These names are what the font loader registers, so the two have to agree.
 export const FONTS = {
-  light: 'Favorit-Light',
-  regular: 'Favorit-Regular',
-  medium: 'Favorit-Medium',
-  bold: 'Favorit-Bold',
-  mono: 'Favorit-Mono',
-  italic: 'Favorit-Italic',
-  mediumItalic: 'Favorit-MediumItalic',
-  lightItalic: 'Favorit-LightItalic',
+  light: 'FunnelSans-Light',
+  regular: 'FunnelSans-Regular',
+  medium: 'FunnelSans-Medium',
+  bold: 'FunnelSans-Bold',
+  displayRegular: 'FunnelDisplay-Regular',
+  displayMedium: 'FunnelDisplay-Medium',
+  displayBold: 'FunnelDisplay-Bold',
 }
 
 // The type scale. Eleven roles, each taken from the size already doing that job
@@ -80,32 +88,56 @@ export const FONTS = {
 // the code, which is what says the rule was there before it was written down.
 //
 // No lineHeight above `note`: React Native clips text to its line box where CSS
-// lets it spill, and Favorit's own is 1.249em, so anything tighter cuts the tops
+// lets it spill, and Funnel's own is 1.25em, so anything tighter cuts the tops
 // off numerals. Recover tightness with margins, which do not clip.
 export const TYPE = {
-  label: { fontFamily: FONTS.mono, fontSize: 12, letterSpacing: 12 * 0.02, textTransform: 'uppercase' },
+  label: {
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    letterSpacing: 12 * 0.02,
+    textTransform: 'uppercase',
+    // What the mono cut used to give for nothing. Every label here is at
+    // some point a column of digits — sets, seconds, kilos — and Funnel Sans
+    // carries tabular figures, so they still line up.
+    fontVariant: ['tabular-nums'],
+  },
   // Small text that is neither a label nor prose — a chart's year and its
   // week-endings. Same size as `label` and deliberately not the same role: it
   // is set in the text cut rather than the mono one, mixed case, and tracks
   // in rather than out, because it is being read as data rather than announced
   // as a heading.
-  caption: { fontFamily: FONTS.regular, fontSize: 12, letterSpacing: 12 * -0.01 },
+  caption: {
+    fontFamily: FONTS.regular,
+    fontSize: 12,
+    letterSpacing: 12 * -0.01,
+    fontVariant: ['tabular-nums'],
+  },
   note: { fontFamily: FONTS.light, fontSize: 13, lineHeight: 19 },
   body: { fontFamily: FONTS.regular, fontSize: 16 },
-  control: { fontFamily: FONTS.mono, fontSize: 16, letterSpacing: 16 * 0.08, textTransform: 'uppercase' },
+  control: {
+    fontFamily: FONTS.medium,
+    fontSize: 16,
+    letterSpacing: 16 * 0.08,
+    textTransform: 'uppercase',
+  },
   title: { fontFamily: FONTS.medium, fontSize: 20, letterSpacing: 20 * -0.01 },
   // A heading inside a screen rather than the screen's own — the exercise
   // being done, the figures a finished workout comes to. Two uses, kept on
   // purpose rather than folded into its neighbours: 20 is too quiet for it
   // and 40 announces a whole page.
-  heading: { fontFamily: FONTS.bold, fontSize: 30, letterSpacing: 30 * -0.01 },
+  heading: { fontFamily: FONTS.displayMedium, fontSize: 30, letterSpacing: 0 },
   // An inline figure — a number sitting inside a card rather than owning the
   // screen. Kept as a role after the first attempt to retire it: body weight
   // cannot be `figure`, because the card is not tall enough to hold 56.
   figureInline: { fontFamily: FONTS.bold, fontSize: 34, letterSpacing: 34 * -0.02 },
-  screenTitle: { fontFamily: FONTS.medium, fontSize: 40, letterSpacing: 40 * -0.02 },
-  figure: { fontFamily: FONTS.bold, fontSize: 56, letterSpacing: 56 * -0.02 },
-  hero: { fontFamily: FONTS.bold, fontSize: 72, letterSpacing: 72 * -0.03 },
+  screenTitle: { fontFamily: FONTS.displayMedium, fontSize: 40, letterSpacing: 40 * -0.02 },
+  figure: { fontFamily: FONTS.displayBold, fontSize: 56, letterSpacing: 56 * -0.02, fontVariant: ['tabular-nums'] },
+  hero: {
+    fontFamily: FONTS.displayMedium,
+    fontSize: 82,
+    letterSpacing: 82 * -0.01,
+    fontVariant: ['tabular-nums'],
+  },
 }
 
 export const SPACE = { 1: 4, 2: 8, 3: 16, 4: 24, 5: 32, 6: 48 }

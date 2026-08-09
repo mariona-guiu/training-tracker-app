@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
   // keypad belongs to.
   weightEditing: { borderWidth: 1, borderColor: INK },
   weightValue: { flexDirection: 'row', alignItems: 'center' },
-  // No line height stated: Favorit's own is 1.249em and anything below it
+  // No line height stated: the font's own is 1.25em and anything below it
   // clips. See native/CLAUDE.md.
   weightTyped: { ...TYPE.figureInline, color: INK },
   // At rest the figure and its unit are one thing, in one ink. The unit only

@@ -273,17 +273,18 @@ const styles = StyleSheet.create({
   title: { ...TYPE.label, opacity: 0.85 },
   close: { padding: SPACE[2], margin: -SPACE[2] },
   // The panel is anchored to the keypad, so opening this up lifts the figures
-  // rather than pushing the buttons down. Favorit already leaves 22.5pt below
-  // the baseline at 72pt, which this is on top of.
+  // rather than pushing the buttons down. Funnel already leaves 20.5pt below
+  // the baseline at 82pt, which this is on top of.
   values: { marginBottom: 36 },
   // The whole row is the target, so it is never a question of hitting the
   // digits themselves.
   value: { flexDirection: 'row', alignItems: 'center' },
-  // 20pt of visible separation, which is not 20pt of gap. At 72pt Favorit
-  // leaves 17.1pt above its capitals and 22.5pt below the baseline — 39.5pt
-  // of space between two rows before anything is added. Measured from the
-  // font rather than guessed; see native/CLAUDE.md.
-  stacked: { marginTop: 20 - 39.5 },
+  // 20pt of visible separation, which is not 20pt of gap. At 82pt Funnel
+  // leaves 26.7pt above its capitals and 20.5pt below the baseline — 47.2pt of
+  // space between two rows before anything is added. Measured from the font
+  // rather than guessed, and re-measured twice: once when the typeface changed
+  // and once when the figure grew from 72 to 82. See native/CLAUDE.md.
+  stacked: { marginTop: 20 - 47.2 },
   // While one value is being edited the other steps back, so it is obvious
   // which number the keypad is pointed at.
   dimmed: { opacity: 0.35 },
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
   // short or had been cleared.
   caret: { width: 3, height: 52, marginLeft: 2, marginRight: 1 },
   parked: { position: 'absolute', left: 0, top: 0, width: 1, height: 1, opacity: 0, padding: 0 },
-  // No line height stated: Favorit's own is 1.249em and anything below it
+  // No line height stated: the font's own is 1.25em and anything below it
   // clips, because React Native cuts text to its line box where CSS lets it
   // spill out. See native/CLAUDE.md.
   figure: { ...TYPE.hero },

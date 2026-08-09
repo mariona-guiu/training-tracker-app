@@ -25,12 +25,19 @@ import * as Haptics from 'expo-haptics'
 
 import { deleteSession, endSession, getSession, saveSession } from '../../src/db/sessions.js'
 import { getSettings } from '../../src/db/settings.js'
-import { inkOn, restTintFor, styleFor } from '../../src/data/routineStyles.js'
+import { inkOn, restTintFor, styleFor, washFor } from '../../src/data/routineStyles.js'
 import { restSecondsFor } from '../../src/data/rest.js'
 import { CompletionScreen } from '../../src/components/CompletionScreen.jsx'
 import { useLaunch } from '../../src/components/LaunchOverlay.jsx'
-import { CheckIcon, CloseIcon, PencilIcon } from '../../src/components/WorkoutIcons.jsx'
+import {
+  CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CloseIcon,
+  PencilIcon,
+} from '../../src/components/WorkoutIcons.jsx'
 import { EditSetSheet } from '../../src/components/EditSetSheet.jsx'
+import { Glass } from '../../src/components/Glass.jsx'
 import {
   WORKOUT_REVEAL_FADE,
   CAROUSEL_SPRING,
@@ -39,7 +46,7 @@ import {
   SWIPE_DISTANCE,
   SWIPE_VELOCITY,
 } from '../../src/data/motion.js'
-import { DARK, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
+import { DARK, LIGHT, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
 
 // A workout in progress. It lives outside the (tabs) group so it fills the
 // display with no tab bar over it — the same split the web app makes.
@@ -256,7 +263,7 @@ export default function WorkoutMode() {
   // Asked of the exercise rather than of the session, so a stretch at the end
   // of a lower body workout rests like a stretch and not like a squat.
   const restSeconds = session
-    ? restSecondsFor(session.routineType ?? session.routineName, settings?.restMode, exercise)
+    ? restSecondsFor(kind, settings?.restMode, exercise)
     : 0
 
   // Only the number on screen is kept in JavaScript, and only when the second
@@ -280,8 +287,15 @@ export default function WorkoutMode() {
   // without its '#', which a URL parameter cannot carry — so there is no
   // flash of anything else while the session loads.
   const handed = color ? `#${color}` : null
-  const colour = handed ?? (session ? styleFor(session.routineType ?? session.routineName, 0).background : DARK.bg)
+  // The kind of session, which colour, rest length and the calorie rate all
+  // follow. Falls back to the name for anything recorded before the type was
+  // stored.
+  const kind = session?.routineType ?? session?.routineName
+  const colour = handed ?? (session ? styleFor(kind, 0).background : DARK.bg)
   const ink = inkOn(colour)
+  // Whether the routine's colour asked for white ink, which is the same
+  // question the status bar and the button's material both need answering.
+  const inkIsLight = ink === LIGHT.onInk
 
   function goTo(next) {
     stopRest()
@@ -587,7 +601,7 @@ export default function WorkoutMode() {
     >
       {/* The clock and battery have to stay readable on the routine's colour,
           so they follow the same ink the screen picked. */}
-      <StatusBar style={ink === '#ffffff' ? 'light' : 'dark'} />
+      <StatusBar style={inkIsLight ? 'light' : 'dark'} />
 
       {/* Behind everything and unreachable: the workout stays usable while
           rest drains — you can log the next set, edit a value or move on
@@ -597,7 +611,7 @@ export default function WorkoutMode() {
         style={[
           StyleSheet.absoluteFill,
           styles.sweep,
-          { backgroundColor: restTintFor(session.routineType ?? session.routineName) },
+          { backgroundColor: restTintFor(kind) },
           sweepStyle,
         ]}
       />
@@ -679,7 +693,9 @@ export default function WorkoutMode() {
                   onto a line of its own or left it stranded beside the first
                   line — the arrow points at the whole name, so it centres
                   against the whole block. */}
-              <Text style={[styles.navArrow, { color: ink }]}>←</Text>
+              <View style={styles.navArrow}>
+                <ChevronLeftIcon color={ink} />
+              </View>
               <Text style={[styles.navLabel, { color: ink }]} numberOfLines={2}>
                 {session.exercises[index - 1].exerciseName}
               </Text>
@@ -698,7 +714,9 @@ export default function WorkoutMode() {
               >
                 {session.exercises[index + 1].exerciseName}
               </Text>
-              <Text style={[styles.navArrow, { color: ink }]}>→</Text>
+              <View style={styles.navArrow}>
+                <ChevronRightIcon color={ink} />
+              </View>
             </Pressable>
           ) : (
             <View style={styles.navLink} />
@@ -707,13 +725,35 @@ export default function WorkoutMode() {
 
         <Pressable
           onPress={() => (isLastExercise ? finish() : allSetsLogged ? slideTo(index + 1) : skip())}
-          style={({ pressed }) => [
-            styles.primary,
-            { borderColor: ink },
-            pressed && styles.primaryPressed,
-          ]}
+          style={({ pressed }) => [styles.primary, pressed && styles.primaryPressed]}
         >
-          <Text style={[styles.primaryLabel, { color: ink }]}>{primaryLabel}</Text>
+          {/* The system's material where the phone has it, a blur where it does
+              not — the same component the tab bar and the restack button use, so
+              all three become real glass together rather than one at a time.
+              The wash underneath is the ink at a tenth, which is what the design
+              draws and what the blur needs to read as a surface at all.
+
+              Tint follows the ink: a light glass lifts a button off a dark
+              routine colour, a dark one settles it into a pale one. */}
+          <Glass
+            intensity={40}
+            // The frost reinforces the ground rather than inverting it. Tinting
+            // a pale routine dark was what made this read as a grey button laid
+            // on top: the colour left the button while the rest of the screen
+            // kept it.
+            tint={inkIsLight ? 'dark' : 'light'}
+            style={styles.primarySurface}
+            fallback={
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  { backgroundColor: washFor(kind) },
+                ]}
+              />
+            }
+          >
+            <Text style={[styles.primaryLabel, { color: ink }]}>{primaryLabel}</Text>
+          </Glass>
         </Pressable>
       </View>
 
@@ -732,20 +772,20 @@ export default function WorkoutMode() {
   )
 }
 
-// Favorit Bold's own line height, read from the font — ascent 937 plus
-// descent 312 on a 1000 unit em — and the tighter one the design asks for.
+// Funnel's own line height, read from the font — ascent 1200 plus descent
+// 300 on a 1200 unit em — and the tighter one the design asks for.
 // React Native clips to the line box where CSS lets glyphs spill, so the box
 // keeps the font's own height and the difference is taken back out with a
 // margin, which does not clip. Stated as ratios so this follows the type
 // scale rather than staying a number measured against a 64pt figure.
-const FAVORIT_LINE = 1.249
-const DESIGN_LINE = 1.05
+const FUNNEL_LINE = 1.25
+const DESIGN_LINE = 1.022
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
 
-  head: { paddingHorizontal: SPACE[3] },
-  routine: { ...TYPE.label, opacity: 0.85 },
+  head: { paddingHorizontal: SPACE[4] },
+  routine: { ...TYPE.caption, textTransform: 'uppercase', opacity: 0.85 },
   stepper: { flexDirection: 'row', gap: SPACE[2], marginTop: SPACE[2] },
   step: { flex: 1, height: 3, borderRadius: RADIUS.pill },
   close: { alignSelf: 'flex-end', marginTop: SPACE[3], marginRight: -SPACE[2], padding: SPACE[2] },
@@ -755,7 +795,7 @@ const styles = StyleSheet.create({
   // the far side means rest is over.
   sweep: { transformOrigin: 'left' },
   track: { flexDirection: 'row' },
-  panel: { paddingHorizontal: SPACE[3] },
+  panel: { paddingHorizontal: SPACE[4] },
   name: { ...TYPE.heading, marginBottom: SPACE[2] },
 
   // The web sets line-height 1.05 on these, which works there because CSS
@@ -766,14 +806,14 @@ const styles = StyleSheet.create({
   value: { flexDirection: 'row', alignItems: 'center', gap: SPACE[2] },
   // The web sets line-height 1.05 on these figures, which works there
   // because CSS lets glyphs spill outside their line box. React Native clips
-  // to it, so any line height below Favorit Bold's own 1.249em cuts the tops
+  // to it, so any line height below the font's own 1.25em cuts the tops
   // and tails off. Measured from the font, that is 79.9pt at 64pt.
   //
   // So no line height is stated at all — the font decides, and nothing can
   // be cut. The tight stack the design wants is recovered by pulling the
   // second figure up by the difference (1.249em - 1.05em = 12.7pt), which a
   // margin does without touching the line box.
-  valueStacked: { marginTop: -(FAVORIT_LINE - DESIGN_LINE) * TYPE.hero.fontSize },
+  valueStacked: { marginTop: -(FUNNEL_LINE - DESIGN_LINE) * TYPE.hero.fontSize },
   figureRow: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0 },
   figurePress: { flex: 1, minWidth: 0, justifyContent: 'center' },
   figure: { ...TYPE.hero, padding: 0 },
@@ -796,13 +836,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  setsLabel: { ...TYPE.label },
-  sets: { flexDirection: 'row', gap: SPACE[2], marginTop: SPACE[2] },
+  setsLabel: { ...TYPE.caption, textTransform: 'uppercase' },
+  sets: { flexDirection: 'row', gap: 15, marginTop: SPACE[2] },
   muted: { opacity: 0 },
-  dot: { width: 46, height: 46, borderRadius: RADIUS.pill, borderWidth: 2, backgroundColor: 'transparent' },
+  dot: { width: 48, height: 48, borderRadius: RADIUS.pill, borderWidth: 2, backgroundColor: 'transparent' },
   dotPressed: { transform: [{ scale: 0.94 }] },
 
-  foot: { paddingHorizontal: SPACE[3], gap: SPACE[3] },
+  foot: { paddingHorizontal: SPACE[4], gap: SPACE[3] },
   // Held at two lines whether or not the names need them, so the button
   // below doesn't move as you go through the workout.
   nav: { flexDirection: 'row', justifyContent: 'space-between', gap: SPACE[3] },
@@ -818,15 +858,28 @@ const styles = StyleSheet.create({
   navLinkRight: { justifyContent: 'flex-end' },
   // Sized and faded with the name it belongs to, but never wrapping or
   // shrinking — it is one glyph and the name takes what is left.
-  navArrow: { ...TYPE.body, lineHeight: 21.6, opacity: 0.8 },
-  navLabel: { ...TYPE.body, lineHeight: 21.6, opacity: 0.8, flexShrink: 1 },
+  // Sized and faded with the name it belongs to, and never shrinking — it is
+  // one mark and the name takes what is left.
+  navArrow: { opacity: 0.8 },
+  navLabel: {
+    ...TYPE.body,
+    letterSpacing: 16 * -0.01,
+    lineHeight: 21.6,
+    opacity: 0.8,
+    flexShrink: 1,
+  },
   navRight: { textAlign: 'right' },
 
-  primary: {
-    height: 52,
+  // Filled rather than outlined, at a tenth of the ink — so it reads as a
+  // panel of the screen rather than a shape drawn on it, and works against
+  // whichever ink the routine's colour asks for.
+  primary: { height: 52 },
+  // The surface itself, which has to clip: a blur ignores a radius on anything
+  // above it, so the rounding and the overflow belong on the blurred view.
+  primarySurface: {
+    flex: 1,
     borderRadius: RADIUS.pill,
-    borderWidth: 1.5,
-    backgroundColor: 'transparent',
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },

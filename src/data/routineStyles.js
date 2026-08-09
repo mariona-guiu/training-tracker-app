@@ -146,6 +146,68 @@ export function restTintFor(name, index) {
   return toHex(hslToRgb(hue, Math.min(1, saturation * 1.08), lightness * 0.82))
 }
 
+// A surface laid over a routine's own colour — the button in a workout, and
+// anything else that has to read as part of the screen rather than on top of
+// it. The routine's deeper shade, thinned until it is only just present.
+//
+// How thin is not one number, because a fixed one does not look fixed. At the
+// same 55% the pale pink routine leapt by a colour difference of 21 while the
+// blue moved by 6 — the pink read as a slab and the blue as a smudge. So the
+// *step* is held constant instead of the opacity, and the opacity is solved
+// for: work out how far the blend has to go before the eye registers the
+// agreed amount of change, and stop there.
+//
+// Two targets rather than one. A dark routine already has a dark frost behind
+// this, so a deep wash on top darkens it twice and the button reads as a hole
+// punched in the screen; it takes half the step. A light routine has a light
+// frost, the two work against each other, and it can take the full one.
+const WASH_STEP_ON_LIGHT = 10
+const WASH_STEP_ON_DARK = 5
+
+// CIE Lab, so "how different" means how different it looks rather than how far
+// apart the numbers are. sRGB is nowhere near uniform: the same numeric step is
+// a different amount of change depending on where in the space it lands, which
+// is the whole reason a single opacity could not work here.
+function labOf(rgb) {
+  const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
+  const [r, g, b] = rgb.map(lin)
+  let x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047
+  const y = r * 0.2126 + g * 0.7152 + b * 0.0722
+  let z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883
+  const f = (v) => (v > 0.008856 ? Math.cbrt(v) : 7.787 * v + 16 / 116)
+  const [fx, fy, fz] = [f(x), f(y), f(z)]
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)]
+}
+
+function difference(a, b) {
+  const [la, lb] = [labOf(a), labOf(b)]
+  return Math.hypot(la[0] - lb[0], la[1] - lb[1], la[2] - lb[2])
+}
+
+export function washFor(name, index) {
+  const ground = channelsOf(styleFor(name, index).background)
+  const deeper = channelsOf(restTintFor(name, index))
+  const target =
+    inkOn(styleFor(name, index).background) === '#ffffff'
+      ? WASH_STEP_ON_DARK
+      : WASH_STEP_ON_LIGHT
+
+  // Walked rather than solved: the blend is not linear in Lab, and a hundredth
+  // is finer than any screen can show.
+  let alpha = 1
+  for (let a = 0.02; a <= 1; a += 0.01) {
+    alpha = a
+    const blended = deeper.map((c, i) => a * c + (1 - a) * ground[i])
+    if (difference(blended, ground) >= target) break
+  }
+
+  // Returned as the colour and its opacity rather than already blended: this
+  // sits over a blur, and an opaque fill would hide the very thing it is meant
+  // to be part of.
+  const [r, g, b] = deeper.map((c) => Math.round(c * 255))
+  return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(2)})`
+}
+
 // The pale version of a routine's colour, and the ink that reads on it —
 // used by an expanded history cell, which is a wash of the routine's colour
 // rather than a fresh surface.

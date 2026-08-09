@@ -10,10 +10,13 @@ import { addDays, buildWeeks, startOfDay, startOfWeek } from '../../src/data/wee
 import { ScreenTitle, TITLE_CLEARANCE } from '../../src/components/ScreenTitle.jsx'
 import { FONTS, LIGHT, RADIUS, SPACE, TAB_BAR_CLEARANCE, TYPE } from '../../src/theme/index.js'
 
-// What Favorit reserves below the baseline at `figure` size and a row of
-// digits never uses. Measured from the font, not guessed — see the note on
-// line heights in native/CLAUDE.md.
-const FIGURE_DESCENDER = 17.5
+// What the font reserves below the baseline at `figure` size and a row of
+// digits never uses. Measured from the font, not guessed: Funnel's descent
+// is 300 on a 1200 unit em, so 0.25em, and 0.25 x 56 is this. It was 17.5
+// under Favorit, whose descent was 0.312em — the sort of number that has to
+// move when the typeface does. See the note on line heights in
+// native/CLAUDE.md.
+const FIGURE_DESCENDER = 14
 
 function monthsBefore(ts, months) {
   const d = new Date(ts)
@@ -219,14 +222,14 @@ const styles = StyleSheet.create({
     backgroundColor: LIGHT.bgRaised,
   },
   counterLabel: { ...TYPE.label, color: LIGHT.text },
-  // Sized for three digits. No line height stated — Favorit's own is 1.249em
+  // Sized for three digits. No line height stated — the font's own is 1.25em
   // and anything below it clips, which is why the web's trick of trimming to
   // the cap height cannot be ported directly. See native/CLAUDE.md.
   counterValue: {
     ...TYPE.figure,
     color: LIGHT.text,
     // The gap under the figure is the card's bottom padding plus the depth
-    // Favorit reserves for descenders at this size, which digits never use.
+    // the font reserves for descenders at this size, which digits never use.
     // Half of the two together, pulled back — written as the sum rather than
     // as -24, so that moving the padding onto the scale moved this with it
     // instead of leaving the figure sitting wrong.

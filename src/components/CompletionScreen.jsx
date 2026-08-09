@@ -5,8 +5,9 @@ import { StatusBar } from 'expo-status-bar'
 
 import { Confetti } from './Confetti.jsx'
 import { caloriesFor, KCAL_DISCLAIMER } from '../data/calories.js'
+import { washFor } from '../data/routineStyles.js'
 import { WORKOUT_CONTENT_FADE } from '../data/motion.js'
-import { FONTS, RADIUS, SPACE, TYPE } from '../theme/index.js'
+import { FONTS, LIGHT, RADIUS, SPACE, TYPE } from '../theme/index.js'
 
 // What a finished workout leaves you with.
 //
@@ -40,7 +41,7 @@ export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }
 
   return (
     <View style={[styles.screen, { backgroundColor: colour }]}>
-      <StatusBar style={ink === '#ffffff' ? 'light' : 'dark'} />
+      <StatusBar style={ink === LIGHT.onInk ? 'light' : 'dark'} />
       <Confetti />
 
       <Animated.View
@@ -58,7 +59,7 @@ export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }
             <Text style={[styles.time, { color: ink }]}>
               {formatDuration(session.endedAt - session.startedAt)}
             </Text>
-            <Text style={[styles.caption, { color: ink }]}>Total time</Text>
+            <Text style={styles.caption}>Total time</Text>
           </View>
           <Text style={[styles.stats, { color: ink }]}>
             {logged}/{targetSetCount(session)} sets{'\n'}
@@ -74,11 +75,14 @@ export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }
               colour to stay readable. */}
           <Pressable
             onPress={onSeeHistory}
-            style={[styles.primary, { backgroundColor: ink, borderColor: ink }]}
+            style={[styles.primary, { backgroundColor: ink }]}
           >
             <Text style={[styles.primaryLabel, { color: colour }]}>See completed workouts</Text>
           </Pressable>
-          <Pressable onPress={onAgain} style={[styles.primary, { borderColor: ink }]}>
+          <Pressable
+            onPress={onAgain}
+            style={[styles.secondary, { backgroundColor: washFor(session.routineType ?? session.routineName) }]}
+          >
             <Text style={[styles.primaryLabel, { color: ink }]}>Do another workout</Text>
           </Pressable>
           {kcal !== null ? (
@@ -90,30 +94,71 @@ export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }
   )
 }
 
+// What the design leaves between the bottom of the figure's capitals and the
+// top of the tallies', and the two things the fonts spend before any margin
+// is applied: what Funnel drops below a baseline at `hero` size, and what a
+// 40pt line box leaves above capitals at `heading` size.
+const STATS_CAP_GAP = 33.6
+const FIGURE_DESCENT = 0.25 * TYPE.hero.fontSize
+const STATS_CAP_INSET = (40 - 1.25 * TYPE.heading.fontSize) / 2 + 0.325 * TYPE.heading.fontSize
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { flex: 1, paddingHorizontal: SPACE[4] },
-  routine: { ...TYPE.label, opacity: 0.85 },
+  routine: { ...TYPE.caption, textTransform: 'uppercase', opacity: 0.85 },
   // The same room the exercise had during the workout, so nothing moves
   // underneath you when the screen changes what it says.
   body: { flex: 1, justifyContent: 'center', gap: SPACE[2] },
-  // No line height stated anywhere here: Favorit's own is 1.249em and
+  // No line height stated anywhere here: the font's own is 1.25em and
   // anything below it clips. See native/CLAUDE.md.
-  title: { ...TYPE.screenTitle, fontFamily: FONTS.bold, marginBottom: SPACE[2] },
+  title: { ...TYPE.heading, marginBottom: SPACE[2] },
   timeRow: { flexDirection: 'row', alignItems: 'baseline', gap: SPACE[2] },
   time: { ...TYPE.hero },
-  caption: { ...TYPE.label, opacity: 0.7 },
-  stats: { ...TYPE.heading, marginTop: SPACE[4] },
+  // White rather than the routine's ink, and at full strength: it labels the
+  // figure beside it and is not a footnote to it.
+  caption: {
+    ...TYPE.caption,
+    fontFamily: FONTS.medium,
+    textTransform: 'uppercase',
+    color: LIGHT.onInk,
+  },
+  // One block with a stated line height, which is what the design asks for
+  // and what an earlier reading of it got wrong: three lines 40 apart, not
+  // small print with a large gap. 40 sits above Funnel's own 37.5 at this
+  // size, so stating it cannot clip anything.
+  //
+  // The margin is negative because the two line boxes already spend more
+  // between the figure and these than the design leaves: 20.5 below the
+  // figure's baseline at 82pt, 11 above these capitals inside a 40 box, and
+  // the body's own 8 between them — 39.5 where the design wants 33.6. Written
+  // as the difference rather than as -6, so it follows if either size moves.
+  stats: {
+    ...TYPE.heading,
+    lineHeight: 40,
+    marginTop: STATS_CAP_GAP - FIGURE_DESCENT - SPACE[2] - STATS_CAP_INSET,
+  },
   actions: { gap: SPACE[2] },
   primary: {
     height: 52,
     borderRadius: RADIUS.pill,
-    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACE[3],
+  },
+  secondary: {
+    height: 52,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACE[3],
   },
   primaryLabel: { ...TYPE.control },
   // A footnote qualifying the figure above, not a caution about it.
-  note: { ...TYPE.caption, textAlign: 'center', opacity: 0.7, marginTop: SPACE[3] },
+  note: {
+    ...TYPE.caption,
+    fontFamily: FONTS.light,
+    textAlign: 'center',
+    opacity: 0.7,
+    marginTop: SPACE[3],
+  },
 })

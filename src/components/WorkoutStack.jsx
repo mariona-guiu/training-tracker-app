@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
   runOnJS,
@@ -7,7 +7,6 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated'
-import Svg, { Circle, Path } from 'react-native-svg'
 
 import { CANONICAL_ORDER, inkFor, styleFor } from '../data/routineStyles.js'
 import { GLIDE_SPRING, TILT_SPRING } from '../data/motion.js'
@@ -27,49 +26,6 @@ function sortForStack(routines) {
 function estimatedMinutes(routine) {
   const totalSets = routine.slots.reduce((sum, slot) => sum + slot.targetSets, 0)
   return Math.max(15, Math.round((totalSets * 2) / 5) * 5)
-}
-
-function ClockIcon({ color }) {
-  return (
-    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
-      <Circle cx={12} cy={12} r={9} stroke={color} strokeWidth={2} />
-      <Path
-        d="M12 7v5l3.5 2"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  )
-}
-
-function DumbbellIcon({ color }) {
-  return (
-    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  )
-}
-
-function ArrowIcon({ color }) {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M5 12h14M13 6l6 6-6 6"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  )
 }
 
 export const CARD_WIDTH = 280
@@ -108,6 +64,10 @@ const TILT_MAX = 25
 // Framer's dragElastic: how far past the boundary a card still follows.
 const ELASTIC = 0.05
 
+// How far a finger may travel and still count as a tap rather than a drag.
+// Both gestures read it, so they cannot disagree about where the line is.
+const TAP_SLOP = 8
+
 // Past the boundary the card keeps following the finger, but only by this
 // fraction of the overshoot — Framer's dragElastic. It gives the edge some
 // give instead of the card simply stopping against it.
@@ -118,7 +78,7 @@ function rubber(value, min, max, elastic) {
   return value
 }
 
-function StackCard({ routine, slotIndex, zIndex, canvas, resetAt, onLift, onDisturb, onStart }) {
+function StackCard({ routine, slotIndex, zIndex, isTop, canvas, resetAt, onLift, onDisturb, onStart }) {
   const kind = routine.type ?? routine.name
   const style = styleFor(kind, slotIndex)
   const ink = inkFor(kind, slotIndex)
@@ -145,6 +105,15 @@ function StackCard({ routine, slotIndex, zIndex, canvas, resetAt, onLift, onDist
   const startY = useSharedValue(0)
   const startTurn = useSharedValue(restAngle)
   const held = useSharedValue(0)
+  // Whether this card was already on top when the finger landed, read by the
+  // tap below. It has to be captured then rather than on release: touching a
+  // card lifts it, so by the time the tap ends every card is the top card.
+  const onTop = useSharedValue(isTop)
+  const wasTop = useSharedValue(false)
+  useEffect(() => {
+    onTop.value = isTop
+  }, [isTop, onTop])
+
   // Whether this drag has already told the screen the cards have been moved.
   // Without it the callback would cross to JavaScript on every frame of the
   // gesture to set a flag that is already set.
@@ -159,7 +128,26 @@ function StackCard({ routine, slotIndex, zIndex, canvas, resetAt, onLift, onDist
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetAt])
 
+  // Where the card is on screen, measured at the moment it is opened rather
+  // than remembered: the launch colour grows from this box, and the card may
+  // have been dragged anywhere by then.
+  const start = useCallback(() => {
+    card.current?.measureInWindow((left, top, width, height) =>
+      onStart(routine, slotIndex, { x: left, y: top, width, height }),
+    )
+  }, [onStart, routine, slotIndex])
+
+  // The whole card is the target now that the design has no button on it, so
+  // one finger has to mean two things. A threshold separates them: the pan
+  // does not claim the gesture until the finger has travelled far enough that
+  // it cannot be a tap, and the tap will not fire if it has.
+  //
+  // onBegin still runs on touch-down, so a card still lifts and tilts under a
+  // finger that has not moved yet — the press feedback arrives before either
+  // gesture has decided what it is.
   const pan = Gesture.Pan()
+    .activeOffsetX([-TAP_SLOP, TAP_SLOP])
+    .activeOffsetY([-TAP_SLOP, TAP_SLOP])
     .onBegin(() => {
       startX.value = x.value
       startY.value = y.value
@@ -168,6 +156,7 @@ function StackCard({ routine, slotIndex, zIndex, canvas, resetAt, onLift, onDist
       startTurn.value = turn.value
       held.value = withSpring(1, TILT_SPRING)
       reported.value = false
+      wasTop.value = onTop.value
       runOnJS(onLift)(routine.id)
     })
     .onUpdate((event) => {
@@ -219,6 +208,25 @@ function StackCard({ routine, slotIndex, zIndex, canvas, resetAt, onLift, onDist
       held.value = withSpring(0, TILT_SPRING)
     })
 
+  // A tap means one of two things depending on where the card was. Buried, it
+  // means bring this one up — which touching it has already done, so there is
+  // nothing left to do here. On top, it means open it.
+  //
+  // The same as picking up a real pile: you bring a card to the front, then you
+  // act on it. It also means no card can be opened without being fully visible
+  // first, which is worth having when the tap target is the whole card.
+  const tap = Gesture.Tap()
+    .maxDistance(TAP_SLOP)
+    .onEnd((_event, success) => {
+      'worklet'
+      if (success && wasTop.value) runOnJS(start)()
+    })
+
+  // Exclusive, not Simultaneous: the pan has priority, so a finger that moves
+  // opens nothing. A finger that does not move never lets the pan activate,
+  // and the tap is left to win.
+  const gesture = Gesture.Exclusive(pan, tap)
+
   const moved = useAnimatedStyle(() => ({
     transform: [
       { translateX: x.value },
@@ -229,10 +237,15 @@ function StackCard({ routine, slotIndex, zIndex, canvas, resetAt, onLift, onDist
   }))
 
   return (
-    <GestureDetector gesture={pan}>
+    <GestureDetector gesture={gesture}>
       <Animated.View
         ref={card}
-        accessibilityLabel={`${routine.name} workout card`}
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel={
+          isTop ? `Start ${routine.name} workout` : `${routine.name}, bring to front`
+        }
+        accessibilityHint="Drag to move the card around"
         style={[
           styles.card,
           {
@@ -250,35 +263,11 @@ function StackCard({ routine, slotIndex, zIndex, canvas, resetAt, onLift, onDist
       >
         <Text style={[styles.label, { color: ink }]}>{routine.name}</Text>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Start ${routine.name} workout`}
-          // The card's box on screen is where the launch colour grows from, so
-          // it is measured at the moment of the tap — the card may have been
-          // dragged anywhere by then.
-          onPress={() =>
-            card.current?.measureInWindow((left, top, width, height) =>
-              onStart(routine, slotIndex, { x: left, y: top, width, height }),
-            )
-          }
-          style={({ pressed }) => [
-            styles.start,
-            { borderColor: ink },
-            pressed && styles.startPressed,
-          ]}
-        >
-          <ArrowIcon color={ink} />
-        </Pressable>
-
         <View style={styles.meta}>
-          <View style={styles.metaRow}>
-            <ClockIcon color={ink} />
-            <Text style={[styles.metaText, { color: ink }]}>{estimatedMinutes(routine)} min</Text>
-          </View>
-          <View style={styles.metaRow}>
-            <DumbbellIcon color={ink} />
-            <Text style={[styles.metaText, { color: ink }]}>{routine.slots.length} exercises</Text>
-          </View>
+          <Text style={[styles.metaText, { color: ink }]}>{estimatedMinutes(routine)} min</Text>
+          <Text style={[styles.metaText, { color: ink }]}>
+            {routine.slots.length} exercises
+          </Text>
         </View>
       </Animated.View>
     </GestureDetector>
@@ -318,6 +307,7 @@ export function WorkoutStack({ routines, resetAt, onDisturb, onStart }) {
           routine={routine}
           slotIndex={slotIndex}
           zIndex={zOrder.indexOf(routine.id) + 1}
+          isTop={zOrder[zOrder.length - 1] === routine.id}
           canvas={{ width, height }}
           resetAt={resetAt}
           onLift={lift}
@@ -337,48 +327,35 @@ const styles = StyleSheet.create({
     height: CARD_HEIGHT,
     borderRadius: RADIUS.card,
   },
+  // Measured from the design: the capitals sit 19.4 from the card's top edge.
+  // Stated as the text box that produces, since layout takes the box and the
+  // font leaves 0.325em above its capitals.
   label: {
     position: 'absolute',
-    top: SPACE[3],
+    top: 10,
     left: SPACE[3],
     right: SPACE[3],
-    fontFamily: FONTS.mono,
-    fontSize: 28,
+    fontFamily: FONTS.displayRegular,
+    fontSize: 30,
     textTransform: 'uppercase',
     textAlign: 'center',
   },
-  start: {
-    position: 'absolute',
-    top: CARD_HEIGHT / 2 - 28,
-    left: CARD_WIDTH / 2 - 28,
-    width: 56,
-    height: 56,
-    borderRadius: RADIUS.pill,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  startPressed: { transform: [{ scale: 0.95 }] },
-  // Stepped back with opacity rather than a faded ink, so it recedes by the
-  // same amount whichever ink the card is using. On the whole block rather
-  // than on the text: the icons are part of the same statement, and with the
-  // opacity on the text alone they sat at full strength beside it — plainly
-  // so on the cards whose ink is white.
+  // Two centred lines and no icons — the design has three elements on a card
+  // and these are two of them. At full strength: with the arrow gone they are
+  // the only thing on the card besides its name, and there is nothing left for
+  // them to recede behind.
   meta: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: SPACE[3],
+    bottom: 20,
     alignItems: 'center',
     gap: SPACE[1],
-    opacity: 0.75,
   },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE[2] },
   metaText: {
-    fontFamily: FONTS.mono,
-    fontSize: 13,
+    fontFamily: FONTS.displayRegular,
+    fontSize: 16,
     textTransform: 'uppercase',
-    letterSpacing: 0.52,
+    fontVariant: ['tabular-nums'],
   },
 })
