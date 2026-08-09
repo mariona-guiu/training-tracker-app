@@ -212,14 +212,31 @@ export function washFor(name, index) {
 // used by an expanded history cell, which is a wash of the routine's colour
 // rather than a fresh surface.
 //
-// The ink is the routine's own colour wherever it holds up against its
-// tint, so the cell stays one colour throughout. Three of the six don't:
-// yellow, pink and lime are already light, so a pale version of them sits
-// too close to the colour itself and the text turns to mush. Those fall
-// back to black. The threshold is a contrast ratio, so the decision is made
-// on how the pair actually reads rather than on a list of exceptions.
+// The ink is the routine's own colour wherever it can be made legible on its
+// own tint, so the cell stays one colour throughout.
+//
+// It used to be the colour *unchanged*, accepted at a contrast of 2. That is
+// not a legibility threshold — it is barely a "can you tell these differ"
+// one, and it left orange at 2.49, blue at 3.13 and red at 3.50 against a
+// standard that asks for 4.5. The other three were already sent to black and
+// were never the problem.
+//
+// So the colour is turned down until it clears AA rather than accepted or
+// abandoned as it is. Lightness only, never mixed with black, for the reason
+// restTintFor gives: mixing drains the colour out.
 const TINT_LIGHTNESS = 0.93
-const INK_MIN_CONTRAST = 2
+// WCAG AA for body text. Cell text is 12-16pt, so the 3:1 large-text
+// allowance does not apply to it.
+const INK_MIN_CONTRAST = 4.5
+// How far the ink may drift from the routine's colour and still read as that
+// colour. Orange, blue and red reach AA by moving 25, 12 and 9; yellow, pink
+// and lime would have to move 46, 69 and 54, which is not a deeper shade but
+// a different colour — darkened yellow is olive, and darkened pale pink is
+// crimson. Those three keep the black they already had.
+//
+// Measured in Lab, like the wash step above, because the question is how
+// different it looks and sRGB does not answer that.
+const INK_MAX_DRIFT = 30
 
 function contrastBetween(a, b) {
   const [light, dark] = a > b ? [a, b] : [b, a]
@@ -228,14 +245,21 @@ function contrastBetween(a, b) {
 
 export function paleFor(name, index) {
   const colour = styleFor(name, index).background
-  const [hue, saturation] = rgbToHsl(channelsOf(colour))
+  const [hue, saturation, lightness] = rgbToHsl(channelsOf(colour))
   const background = toHex(hslToRgb(hue, Math.min(saturation, 0.9), TINT_LIGHTNESS))
 
-  const contrast = contrastBetween(
-    luminanceOf(channelsOf(background)),
-    luminanceOf(channelsOf(colour)),
-  )
-  return { background, ink: contrast >= INK_MIN_CONTRAST ? colour : '#0a0a0a' }
+  // Walk the lightness down until the pair clears AA, nudging intensity up on
+  // the way so it deepens rather than greys — the same move restTintFor makes
+  // for a routine with no hand-picked tint.
+  const ground = luminanceOf(channelsOf(background))
+  let ink = colour
+  for (let level = lightness; level >= 0; level -= 0.005) {
+    ink = toHex(hslToRgb(hue, Math.min(1, saturation * 1.05), level))
+    if (contrastBetween(ground, luminanceOf(channelsOf(ink))) >= INK_MIN_CONTRAST) break
+  }
+
+  const drifted = difference(channelsOf(colour), channelsOf(ink)) > INK_MAX_DRIFT
+  return { background, ink: drifted ? '#0a0a0a' : ink }
 }
 
 // `index` positions a custom routine in the colour cycle. The in-workout

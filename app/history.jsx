@@ -678,7 +678,21 @@ const styles = StyleSheet.create({
   // Sets that were never logged, and exercises passed over entirely: still
   // shown, carrying what they were going to be, but stepped back so the row
   // reads as something that did not happen.
-  faded: { opacity: 0.4 },
+  // Skipped work, and the calorie disclaimer: still secondary, but readable.
+  //
+  // 0.4 put this at a contrast of 1.7 to 2.7 against the cell — below any
+  // legibility bar, on text that says which sets you did not do, which is
+  // information rather than decoration. 0.76 is what the worst of the six
+  // needs to clear 3:1.
+  //
+  // Not 4.5, because that is unreachable here: the cell's ink now sits at
+  // exactly 4.5 at full strength, so any fading at all falls under it. The
+  // choice is 3:1 secondary text or no fading at all, and this stays legible
+  // while still reading as a lesser voice.
+  //
+  // Applied once per element, never nested — a missed set inside a skipped
+  // exercise used to take it twice and read as a third state.
+  faded: { opacity: 0.76 },
   footnote: { ...TYPE.label, marginTop: SPACE[3] },
   // A sentence, where the marks above it are labels.
   sentence: { fontFamily: FONTS.regular, textTransform: 'none', letterSpacing: 0 },
