@@ -208,10 +208,23 @@ walked straight into it. Fixing it there needs a backfill; here it was free.
 
 ## Fonts
 
-Every cut of Favorit is registered as its own family name (`src/theme/fonts.js`).
-React Native has no family/weight pairing: asking for weight 500 on a family
-that shipped one file gets a synthesised bold, not Favorit Medium. Style with
-`FONTS.medium`, never with `fontWeight`.
+**Funnel Sans and Funnel Display**, seven cuts, each registered as its own
+family name (`src/theme/fonts.js`). React Native has no family/weight pairing:
+asking for weight 500 on a family that shipped one file gets a synthesised
+bold, not the real Medium. Style with `FONTS.medium`, never with `fontWeight`.
+
+Sans for what is read, Display for what is looked at — the routine card, the
+page title, the exercise name, the figure being lifted. `TYPE` in
+`src/theme/index.js` already encodes which is which; pick a role from there
+rather than naming a family directly.
+
+Both are OFL from Google Fonts. There is **no Funnel Mono**, which is why the
+tracked capitals that were the app's voice are now Sans rather than a mono
+cut, and why anything needing to align in columns asks for tabular figures
+explicitly — `TYPE.label`, `caption`, `figure` and `hero` all do.
+
+Favorit was here until 2026-08-09 and is gone. Comments that name it are
+explaining why a derived constant changed, not describing the present.
 
 ## A CSS value carries its mechanism with it
 
@@ -247,8 +260,10 @@ CSS lets glyphs spill outside their line box, so the web app can set
 natural one cuts the tops and tails off, and it is worst exactly where it
 shows most — large, bold numbers.
 
-Favorit Bold's own metrics, read from the file: ascent 937, descent -312,
-gap 0, on a 1000 unit em. That is **1.249 em** — 79.9pt at 64pt type.
+Funnel's own metrics, read from the files: ascent 1200, descent -300, gap 0,
+on a **1200** unit em — and identical across all seven cuts, Sans and Display,
+which is why one constant covers the lot. That is **1.25 em**: 102.5pt at the
+82pt the workout figures now use.
 
 So: state no `lineHeight` on display type and let the font decide, then
 recover whatever tightness the design wants with margins, which do not clip.
@@ -258,11 +273,17 @@ If a figure looks cut, measure the font rather than trying numbers — the
 head/hhea/OS-2 tables give the answer in one pass.
 
 The same tables answer the other half of it: **a gap in a design is not a gap
-in a style.** Favorit Bold's ascent is 0.937em and its cap height 0.700em, so
-every line of it carries 0.237em of empty space above the capitals and 0.312em
-below the baseline. Two stacked figures are already 0.549em apart before any
-gap is set — 39.5pt at 72pt type. A design asking for 20pt of visible
-separation therefore wants a **negative** margin, not `gap: 20`.
+in a style.** Funnel's ascent is exactly 1.0 em and its cap height 0.675em, so
+every line carries 0.325em of empty space above the capitals and 0.25em below
+the baseline. Two stacked figures are already **0.575em** apart before any gap
+is set — 47.2pt at 82pt type. A design asking for 20pt of visible separation
+therefore wants a **negative** margin, not `gap: 20`.
+
+This is not theoretical: it is why `stats` on the completion screen carries a
+negative `marginTop`, and why the set sheet's gap is 47.2. Both are written as
+the subtraction with the arithmetic in a comment, so they follow if a size
+moves — which is exactly what saved them when the figure grew from 72 to 82
+and the typeface changed under them on the same day.
 
 Work it out rather than nudging it: `visible - (ascent - capHeight + descent)
 × size`.
