@@ -23,12 +23,32 @@ export const ROUTINE_TYPES = [
   'glutes',
   'core',
   'full body',
-  'stretching',
+  // Replaces 'stretching' as a kind of session. Stretching did not become
+  // mobility — the two are different work, and stretches moved to the end of
+  // other workouts, where they were always going to be more use. 'stretching'
+  // stays a valid key in the colour and tier tables so old sessions still
+  // render; it is simply no longer something a new routine can be.
+  'mobility',
 ]
 
 // pattern, the exercise it was written around, sets, reps
 const S = (pattern, primary, targetSets, targetReps) => ({
   pattern,
+  primary,
+  targetSets,
+  targetReps,
+})
+
+// pattern, the muscle to work, sets, seconds held.
+//
+// A slot that says what to open rather than what to do. The point of a
+// cooldown is that the chest gets stretched, not that one particular stretch
+// happens — so the same slot can offer a different one later without the
+// routine being rewritten. Which one it picks is resolved from the library,
+// deterministically; see resolveSlots.
+const M = (pattern, muscle, primary, targetSets, targetReps) => ({
+  pattern,
+  muscle,
   primary,
   targetSets,
   targetReps,
@@ -47,6 +67,9 @@ export const DEFAULT_ROUTINES = [
       S('vertical-pull', 'Lat Pulldown', 3, 12),
       S('elbow-flexion', 'Barbell Curl', 3, 12),
       S('elbow-extension', 'Tricep Pushdown', 3, 12),
+      M('stretch', 'Chest', 'Chest Doorway Stretch', 1, 30),
+      M('stretch', 'Shoulders', 'Shoulder Cross-Body Stretch', 1, 30),
+      M('stretch', 'Back', "Child's Pose", 1, 30),
     ],
   },
   {
@@ -60,6 +83,8 @@ export const DEFAULT_ROUTINES = [
       S('squat', 'Leg Press', 3, 12),
       S('knee-flexion', 'Leg Curl', 3, 12),
       S('calf', 'Calf Raise', 3, 15),
+      M('stretch', 'Legs', 'Hamstring Stretch', 1, 30),
+      M('stretch', 'Glutes', 'Hip Flexor Stretch', 1, 30),
     ],
   },
   {
@@ -73,6 +98,8 @@ export const DEFAULT_ROUTINES = [
       S('lunge', 'Bulgarian Split Squat', 3, 10),
       S('hip-extension', 'Glute Bridge', 3, 15),
       S('hip-abduction', 'Cable Kickback', 3, 15),
+      M('stretch', 'Glutes', 'Pigeon Pose', 1, 30),
+      M('stretch', 'Legs', 'Hamstring Stretch', 1, 30),
     ],
   },
   {
@@ -86,22 +113,27 @@ export const DEFAULT_ROUTINES = [
       S('core-flexion', 'Cable Crunch', 3, 15),
       S('core-rotation', 'Russian Twist', 3, 20),
       S('core-brace', 'Ab Wheel Rollout', 3, 10),
+      M('stretch', 'Back', 'Seated Spinal Twist', 1, 30),
     ],
   },
   {
+    // The key never changes — it is what seeding matches on — so this stays
+    // 'stretching' even though nothing else about the routine does.
     key: 'stretching',
-    name: 'Stretching',
-    type: 'stretching',
-    difficulty: 'beginner',
+    name: 'Mobility',
+    type: 'mobility',
+    difficulty: 'intermediate',
+    // One drill per region rather than a tour of held positions. Jefferson
+    // Curl is deliberately absent: it is the one here where doing it badly
+    // costs something, and a preset should not be the thing that hands it to
+    // you. Being marked advanced keeps it out of this anyway, since the
+    // routine is intermediate.
     slots: [
-      S('stretch', 'Hamstring Stretch', 1, 30),
-      S('stretch', 'Quad Stretch', 1, 30),
-      S('stretch', 'Hip Flexor Stretch', 1, 30),
-      S('stretch', 'Cat-Cow', 1, 30),
-      S('stretch', "Child's Pose", 1, 30),
-      S('stretch', 'Standing Forward Fold', 1, 30),
-      S('stretch', 'Chest Doorway Stretch', 1, 30),
-      S('stretch', 'Shoulder Cross-Body Stretch', 1, 30),
+      M('mobility', 'Glutes', '90/90 Hip Switch', 1, 45),
+      M('mobility', 'Legs', 'Deep Squat Hold with Reach', 1, 45),
+      M('mobility', 'Back', 'Cat-Cow', 1, 45),
+      M('mobility', 'Shoulders', 'Shoulder CARs', 1, 45),
+      M('mobility', 'Core', 'Bird Dog', 1, 45),
     ],
   },
   {
@@ -115,6 +147,9 @@ export const DEFAULT_ROUTINES = [
       S('horizontal-pull', 'Barbell Row', 3, 10),
       S('vertical-push', 'Overhead Press', 3, 8),
       S('core-brace', 'Plank', 3, 30),
+      M('stretch', 'Legs', 'Hamstring Stretch', 1, 30),
+      M('stretch', 'Back', "Child's Pose", 1, 30),
+      M('stretch', 'Chest', 'Chest Doorway Stretch', 1, 30),
     ],
   },
 ]

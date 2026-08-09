@@ -21,6 +21,8 @@ export const TIER_BY_TYPE = {
   'upper body': 'moderate',
   glutes: 'moderate',
   core: 'core',
+  mobility: 'mobility',
+  // Kept for sessions recorded while the routine was still called Stretching.
   stretching: 'stretching',
 }
 

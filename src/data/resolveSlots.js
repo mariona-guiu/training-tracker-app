@@ -28,6 +28,10 @@ export function candidatesFor(slot, library, { difficulty, equipment } = {}) {
   const ceiling = DIFFICULTY_ORDER.indexOf(difficulty)
   return library.filter((exercise) => {
     if (exercise.pattern !== slot.pattern) return false
+    // A slot naming a muscle rather than an exercise wants anything that works
+    // it the right way — every chest stretch answers "open the chest", which is
+    // what lets one slot vary later without the routine being rewritten.
+    if (slot.muscle && exercise.muscleGroup !== slot.muscle) return false
     if (ceiling >= 0 && DIFFICULTY_ORDER.indexOf(exercise.difficulty) > ceiling) return false
     if (equipment?.length && !equipment.includes(exercise.equipment)) return false
     return true
@@ -63,10 +67,34 @@ export function resolveSlots(routine, library, _context = {}) {
 
   return routine.slots
     .map((slot) => {
-      const primary = byName.get(slot.primary)
-      // A slot whose exercise is missing from the library is dropped rather
-      // than guessed at — the same way seeding has always behaved.
-      return primary ? shape(primary, slot) : null
+      // Two kinds of slot. One names the exercise the routine was written
+      // around; the other names the muscle to work and leaves the choice here.
+      // A cooldown uses the second — "open the chest" rather than "do the
+      // doorway stretch" — so the same slot can offer a different stretch once
+      // rotation exists.
+      //
+      // Sorted and taken from the top rather than picked: this has to return
+      // the same exercises every time it is asked, or reopening the app
+      // mid-week would change your workout.
+      // The exercise the slot was written around comes first, exactly as it
+      // does for a strength slot. The muscle is what the slot *may* be filled
+      // by — the set rotation will one day choose from — not a replacement for
+      // having an answer today.
+      //
+      // Falling through to the muscle also covers a named stretch going
+      // missing from the library: the slot still gets filled by something that
+      // works the right muscle, rather than being dropped.
+      const chosen =
+        (slot.primary && byName.get(slot.primary)) ??
+        (slot.muscle
+          ? candidatesFor(slot, library, { difficulty: routine.difficulty }).sort((a, b) =>
+              a.name.localeCompare(b.name),
+            )[0]
+          : undefined)
+
+      // A slot nothing can fill is dropped rather than guessed at — the same
+      // way seeding has always behaved.
+      return chosen ? shape(chosen, slot) : null
     })
     .filter(Boolean)
 }

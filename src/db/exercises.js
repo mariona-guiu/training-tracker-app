@@ -23,10 +23,26 @@ export async function seedExercisesIfEmpty() {
 
   await db.withTransactionAsync(async () => {
     for (const exercise of DEFAULT_EXERCISES) {
+      // Adds what is missing and refreshes what is already there, so the
+      // library's own facts — which muscle a stretch opens, whether a drill
+      // is timed — are code rather than a snapshot taken on the day a phone
+      // first ran the app. Without this, re-tagging the stretches would have
+      // reached new installs only, and needed a migration for every future
+      // correction.
+      //
+      // Only what the app owns: `WHERE isCustom = 0` leaves anything the user
+      // made alone, and id and createdAt are never touched, so an exercise
+      // keeps its identity and the sessions referring to it stay intact.
       await db.runAsync(
-        `INSERT OR IGNORE INTO exercises
+        `INSERT INTO exercises
            (id, name, muscleGroup, equipment, pattern, difficulty, isCustom, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, 0, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+         ON CONFLICT(name) DO UPDATE SET
+           muscleGroup = excluded.muscleGroup,
+           equipment = excluded.equipment,
+           pattern = excluded.pattern,
+           difficulty = excluded.difficulty
+         WHERE exercises.isCustom = 0`,
         [
           newId(),
           exercise.name,

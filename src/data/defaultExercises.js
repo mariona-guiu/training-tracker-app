@@ -215,6 +215,7 @@ export const DEFAULT_EXERCISES = [
   E('Calf Stretch', 'Legs', 'bodyweight', 'stretch', 'beginner'),
   E('Standing Forward Fold', 'Legs', 'bodyweight', 'stretch', 'beginner'),
   E('Hip Flexor Stretch', 'Glutes', 'bodyweight', 'stretch', 'beginner'),
+  E('90/90 Hip Stretch', 'Glutes', 'bodyweight', 'stretch', 'intermediate'),
   E('Pigeon Pose', 'Glutes', 'bodyweight', 'stretch', 'intermediate'),
   E("Child's Pose", 'Back', 'bodyweight', 'stretch', 'beginner'),
   E('Seated Spinal Twist', 'Back', 'bodyweight', 'stretch', 'beginner'),

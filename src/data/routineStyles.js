@@ -50,13 +50,17 @@ const STYLE_BY_TYPE = {
   glutes: STYLE_YELLOW,
   core: STYLE_PINK,
   'full body': STYLE_RED,
+  // Mobility took over the lime when the stretching routine became one. The
+  // old key stays: sessions recorded before the change still say 'stretching',
+  // and history should not turn grey because a routine was renamed.
+  mobility: STYLE_LIME,
   stretching: STYLE_LIME,
 }
 
 // IndexedDB's natural order follows random ids, not anything meaningful —
 // pin the known routines to a deliberate stacking order; anything else
 // (custom routines) falls in after them, in whatever order the DB gave us.
-export const CANONICAL_ORDER = ['upper body', 'lower body', 'glutes', 'core', 'full body', 'stretching']
+export const CANONICAL_ORDER = ['upper body', 'lower body', 'glutes', 'core', 'full body', 'mobility']
 
 function channelsOf(hex) {
   return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)

@@ -21,7 +21,7 @@ import * as Crypto from 'expo-crypto'
 // boundary, so nothing above here ever sees a 1 where it expects true.
 
 const DB_NAME = 'training-tracker.db'
-const SCHEMA_VERSION = 2
+const SCHEMA_VERSION = 3
 
 let dbPromise
 
@@ -97,6 +97,20 @@ async function migrate(db) {
     await db.execAsync(`
       ALTER TABLE sessions ADD COLUMN routineType TEXT;
       UPDATE sessions SET routineType = lower(routineName) WHERE routineType IS NULL;
+    `)
+  }
+
+  if (current < 3) {
+    // Seeding refreshes a preset's type, difficulty and slots, but deliberately
+    // keeps whatever it is called — so that renaming a routine, when that
+    // exists, is not undone on the next launch. Which means the one thing it
+    // cannot do is rename one, and that is exactly what this needs.
+    //
+    // The key stays 'stretching' because a key never changes; everything the
+    // routine actually is has.
+    await db.execAsync(`
+      UPDATE routines SET name = 'Mobility'
+      WHERE key = 'stretching' AND isCustom = 0 AND name = 'Stretching';
     `)
   }
 
