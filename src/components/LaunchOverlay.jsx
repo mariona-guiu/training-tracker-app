@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import Animated, {
   runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -45,6 +46,12 @@ export function LaunchProvider({ children }) {
   // them together.
   const progress = useSharedValue(0)
   const fade = useSharedValue(0)
+  // Whether this launch has already announced its arrival, so the reaction
+  // below fires once and not on every frame after.
+  const announced = useSharedValue(false)
+  // Held on the JS side and called through runOnJS. The worklet cannot read a
+  // ref, but the function it hands back to JavaScript can.
+  const onArrivedRef = useRef(null)
 
   const clear = useCallback(() => setState(null), [])
 
@@ -55,17 +62,35 @@ export function LaunchProvider({ children }) {
         return
       }
       setState({ mode: 'launch', ...next })
+      onArrivedRef.current = next.onArrived
+      announced.value = false
       progress.value = 0
-      // Captured in a local rather than read from a ref: this callback runs
-      // on the UI thread, where React refs mean nothing. A closed-over
-      // function is what runOnJS can actually hand back to JavaScript.
-      const onArrived = next.onArrived
-      progress.value = withSpring(1, WORKOUT_SPRING, (finished) => {
-        'worklet'
-        if (finished && onArrived) runOnJS(onArrived)()
-      })
+      progress.value = withSpring(1, WORKOUT_SPRING)
     },
-    [progress],
+    [progress, announced],
+  )
+
+  const announce = useCallback(() => {
+    onArrivedRef.current?.()
+  }, [])
+
+  // The colour has arrived when it covers the screen, not when the spring has
+  // stopped moving. WORKOUT_SPRING is underdamped, so it reaches full size at
+  // about 234ms and only reports finished at about 458ms — and every one of
+  // those 224ms is overshoot happening outside the screen, where it is clipped
+  // and cannot be seen.
+  //
+  // Waiting for the callback meant the workout sat behind a screen of colour
+  // that had already finished arriving. This fires on the moment that is
+  // actually visible instead.
+  useAnimatedReaction(
+    () => progress.value,
+    (p) => {
+      'worklet'
+      if (announced.value || p < 0.995) return
+      announced.value = true
+      runOnJS(announce)()
+    },
   )
 
   // Set full and left there. The fade itself cannot start here: the style
