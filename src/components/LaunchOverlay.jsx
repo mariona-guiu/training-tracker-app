@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useRef } from 'react'
 import { StyleSheet } from 'react-native'
 import Animated, {
   runOnJS,
@@ -38,14 +38,23 @@ export function useLaunch() {
 }
 
 export function LaunchProvider({ children }) {
-  // What the overlay is doing, if anything: { mode: 'launch' | 'reveal', ... }
-  const [state, setState] = useState(null)
-  // One value drives the whole opening, from sitting on the card (0) to
-  // filling the screen (1). Springing a single progress value keeps the
-  // translate and both scales in step, and the overshoot applies to all of
-  // them together.
+  // The overlay is always mounted and always transparent when idle, and
+  // everything about it lives in shared values.
+  //
+  // It used to be mounted only while it had something to do, with its mode and
+  // colour in React state. That put a view creation and a React commit on the
+  // path of a movement that has to begin on the very next frame — and a commit
+  // is not a paint. On a cold launch the first reveal was slow enough that the
+  // colour appeared part-way through its own fade, which read as a blink.
+  // Moving the fade after the commit helped and did not fix it, because the
+  // mount was still there. Nothing here touches React any more.
   const progress = useSharedValue(0)
   const fade = useSharedValue(0)
+  // 0 idle, 1 launching, 2 revealing. A number rather than a string so the
+  // worklet can read it without a round trip.
+  const mode = useSharedValue(0)
+  const colour = useSharedValue('transparent')
+  const from = useSharedValue(null)
   // Whether this launch has already announced its arrival, so the reaction
   // below fires once and not on every frame after.
   const announced = useSharedValue(false)
@@ -53,21 +62,25 @@ export function LaunchProvider({ children }) {
   // ref, but the function it hands back to JavaScript can.
   const onArrivedRef = useRef(null)
 
-  const clear = useCallback(() => setState(null), [])
+  const clear = useCallback(() => {
+    mode.value = 0
+  }, [mode])
 
   const beginLaunch = useCallback(
     (next) => {
       if (!next) {
-        setState(null)
+        mode.value = 0
         return
       }
-      setState({ mode: 'launch', ...next })
       onArrivedRef.current = next.onArrived
+      colour.value = next.color
+      from.value = next.from
       announced.value = false
+      mode.value = 1
       progress.value = 0
       progress.value = withSpring(1, WORKOUT_SPRING)
     },
-    [progress, announced],
+    [progress, announced, mode, colour, from],
   )
 
   const announce = useCallback(() => {
@@ -79,75 +92,61 @@ export function LaunchProvider({ children }) {
   // about 234ms and only reports finished at about 458ms — and every one of
   // those 224ms is overshoot happening outside the screen, where it is clipped
   // and cannot be seen.
-  //
-  // Waiting for the callback meant the workout sat behind a screen of colour
-  // that had already finished arriving. This fires on the moment that is
-  // actually visible instead.
   useAnimatedReaction(
     () => progress.value,
     (p) => {
       'worklet'
-      if (announced.value || p < 0.995) return
+      if (mode.value !== 1 || announced.value || p < 0.995) return
       announced.value = true
       runOnJS(announce)()
     },
   )
 
-  // Set full and left there. The fade itself cannot start here: the style
-  // below only reads `fade` once React has committed `mode: 'reveal'`, and
-  // until it does the overlay draws at zero. Starting the timing in the same
-  // breath meant the colour was invisible while it was already fading, then
-  // appeared at whatever the fade had reached — which reads as a blink rather
-  // than a dissolve, and got worse the busier the commit was.
+  // A workout that just ended hands its colour back still covering the screen.
+  // Set full and faded from there, all on the UI thread, so the first frame of
+  // the fade is drawn on a colour that is already painted.
   const beginReveal = useCallback(
     (color) => {
-      setState({ mode: 'reveal', color })
+      colour.value = color
       fade.value = 1
+      mode.value = 2
+      fade.value = withTiming(0, WORKOUT_REVEAL_FADE, (finished) => {
+        'worklet'
+        if (finished) mode.value = 0
+      })
     },
-    [fade],
+    [fade, mode, colour],
   )
 
-  // Started once the overlay is actually on screen, so it always fades from a
-  // fully painted colour.
-  useEffect(() => {
-    if (state?.mode !== 'reveal') return
-    fade.value = withTiming(0, WORKOUT_REVEAL_FADE, (finished) => {
-      'worklet'
-      if (finished) runOnJS(clear)()
-    })
-  }, [state, fade, clear])
-
   const style = useAnimatedStyle(() => {
-    if (state?.mode === 'reveal') return { opacity: fade.value, transform: [] }
-    const from = state?.from
-    if (!from) return { opacity: 0, transform: [] }
+    if (mode.value === 2) {
+      return { backgroundColor: colour.value, opacity: fade.value, transform: [] }
+    }
+    const origin = from.value
+    if (mode.value !== 1 || !origin) {
+      return { backgroundColor: colour.value, opacity: 0, transform: [] }
+    }
     const p = progress.value
     const at = (start) => start + (1 - start) * p
     return {
+      backgroundColor: colour.value,
       opacity: 1,
       transform: [
-        { translateX: from.x * (1 - p) },
-        { translateY: from.y * (1 - p) },
-        { scaleX: at(from.scaleX) },
-        { scaleY: at(from.scaleY) },
+        { translateX: origin.x * (1 - p) },
+        { translateY: origin.y * (1 - p) },
+        { scaleX: at(origin.scaleX) },
+        { scaleY: at(origin.scaleY) },
       ],
     }
-  }, [state])
+  })
 
   return (
     <LaunchContext.Provider value={{ beginLaunch, beginReveal, endLaunch: clear }}>
       {children}
-      {state ? (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            StyleSheet.absoluteFill,
-            styles.overlay,
-            { backgroundColor: state.color },
-            style,
-          ]}
-        />
-      ) : null}
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, styles.overlay, style]}
+      />
     </LaunchContext.Provider>
   )
 }
