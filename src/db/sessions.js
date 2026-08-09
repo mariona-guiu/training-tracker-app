@@ -2,9 +2,10 @@ import { getDB, newId, toFlag, fromNullableFlag } from './client.js'
 import { resolveSlots } from '../data/resolveSlots.js'
 
 // A session is one actual run-through of a routine:
-// { id, routineId, routineName, startedAt, endedAt, status: 'in-progress' | 'completed',
+// { id, routineId, routineName, routineType, startedAt, endedAt, status: 'in-progress' | 'completed',
 //   endedEarly, bodyWeightKg, restMode, currentExerciseIndex, exercises: [ { exerciseId,
-//   exerciseName, targetSets, targetReps, targetWeight, tracksWeight, skipped,
+//   exerciseName, targetSets, targetReps, targetWeight, tracksWeight, pattern,
+//   skipped,
 //   sets: [ { done, reps, weight, completedAt } ] } ] }
 //
 // `status` marks whether a session is still running; `endedEarly` records how
@@ -50,6 +51,10 @@ export async function startSession(routine) {
     id: newId(),
     routineId: routine.id,
     routineName: routine.name,
+    // The kind of session, which is what colour, rest and calories follow.
+    // Recorded alongside the name because a routine can be renamed, and a
+    // custom one need not be named after its kind at all.
+    routineType: routine.type ?? routine.name?.toLowerCase() ?? null,
     startedAt: Date.now(),
     endedAt: null,
     status: 'in-progress',
@@ -66,6 +71,7 @@ export async function startSession(routine) {
         targetReps: last?.reps ?? ex.targetReps,
         targetWeight: last?.weight ?? null,
         tracksWeight: ex.tracksWeight,
+        pattern: ex.pattern,
         skipped: false,
         sets: Array.from({ length: ex.targetSets }, () => ({ done: false })),
       }
@@ -74,13 +80,14 @@ export async function startSession(routine) {
 
   await db.runAsync(
     `INSERT INTO sessions
-       (id, routineId, routineName, startedAt, endedAt, status, endedEarly,
+       (id, routineId, routineName, routineType, startedAt, endedAt, status, endedEarly,
         bodyWeightKg, restMode, currentExerciseIndex, exercises)
-     VALUES (?, ?, ?, ?, NULL, ?, NULL, NULL, NULL, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, NULL, NULL, ?, ?)`,
     [
       session.id,
       session.routineId,
       session.routineName,
+      session.routineType,
       session.startedAt,
       session.status,
       session.currentExerciseIndex,
@@ -105,13 +112,14 @@ export async function saveSession(session) {
   const db = await getDB()
   await db.runAsync(
     `INSERT OR REPLACE INTO sessions
-       (id, routineId, routineName, startedAt, endedAt, status, endedEarly,
+       (id, routineId, routineName, routineType, startedAt, endedAt, status, endedEarly,
         bodyWeightKg, restMode, currentExerciseIndex, exercises)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       session.id,
       session.routineId ?? null,
       session.routineName ?? null,
+      session.routineType ?? null,
       session.startedAt,
       session.endedAt ?? null,
       session.status,

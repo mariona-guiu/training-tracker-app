@@ -247,7 +247,17 @@ export default function WorkoutMode() {
     })
   }, [sessionId, width, trackX, live, count])
 
-  const restSeconds = session ? restSecondsFor(session.routineName, settings?.restMode) : 0
+  // The exercise on screen. Derived here rather than after the `if (!session)`
+  // guard below, because the rest countdown is driven by a hook and hooks
+  // cannot run after an early return — so anything they read has to exist by
+  // now, session or no session.
+  const exercise = session?.exercises[index]
+
+  // Asked of the exercise rather than of the session, so a stretch at the end
+  // of a lower body workout rests like a stretch and not like a squat.
+  const restSeconds = session
+    ? restSecondsFor(session.routineType ?? session.routineName, settings?.restMode, exercise)
+    : 0
 
   // Only the number on screen is kept in JavaScript, and only when the second
   // it shows actually changes. The colour itself is already moving on the UI
@@ -270,7 +280,7 @@ export default function WorkoutMode() {
   // without its '#', which a URL parameter cannot carry — so there is no
   // flash of anything else while the session loads.
   const handed = color ? `#${color}` : null
-  const colour = handed ?? (session ? styleFor(session.routineName, 0).background : DARK.bg)
+  const colour = handed ?? (session ? styleFor(session.routineType ?? session.routineName, 0).background : DARK.bg)
   const ink = inkOn(colour)
 
   function goTo(next) {
@@ -345,7 +355,6 @@ export default function WorkoutMode() {
 
   if (!session) return <View style={{ flex: 1, backgroundColor: colour }} />
 
-  const exercise = session.exercises[index]
   const logged = exercise.sets.filter((set) => set.done).length
   const allSetsLogged = logged >= exercise.targetSets
 
@@ -588,7 +597,7 @@ export default function WorkoutMode() {
         style={[
           StyleSheet.absoluteFill,
           styles.sweep,
-          { backgroundColor: restTintFor(session.routineName) },
+          { backgroundColor: restTintFor(session.routineType ?? session.routineName) },
           sweepStyle,
         ]}
       />

@@ -86,7 +86,7 @@ export default function Workouts() {
     launching.current = true
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
 
-    const colour = styleFor(routine.name, slotIndex).background
+    const colour = styleFor(routine.type ?? routine.name, slotIndex).background
     // The session is created while the colour is still expanding, so the
     // database write never shows up as a delay before the tap responds.
     const pending = (async () => (await getActiveSession()) ?? startSession(routine))()

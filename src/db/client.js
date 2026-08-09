@@ -21,7 +21,7 @@ import * as Crypto from 'expo-crypto'
 // boundary, so nothing above here ever sees a 1 where it expects true.
 
 const DB_NAME = 'training-tracker.db'
-const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 2
 
 let dbPromise
 
@@ -81,6 +81,22 @@ async function migrate(db) {
         restMode TEXT,
         bodyWeightKg REAL
       );
+    `)
+  }
+
+  if (current < 2) {
+    // A session recorded what its routine was *called* but never what kind of
+    // session it was. Colour, rest length and the calorie rate are all supposed
+    // to follow the kind — and they have worked so far only because every
+    // preset's name lowercases to its own type. A routine named "Leg Day" would
+    // have broken all three at once.
+    //
+    // Backfilling from the name is exact rather than a guess: every routine
+    // that exists at this point is a preset, and for all of them the name
+    // lowercased *is* the type.
+    await db.execAsync(`
+      ALTER TABLE sessions ADD COLUMN routineType TEXT;
+      UPDATE sessions SET routineType = lower(routineName) WHERE routineType IS NULL;
     `)
   }
 

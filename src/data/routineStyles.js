@@ -39,7 +39,12 @@ const CARD_STYLE_CYCLE = [STYLE_ORANGE, STYLE_BLUE, STYLE_YELLOW, STYLE_PINK, ST
 // to one routine — the confetti at the end of a workout uses all six.
 export const ROUTINE_COLOURS = CARD_STYLE_CYCLE.map((style) => style.background)
 
-const STYLE_BY_NAME = {
+// Keyed by the routine's *type* — the kind of session — not by its name. They
+// coincide for every preset, which is why passing a name has worked so far and
+// why a custom routine called "Leg Day" would have come out grey. Callers pass
+// the type where they have one and fall back to the name, which keeps every
+// session recorded before the type existed rendering exactly as it did.
+const STYLE_BY_TYPE = {
   'upper body': STYLE_ORANGE,
   'lower body': STYLE_BLUE,
   glutes: STYLE_YELLOW,
@@ -171,7 +176,7 @@ export function paleFor(name, index) {
 // screen only knows a routine by name, so when it's omitted the name
 // itself picks the colour — same routine, same colour, either way.
 export function styleFor(name, index) {
-  const known = STYLE_BY_NAME[name.toLowerCase()]
+  const known = STYLE_BY_TYPE[name.toLowerCase()]
   if (known) return known
   const slot =
     index ?? [...name].reduce((sum, char) => sum + char.charCodeAt(0), 0)

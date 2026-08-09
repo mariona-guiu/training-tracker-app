@@ -59,7 +59,7 @@ function Segment({ workout, height, gap, dimmed, last }) {
     <Animated.View
       style={[
         styles.segment,
-        { backgroundColor: styleFor(workout.routineName).background },
+        { backgroundColor: styleFor(workout.routineType ?? workout.routineName).background },
         dimmed && styles.segmentDimmed,
         style,
       ]}
@@ -195,13 +195,13 @@ export function WeeklyChart({ weeks }) {
             exiting={FadeOut.duration(120)}
             style={[
               styles.readout,
-              { backgroundColor: styleFor(reading.routineName).background },
+              { backgroundColor: styleFor(reading.routineType ?? reading.routineName).background },
             ]}
           >
-            <Text style={[styles.readoutText, { color: inkFor(reading.routineName) }]}>
+            <Text style={[styles.readoutText, { color: inkFor(reading.routineType ?? reading.routineName) }]}>
               {DAY(reading.startedAt)}
             </Text>
-            <Text style={[styles.readoutText, { color: inkFor(reading.routineName) }]}>
+            <Text style={[styles.readoutText, { color: inkFor(reading.routineType ?? reading.routineName) }]}>
               {reading.routineName}
             </Text>
           </Animated.View>

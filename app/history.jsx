@@ -145,8 +145,11 @@ const sentenceCase = (name) => name.charAt(0).toUpperCase() + name.slice(1).toLo
 function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete }) {
   const root = useRef(null)
   const pending = useRef(null)
-  const pale = paleFor(session.routineName)
-  const ink = inkFor(session.routineName)
+  // The kind of session, falling back to its name for anything recorded
+  // before the type was stored.
+  const kind = session.routineType ?? session.routineName
+  const pale = paleFor(kind)
+  const ink = inkFor(kind)
   const kcal = caloriesFor(session)
   const { exercises, exercisesDone, sets, setsDone } = tallies(session)
   const anySkipped = session.exercises.some((ex) => ex.skipped || ex.sets.some((set) => !set.done))
@@ -308,7 +311,7 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete }) {
           }
           onToggle()
         }}
-        style={[styles.head, { backgroundColor: styleFor(session.routineName).background }]}
+        style={[styles.head, { backgroundColor: styleFor(kind).background }]}
       >
         <View style={styles.heading}>
           {/* Sentence case whatever the routine is stored as, matching the
@@ -323,8 +326,8 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete }) {
         {/* Only flagged when we actually know: sessions recorded before this
             was tracked have no answer either way. */}
         {session.endedEarly === true ? (
-          <View style={[styles.tag, { backgroundColor: restTintFor(session.routineName) }]}>
-            <Text style={[styles.tagText, { color: inkOn(restTintFor(session.routineName)) }]}>
+          <View style={[styles.tag, { backgroundColor: restTintFor(kind) }]}>
+            <Text style={[styles.tagText, { color: inkOn(restTintFor(kind)) }]}>
               Ended early
             </Text>
           </View>

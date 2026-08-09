@@ -1,4 +1,4 @@
-import { TIER_BY_ROUTINE } from './rest.js'
+import { tierFor } from './rest.js'
 
 // An estimate of what a workout cost, by the MET method: energy is a rate
 // multiplied by body weight and time.
@@ -32,6 +32,10 @@ const MET_BY_TIER = {
   heavy: 5.5, // squats, deadlifts, the whole-body compounds
   moderate: 4.5,
   core: 3.5,
+  // Active control through a range: more than waiting out a hold, less than
+  // core work, and not continuous. The Compendium puts light calisthenics at
+  // 3.5 and mild stretching at 2.3; this sits deliberately nearer the lower.
+  mobility: 2.8,
   stretching: 2.3,
 }
 
@@ -48,8 +52,6 @@ const PACE_FACTOR = {
   balanced: 1,
   strength: 0.9,
 }
-
-const DEFAULT_TIER = 'moderate'
 
 // Three seconds is a controlled repetition: a count up, a count and a half
 // down. Only used to work out how long a session could plausibly have run
@@ -77,9 +79,12 @@ export const KCAL_NOTE =
 // The same sentence with the mark that ties it to the figure above it.
 export const KCAL_DISCLAIMER = `*${KCAL_NOTE}`
 
-function tierFor(routineName) {
-  return TIER_BY_ROUTINE[routineName?.toLowerCase()] ?? DEFAULT_TIER
-}
+// Mobility is more work than a held stretch and less than core: the drills are
+// active, taking a joint to the end of what it has under its own power, but
+// they are not continuous. Erring low, as everything here does.
+//
+// Pace is not applied to either, for the reason stated above — their rest does
+// not change with the setting, so the setting does not change what they are.
 
 function loggedSets(session) {
   return session.exercises.flatMap((exercise) =>
@@ -89,11 +94,36 @@ function loggedSets(session) {
 
 // Roughly how long the sets themselves took. A held stretch knows its own
 // seconds; a weighted set is reckoned from its repetitions.
+function setSeconds({ set, exercise }) {
+  const reps = set.reps ?? exercise.targetReps ?? 0
+  return exercise.tracksWeight ? reps * SECONDS_PER_REP : reps
+}
+
 function workingSeconds(sets) {
-  return sets.reduce((total, { set, exercise }) => {
-    const reps = set.reps ?? exercise.targetReps ?? 0
-    return total + (exercise.tracksWeight ? reps * SECONDS_PER_REP : reps)
-  }, 0)
+  return sets.reduce((total, entry) => total + setSeconds(entry), 0)
+}
+
+// The rate for one exercise: its tier, and the pace setting where the pace
+// setting means anything. Timed work rests the same however the pace is set,
+// so the setting is not applied to it.
+function metFor(exercise, kind, restMode) {
+  const tier = tierFor(kind, exercise)
+  const paced = tier === 'stretching' || tier === 'mobility'
+  return MET_BY_TIER[tier] * (paced ? 1 : (PACE_FACTOR[restMode] ?? 1))
+}
+
+// Each exercise's rate, weighted by the seconds it accounted for. Falls back to
+// the session's own rate when nothing is measurable, so a session of sets that
+// somehow took no time is still costed rather than divided by zero.
+function blendedMet(sets, kind, restMode) {
+  let seconds = 0
+  let weighted = 0
+  for (const entry of sets) {
+    const s = setSeconds(entry)
+    seconds += s
+    weighted += s * metFor(entry.exercise, kind, restMode)
+  }
+  return seconds > 0 ? weighted / seconds : metFor(undefined, kind, restMode)
 }
 
 // Everything it needs is on the session: the weight recorded when the
@@ -112,9 +142,18 @@ export function caloriesFor(session) {
   const sets = loggedSets(session)
   if (sets.length === 0) return null
 
-  const tier = tierFor(session.routineName)
-  const pace = tier === 'stretching' ? 1 : (PACE_FACTOR[session.restMode] ?? 1)
-  const met = MET_BY_TIER[tier] * pace
+  const kind = session.routineType ?? session.routineName
+
+  // One rate for the whole session was fine while a session was one kind of
+  // work. A cooldown inside a lower body workout is not, and costing those
+  // stretches at the squatting rate would be exactly the flattering assumption
+  // the rest of this file refuses to make.
+  //
+  // So the rate is blended by how long each exercise took: every exercise
+  // contributes its own tier, weighted by its share of the working seconds.
+  // With one kind of work throughout the blend equals the single rate it
+  // replaces, which is why no existing session's figure moves.
+  const met = blendedMet(sets, kind, session.restMode)
 
   // A session can't have run longer than its own sets and rests allow,
   // however long the app was left open on it.

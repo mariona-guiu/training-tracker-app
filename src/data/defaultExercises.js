@@ -21,10 +21,20 @@
 // exercises by name when seeding, so a rename drops them silently. Add, and
 // leave what is already here alone.
 
-export const MUSCLE_GROUPS = ['Chest', 'Back', 'Legs', 'Glutes', 'Shoulders', 'Arms', 'Core', 'Stretching']
+export const MUSCLE_GROUPS = ['Chest', 'Back', 'Legs', 'Glutes', 'Shoulders', 'Arms', 'Core']
 
-// Muscle groups where a set is a stretch hold rather than a weighted rep — no weight field, reps means seconds held.
-export const STRETCH_GROUPS = ['Stretching']
+// 'Stretching' used to sit in the list above, which meant a chest stretch
+// was tagged as belonging to the muscle group 'Stretching' and the app had
+// no way of knowing it stretched the chest. It was never a muscle — it
+// described the kind of work, which is what `pattern` is for. Every stretch
+// now carries the muscle it opens, and the pattern says how.
+//
+// Patterns whose sets are timed rather than loaded: reps means seconds held,
+// and there is no weight field. Read from the pattern rather than the muscle
+// group for exactly the reason above.
+export const TIMED_PATTERNS = ['stretch', 'mobility']
+
+export const isTimed = (exercise) => TIMED_PATTERNS.includes(exercise?.pattern)
 
 export const EQUIPMENT = ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight']
 
@@ -49,11 +59,15 @@ export const MOVEMENT_PATTERNS = [
   'hip-extension',
   'hip-abduction',
   'calf',
-  // Core and mobility
+  // Core
   'core-brace',
   'core-flexion',
   'core-rotation',
+  // Timed work. A stretch is a position held until the muscle gives; a
+  // mobility drill is active control through a range, which is a different
+  // thing to train and a different thing to program.
   'stretch',
+  'mobility',
 ]
 
 export const DIFFICULTIES = ['beginner', 'intermediate', 'advanced']
@@ -193,19 +207,40 @@ export const DEFAULT_EXERCISES = [
   E('Cable Woodchop', 'Core', 'cable', 'core-rotation', 'intermediate'),
   E('Bicycle Crunch', 'Core', 'bodyweight', 'core-rotation', 'beginner'),
 
-  // Stretching -------------------------------------------------------------
-  E('Hamstring Stretch', 'Stretching', 'bodyweight', 'stretch', 'beginner'),
-  E('Quad Stretch', 'Stretching', 'bodyweight', 'stretch', 'beginner'),
-  E('Hip Flexor Stretch', 'Stretching', 'bodyweight', 'stretch', 'beginner'),
-  E('Calf Stretch', 'Stretching', 'bodyweight', 'stretch', 'beginner'),
-  E('Cat-Cow', 'Stretching', 'bodyweight', 'stretch', 'beginner'),
-  E("Child's Pose", 'Stretching', 'bodyweight', 'stretch', 'beginner'),
-  E('Downward Dog', 'Stretching', 'bodyweight', 'stretch', 'beginner'),
-  E('Pigeon Pose', 'Stretching', 'bodyweight', 'stretch', 'intermediate'),
-  E('Seated Spinal Twist', 'Stretching', 'bodyweight', 'stretch', 'beginner'),
-  E('Thoracic Rotation', 'Stretching', 'bodyweight', 'stretch', 'beginner'),
-  E('90/90 Hip Stretch', 'Stretching', 'bodyweight', 'stretch', 'intermediate'),
-  E('Standing Forward Fold', 'Stretching', 'bodyweight', 'stretch', 'beginner'),
-  E('Chest Doorway Stretch', 'Stretching', 'bodyweight', 'stretch', 'beginner'),
-  E('Shoulder Cross-Body Stretch', 'Stretching', 'bodyweight', 'stretch', 'beginner'),
+  // Stretches ---------------------------------------------------------------
+  // Held positions, each carrying the muscle it opens so a workout can end
+  // with stretches for what it just trained.
+  E('Hamstring Stretch', 'Legs', 'bodyweight', 'stretch', 'beginner'),
+  E('Quad Stretch', 'Legs', 'bodyweight', 'stretch', 'beginner'),
+  E('Calf Stretch', 'Legs', 'bodyweight', 'stretch', 'beginner'),
+  E('Standing Forward Fold', 'Legs', 'bodyweight', 'stretch', 'beginner'),
+  E('Hip Flexor Stretch', 'Glutes', 'bodyweight', 'stretch', 'beginner'),
+  E('Pigeon Pose', 'Glutes', 'bodyweight', 'stretch', 'intermediate'),
+  E("Child's Pose", 'Back', 'bodyweight', 'stretch', 'beginner'),
+  E('Seated Spinal Twist', 'Back', 'bodyweight', 'stretch', 'beginner'),
+  E('Downward Dog', 'Back', 'bodyweight', 'stretch', 'beginner'),
+  E('Chest Doorway Stretch', 'Chest', 'bodyweight', 'stretch', 'beginner'),
+  E('Shoulder Cross-Body Stretch', 'Shoulders', 'bodyweight', 'stretch', 'beginner'),
+  // Passive by design — a decompression rather than a drill — so it is a
+  // stretch and not mobility, whatever its reputation.
+  E('Dead Hang', 'Shoulders', 'bodyweight', 'stretch', 'intermediate'),
+
+  // Mobility ----------------------------------------------------------------
+  // Active control through a range, rather than a position waited out. Timed
+  // like stretches, but they are work: the hips and shoulders here are being
+  // moved under their own power to the end of what they have.
+  E('90/90 Hip Switch', 'Glutes', 'bodyweight', 'mobility', 'intermediate'),
+  E('Cossack Squat', 'Legs', 'bodyweight', 'mobility', 'intermediate'),
+  E('Deep Squat Hold with Reach', 'Legs', 'bodyweight', 'mobility', 'beginner'),
+  E('Ankle Rock', 'Legs', 'bodyweight', 'mobility', 'beginner'),
+  E('Cat-Cow', 'Back', 'bodyweight', 'mobility', 'beginner'),
+  E('Thoracic Rotation', 'Back', 'bodyweight', 'mobility', 'beginner'),
+  // Loaded spinal flexion. Excellent for articulation and the one drill here
+  // where doing it badly has a cost, so it stays out of the preset routine and
+  // has to be chosen deliberately.
+  E('Jefferson Curl', 'Back', 'bodyweight', 'mobility', 'advanced'),
+  E('Shoulder CARs', 'Shoulders', 'bodyweight', 'mobility', 'beginner'),
+  E('Scapular Push-Up', 'Shoulders', 'bodyweight', 'mobility', 'beginner'),
+  E('Wall Slides', 'Shoulders', 'bodyweight', 'mobility', 'beginner'),
+  E('Bird Dog', 'Core', 'bodyweight', 'mobility', 'beginner'),
 ]

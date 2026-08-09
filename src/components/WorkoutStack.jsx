@@ -119,8 +119,9 @@ function rubber(value, min, max, elastic) {
 }
 
 function StackCard({ routine, slotIndex, zIndex, canvas, resetAt, onLift, onDisturb, onStart }) {
-  const style = styleFor(routine.name, slotIndex)
-  const ink = inkFor(routine.name, slotIndex)
+  const kind = routine.type ?? routine.name
+  const style = styleFor(kind, slotIndex)
+  const ink = inkFor(kind, slotIndex)
   const card = useRef(null)
 
   const baseLeft = (canvas.width - CARD_WIDTH) / 2

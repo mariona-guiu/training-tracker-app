@@ -1,4 +1,4 @@
-import { STRETCH_GROUPS } from './defaultExercises.js'
+import { isTimed } from './defaultExercises.js'
 
 // Turning a routine's slots into the exercises you will actually do.
 //
@@ -40,7 +40,16 @@ function shape(exercise, slot) {
     exerciseName: exercise.name,
     targetSets: slot.targetSets,
     targetReps: slot.targetReps,
-    tracksWeight: !STRETCH_GROUPS.includes(exercise.muscleGroup),
+    // Read from the pattern, not the muscle group. It used to ask whether
+    // the muscle group was 'Stretching', which stopped working the moment a
+    // chest stretch started being tagged as a chest exercise — it would have
+    // begun asking for kilos instead of seconds.
+    tracksWeight: !isTimed(exercise),
+    // Carried onto the session as a fact about what was done, so rest length
+    // and the calorie rate can be worked out per exercise rather than per
+    // session. The fact is stored; the tier it implies is derived, so
+    // retuning a tier still corrects every past session at once.
+    pattern: exercise.pattern,
   }
 }
 
