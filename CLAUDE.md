@@ -1,12 +1,28 @@
 @AGENTS.md
 
-# The native port
+# The app
 
-The React Native version of the tracker, being brought to parity with the web
-app at the repository root. The web app stays where it is and keeps serving on
-Vercel until this replaces it, so it remains the reference for how anything is
-meant to look and behave. When the two disagree, the web app is right unless a
-decision was recorded otherwise.
+The React Native tracker. It began as a port of the web app at the repository
+root, and for as long as that port was catching up, the web app was the
+reference for how everything should look and behave.
+
+**That is over.** Decided on 2026-08-09: this is V1. The web app is the MVP —
+it stays on Vercel exactly as it is, and it is no longer being kept in step
+with. When the two disagree, this one is right, and a difference is not drift
+to be repaired.
+
+The gap is going to widen, and not only in styling. The design system landed
+here and only here, and what comes next — the four-tab restructure, custom
+workouts, rotation — changes UX, logic and the data model. Each of those makes
+the web app a less useful thing to look at. Expect to consult it rarely, and
+to stop consulting it entirely.
+
+One practical consequence while it lasts: `src/data/` is still a literal copy
+in both, so a change to the calorie model, the rest tiers, the week grouping,
+the routine colours or slot resolution belongs in both copies today. Springs
+likewise, per the rule in `motion.js`. That sharing ends the moment the data
+model here moves — when it does, let it end rather than porting the change
+backwards.
 
 Read the root `CLAUDE.md` first. Everything it says about what the app *is*
 still holds; what follows is only what differs on native.

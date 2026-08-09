@@ -36,7 +36,10 @@ export const LIGHT = {
   // draws — the two screens had drifted a step apart from each other.
   bgRaised: '#f7f7f6',
   border: '#e3e3de',
-  text: '#0a0a0a',
+  // #191919 rather than #0a0a0a: the Figma files specify it and Settings
+  // rendered it, so it is the one with the most evidence behind it. Decided
+  // once here, which is the whole point of it being a token.
+  text: '#191919',
   textDim: '#6f6f6a',
   surfaceFloating: 'rgba(253, 253, 252, 0.72)',
   surfaceCard: 'rgba(247, 247, 246, 0.5)',
@@ -65,7 +68,7 @@ export const FONTS = {
   lightItalic: 'Favorit-LightItalic',
 }
 
-// The type scale. Nine roles, each taken from the size already doing that job
+// The type scale. Eleven roles, each taken from the size already doing that job
 // rather than invented, and named for the job so a screen picks a role instead
 // of a number.
 //
@@ -91,6 +94,11 @@ export const TYPE = {
   body: { fontFamily: FONTS.regular, fontSize: 16 },
   control: { fontFamily: FONTS.mono, fontSize: 16, letterSpacing: 16 * 0.08, textTransform: 'uppercase' },
   title: { fontFamily: FONTS.medium, fontSize: 20, letterSpacing: 20 * -0.01 },
+  // A heading inside a screen rather than the screen's own — the exercise
+  // being done, the figures a finished workout comes to. Two uses, kept on
+  // purpose rather than folded into its neighbours: 20 is too quiet for it
+  // and 40 announces a whole page.
+  heading: { fontFamily: FONTS.bold, fontSize: 30, letterSpacing: 30 * -0.01 },
   // An inline figure — a number sitting inside a card rather than owning the
   // screen. Kept as a role after the first attempt to retire it: body weight
   // cannot be `figure`, because the card is not tall enough to hold 56.

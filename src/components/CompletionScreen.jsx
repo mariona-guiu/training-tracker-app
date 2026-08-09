@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   timeRow: { flexDirection: 'row', alignItems: 'baseline', gap: SPACE[2] },
   time: { ...TYPE.hero },
   caption: { ...TYPE.label, opacity: 0.7 },
-  stats: { fontFamily: FONTS.bold, fontSize: 30, marginTop: SPACE[4] },
+  stats: { ...TYPE.heading, marginTop: SPACE[4] },
   actions: { gap: SPACE[2] },
   primary: {
     height: 52,

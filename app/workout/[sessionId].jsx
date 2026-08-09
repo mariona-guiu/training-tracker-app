@@ -39,7 +39,7 @@ import {
   SWIPE_DISTANCE,
   SWIPE_VELOCITY,
 } from '../../src/data/motion.js'
-import { DARK, FONTS, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
+import { DARK, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
 
 // A workout in progress. It lives outside the (tabs) group so it fills the
 // display with no tab bar over it — the same split the web app makes.
@@ -747,7 +747,7 @@ const styles = StyleSheet.create({
   sweep: { transformOrigin: 'left' },
   track: { flexDirection: 'row' },
   panel: { paddingHorizontal: SPACE[3] },
-  name: { fontFamily: FONTS.bold, fontSize: 30, letterSpacing: -0.3, marginBottom: SPACE[2] },
+  name: { ...TYPE.heading, marginBottom: SPACE[2] },
 
   // The web sets line-height 1.05 on these, which works there because CSS
   // lets glyphs spill outside their line box. React Native clips to it, so
