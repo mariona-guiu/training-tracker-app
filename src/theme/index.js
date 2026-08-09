@@ -124,13 +124,18 @@ export const TYPE = {
   // A heading inside a screen rather than the screen's own — the exercise
   // being done, the figures a finished workout comes to. Two uses, kept on
   // purpose rather than folded into its neighbours: 20 is too quiet for it
-  // and 40 announces a whole page.
+  // and a screen title announces a whole page.
+  //
+  // It now sits 2pt from `screenTitle`, which used to be 40. That is close
+  // enough that the two are near enough indistinguishable side by side, and
+  // the pair is worth revisiting — but they are told apart by where they
+  // appear rather than by size, and nothing shows both at once.
   heading: { fontFamily: FONTS.displayMedium, fontSize: 30, letterSpacing: 0 },
   // An inline figure — a number sitting inside a card rather than owning the
   // screen. Kept as a role after the first attempt to retire it: body weight
   // cannot be `figure`, because the card is not tall enough to hold 56.
   figureInline: { fontFamily: FONTS.bold, fontSize: 34, letterSpacing: 34 * -0.02 },
-  screenTitle: { fontFamily: FONTS.displayMedium, fontSize: 40, letterSpacing: 40 * -0.02 },
+  screenTitle: { fontFamily: FONTS.displayMedium, fontSize: 32, letterSpacing: 32 * -0.02 },
   figure: { fontFamily: FONTS.displayBold, fontSize: 56, letterSpacing: 56 * -0.02, fontVariant: ['tabular-nums'] },
   hero: {
     fontFamily: FONTS.displayMedium,
