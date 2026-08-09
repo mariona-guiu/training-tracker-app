@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 
 import { Glass } from './Glass.jsx'
-import { LIGHT, SPACE, TYPE } from '../theme/index.js'
+import { FUNNEL_LINE, LIGHT, SPACE, TYPE } from '../theme/index.js'
 
 // A page title the content runs behind.
 //
@@ -15,8 +15,15 @@ import { LIGHT, SPACE, TYPE } from '../theme/index.js'
 //
 // The title floats rather than scrolling away, so the screen using it has to
 // leave TITLE_CLEARANCE of room at the top of its content.
-export const TITLE_HEIGHT = 52
-export const TITLE_CLEARANCE = TITLE_HEIGHT + SPACE[4]
+// What the bar actually occupies below `top`: one line of the title, plus the
+// padding under it. Derived rather than stated — 52 was measured against a
+// 40pt title and quietly stopped being true when that became 32.
+export const TITLE_HEIGHT = TYPE.screenTitle.fontSize * FUNNEL_LINE + SPACE[2]
+// And the air between the bar and the first card. SPACE[3] rather than
+// SPACE[4]: at 40pt the gap came to 18, and letting both halves follow the
+// smaller title put it at 28 — more space than the smaller title had earned.
+// This brings it to 16.
+export const TITLE_CLEARANCE = TITLE_HEIGHT + SPACE[3]
 
 export function ScreenTitle({ title, scrolled, top }) {
   const frost = useSharedValue(0)

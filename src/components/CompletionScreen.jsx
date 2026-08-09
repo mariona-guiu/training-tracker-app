@@ -7,7 +7,7 @@ import { Confetti } from './Confetti.jsx'
 import { caloriesFor, KCAL_DISCLAIMER } from '../data/calories.js'
 import { washFor } from '../data/routineStyles.js'
 import { WORKOUT_CONTENT_FADE } from '../data/motion.js'
-import { FONTS, LIGHT, RADIUS, SPACE, TYPE } from '../theme/index.js'
+import { FONTS, FUNNEL_LINE, LIGHT, RADIUS, SPACE, TYPE } from '../theme/index.js'
 
 // What a finished workout leaves you with.
 //
@@ -100,7 +100,7 @@ export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }
 // 40pt line box leaves above capitals at `heading` size.
 const STATS_CAP_GAP = 33.6
 const FIGURE_DESCENT = 0.25 * TYPE.hero.fontSize
-const STATS_CAP_INSET = (40 - 1.25 * TYPE.heading.fontSize) / 2 + 0.325 * TYPE.heading.fontSize
+const STATS_CAP_INSET = (40 - FUNNEL_LINE * TYPE.heading.fontSize) / 2 + 0.325 * TYPE.heading.fontSize
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },

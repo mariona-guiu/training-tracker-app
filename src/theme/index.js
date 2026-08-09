@@ -145,6 +145,13 @@ export const TYPE = {
   },
 }
 
+// What a line of Funnel occupies: ascent 1200 + descent 300 on a 1200 em.
+// React Native clips to the line box, so this is the real height of one line
+// at any size, and the number to derive a bar or a gap from. Named for the
+// family on purpose — another typeface would want this revisited, not
+// inherited.
+export const FUNNEL_LINE = 1.25
+
 export const SPACE = { 1: 4, 2: 8, 3: 16, 4: 24, 5: 32, 6: 48 }
 
 // Three shapes, which is all this app turns out to need: a chip, a card, and

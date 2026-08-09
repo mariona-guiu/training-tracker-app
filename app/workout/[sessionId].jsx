@@ -46,7 +46,7 @@ import {
   SWIPE_DISTANCE,
   SWIPE_VELOCITY,
 } from '../../src/data/motion.js'
-import { DARK, LIGHT, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
+import { DARK, FUNNEL_LINE, LIGHT, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
 
 // A workout in progress. It lives outside the (tabs) group so it fills the
 // display with no tab bar over it — the same split the web app makes.
@@ -778,7 +778,6 @@ export default function WorkoutMode() {
 // keeps the font's own height and the difference is taken back out with a
 // margin, which does not clip. Stated as ratios so this follows the type
 // scale rather than staying a number measured against a 64pt figure.
-const FUNNEL_LINE = 1.25
 const DESIGN_LINE = 1.022
 
 const styles = StyleSheet.create({
