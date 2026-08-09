@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import Animated, {
   runOnJS,
@@ -68,17 +68,29 @@ export function LaunchProvider({ children }) {
     [progress],
   )
 
+  // Set full and left there. The fade itself cannot start here: the style
+  // below only reads `fade` once React has committed `mode: 'reveal'`, and
+  // until it does the overlay draws at zero. Starting the timing in the same
+  // breath meant the colour was invisible while it was already fading, then
+  // appeared at whatever the fade had reached — which reads as a blink rather
+  // than a dissolve, and got worse the busier the commit was.
   const beginReveal = useCallback(
     (color) => {
       setState({ mode: 'reveal', color })
       fade.value = 1
-      fade.value = withTiming(0, WORKOUT_REVEAL_FADE, (finished) => {
-        'worklet'
-        if (finished) runOnJS(clear)()
-      })
     },
-    [fade, clear],
+    [fade],
   )
+
+  // Started once the overlay is actually on screen, so it always fades from a
+  // fully painted colour.
+  useEffect(() => {
+    if (state?.mode !== 'reveal') return
+    fade.value = withTiming(0, WORKOUT_REVEAL_FADE, (finished) => {
+      'worklet'
+      if (finished) runOnJS(clear)()
+    })
+  }, [state, fade, clear])
 
   const style = useAnimatedStyle(() => {
     if (state?.mode === 'reveal') return { opacity: fade.value, transform: [] }
