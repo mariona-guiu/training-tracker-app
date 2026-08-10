@@ -133,7 +133,7 @@ const REST_TINT_BY_NAME = {
   'upper body': '#C76000',
   'lower body': '#0077A5',
   glutes: '#E0A400',
-  core: '#F97DAC',
+  core: '#FFBAD4',
   'full body': '#A80D12',
   stretching: '#B0C200',
 }
@@ -184,8 +184,33 @@ function difference(a, b) {
   return Math.hypot(la[0] - lb[0], la[1] - lb[1], la[2] - lb[2])
 }
 
+// Where the button is stated outright rather than solved for.
+//
+// The solver below holds a constant perceptual step *from the card*, which is
+// the right rule for five of the six and the wrong one for Core — because the
+// button spends much of its life over the rest sweep, not over the card, and
+// on Core those two are 11 apart. Held at a fixed distance from the card, the
+// button ended up 3.5 from the sweep: gone.
+//
+// It is also why hand-picking a deeper tint did nothing. A deeper colour was
+// simply given a lower opacity to land in the same place, so every hex tried
+// here came out identical.
+//
+// Stated as colour and opacity together, then. It sits 6.6 from the sweep and
+// 15.5 from the card — neither is the 5-to-10 the other five enjoy against
+// their single ground, and neither can be: one shape cannot sit close to two
+// surfaces that are far apart. This splits the difference, leaning towards
+// being visible during rest, which is when the button is actually being
+// looked for.
+const WASH_BY_NAME = { core: { tint: '#fea9c9', alpha: 0.8 } }
+
 export function washFor(name, index) {
   const ground = channelsOf(styleFor(name, index).background)
+  const stated = WASH_BY_NAME[name?.toLowerCase()]
+  if (stated) {
+    const [r, g, b] = channelsOf(stated.tint).map((c) => Math.round(c * 255))
+    return `rgba(${r}, ${g}, ${b}, ${stated.alpha})`
+  }
   const deeper = channelsOf(restTintFor(name, index))
   const target =
     inkOn(styleFor(name, index).background) === '#ffffff'
