@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
@@ -119,14 +119,59 @@ export function WeeklyChart({ weeks }) {
   const readScroll = useCallback(
     (x, cardWidth) => {
       if (!columnWidth || weeks.length === 0) return
+      // The offset is taken as it comes, overscroll included. It was clamped to
+      // the scrollable range for a while, to stop a bounce reading as an empty
+      // window — but the overlap test below cannot produce an empty window, and
+      // with only eight weeks there is no scrollable range at all: `x` is 0 at
+      // rest and every drag is a bounce. Clamping threw the whole gesture away.
+      const at = x
+
+      // Two windows, because two things are being asked and the answers differ.
+      //
+      // The year asks what you can *read*, so it counts only columns wholly
+      // inside the card: a sliver at the edge flipping the heading would be
+      // reacting to something not yet legible.
       const slack = 1
-      const first = Math.max(0, Math.ceil((x - slack) / columnWidth))
-      const last = Math.min(
+      const first = Math.min(
+        Math.max(0, Math.ceil((at - slack) / columnWidth)),
         weeks.length - 1,
-        Math.floor((x + cardWidth + slack) / columnWidth) - 1,
       )
-      let next = 1
-      for (let i = first; i <= last; i++) next = Math.max(next, weeks[i].workouts.length)
+      const last = Math.max(
+        first,
+        Math.min(weeks.length - 1, Math.floor((at + cardWidth + slack) / columnWidth) - 1),
+      )
+
+      // The scale asks what is *drawn*, so a column counts while any part of it
+      // is on screen and stops the instant it has gone. Using the readable
+      // window here is what made the bars resize the moment a swipe began: the
+      // busiest column stopped counting as soon as its edge crossed the card,
+      // while it was still visible and still being drawn at the new scale.
+      //
+      // Written as an overlap test rather than as first and last indices. The
+      // interesting frame is the one where a column is exactly flush with the
+      // edge, and rounding a division is the worst possible way to decide it —
+      // whether ceil() lands on 8 or 9 there comes down to whether the card
+      // measured 344.9999 or 345.0001. EDGE is what makes that a decision
+      // rather than a coin toss: under half a point of a column showing is not
+      // showing.
+      // Against the drawn bar, not the column that holds it. A column is
+      // 43pt wide and the bar inside it is TRACK_WIDTH, centred — so roughly
+      // 17pt of empty column sits either side of it, and a column can be
+      // partly on screen while its bar has entirely gone. The bar is what is
+      // being looked at, so the bar is what decides.
+      const inset = Math.max(0, (columnWidth - TRACK_WIDTH) / 2)
+      const EDGE = 0.5
+      let next = 0
+      for (let i = 0; i < weeks.length; i++) {
+        const barLeft = i * columnWidth + inset
+        if (barLeft + TRACK_WIDTH <= at + EDGE) continue
+        if (barLeft >= at + cardWidth - EDGE) continue
+        next = Math.max(next, weeks[i].workouts.length)
+      }
+      // Dragged so hard that nothing is left to measure. Keep the scale rather
+      // than collapsing it to a single full-height row.
+      if (next === 0) return
+      next = Math.max(1, next)
       setView((prev) =>
         prev.first === first && prev.last === last && prev.rows === next
           ? prev
@@ -148,6 +193,36 @@ export function WeeklyChart({ weeks }) {
     },
     [columnWidth, weeks, height, gap],
   )
+
+  // The chart is told when to re-read by scrolling, and nothing else was
+  // telling it. Logging or deleting a workout changes what the columns hold
+  // without moving the scroll a pixel, so the scale stayed at whatever the
+  // last swipe had left it at — and the chart only came right once you
+  // happened to drag it. Re-read from where it already sits.
+  //
+  // It also has to follow when the card grows a column. buildWeeks runs
+  // through to the current week whether or not anything was done in it, so a
+  // new week arrives on its own as an empty track — and it arrives off the
+  // right edge, because the opening position is a mount-time prop that does
+  // not reapply.
+  //
+  // Only when the count actually grows, though. Doing it on every data change
+  // would drag the chart back to today each time this tab is returned to,
+  // undoing a scroll left where it was wanted — and the sessions reload on
+  // every focus whether or not anything changed.
+  const weekCount = useRef(weeks.length)
+  useEffect(() => {
+    if (!columnWidth) return
+    const width = columnWidth * VISIBLE_WEEKS
+    const grew = weeks.length > weekCount.current
+    weekCount.current = weeks.length
+    if (grew) {
+      const end = Math.max(0, weeks.length * columnWidth - width)
+      scroller.current?.scrollTo({ x: end, animated: true })
+      scrollX.current = end
+    }
+    readScroll(scrollX.current, width)
+  }, [weeks, columnWidth, readScroll])
 
   // Which workout is under the finger. Rows are counted up from the baseline
   // in the same pitch the segments are drawn at, so the reading matches what
