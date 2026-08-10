@@ -9,7 +9,9 @@ import {
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
+  runOnJS,
   scrollTo,
   useAnimatedReaction,
   useAnimatedRef,
@@ -38,7 +40,7 @@ import {
 } from '../src/components/HistoryIcons.jsx'
 import { Glass } from '../src/components/Glass.jsx'
 import { EXPAND_SPRING } from '../src/data/motion.js'
-import { FONTS, LIGHT, RADIUS, SPACE, TYPE } from '../src/theme/index.js'
+import { LIGHT, RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, TYPE } from '../src/theme/index.js'
 
 const MONTH = new Intl.DateTimeFormat('en-GB', { month: 'long' })
 
@@ -142,7 +144,27 @@ function groupByWeek(sessions) {
 
 const sentenceCase = (name) => name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
 
-function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete }) {
+// Swipe a cell aside to uncover the one thing that can be done to it.
+//
+// Hand-rolled rather than taken from gesture-handler, which was the first
+// choice: its modern ReanimatedSwipeable is not exported from the package
+// index and has no import path of its own in 2.28, and the one that *is*
+// exported is the deprecated component built on the old Animated API, which
+// would be fighting Reanimated for the same transform. The interaction is a
+// clamp and two snaps, so owning it costs less than working around that.
+//
+// iOS convention: leftward reveals, the action is a target rather than a
+// commitment, and the destructive part is the alert behind it. A full swipe
+// deliberately does not delete — this app has no undo, and the whole reason
+// the old control lived inside an expanded cell was so you saw what you were
+// deleting first.
+// Measured off the design: the cell sits at x 24 and slides to x -36, so 60pt
+// of the action is uncovered.
+const ACTION_WIDTH = 60
+// Past this much of the action, let go and it opens rather than springs back.
+const SNAP_FRACTION = 0.4
+
+function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete, removing, onRemoved }) {
   const root = useRef(null)
   const pending = useRef(null)
   // The kind of session, falling back to its name for anything recorded
@@ -161,6 +183,89 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete }) {
   const [bodyHeight, setBodyHeight] = useState(0)
   const height = useSharedValue(0)
   const turn = useSharedValue(open ? 1 : 0)
+  // How far the cell has been dragged aside, and where it was when the finger
+  // landed — so a second drag continues from where the first stopped.
+  const slid = useSharedValue(0)
+  const slidFrom = useSharedValue(0)
+  // Its own height while it is being deleted. -1 means "leave it to the
+  // layout" — the cell has no fixed height at any other time, since it depends
+  // on whether the body is open.
+  const shrink = useSharedValue(-1)
+  const measured = useSharedValue(0)
+
+  const swipe = Gesture.Pan()
+    // Horizontal intent only. Without the vertical failure the list would stop
+    // scrolling wherever a finger happened to land on a cell.
+    .activeOffsetX([-12, 12])
+    .failOffsetY([-10, 10])
+    .onBegin(() => {
+      'worklet'
+      slidFrom.value = slid.value
+    })
+    .onUpdate((e) => {
+      'worklet'
+      const next = slidFrom.value + e.translationX
+      // Freely to the left as far as the action, and not past it; rightward
+      // only as far as shut.
+      slid.value = Math.min(0, Math.max(-ACTION_WIDTH, next))
+    })
+    .onEnd((e) => {
+      'worklet'
+      // A flick decides on its own, whatever distance it covered.
+      const flung = e.velocityX < -500
+      const shutFast = e.velocityX > 500
+      const past = slid.value < -ACTION_WIDTH * SNAP_FRACTION
+      const opening = !shutFast && (flung || past)
+      slid.value = withSpring(opening ? -ACTION_WIDTH : 0, EXPAND_SPRING)
+    })
+
+  const slide = useAnimatedStyle(() => ({ transform: [{ translateX: slid.value }] }))
+
+
+  const shut = useCallback(() => {
+    slid.value = withSpring(0, EXPAND_SPRING)
+  }, [slid])
+
+  // Deleting is a collapse this cell performs on itself, not an exit animation.
+  //
+  // Reanimated's `exiting` takes the element out of the layout on the frame it
+  // starts and plays its animation over a snapshot, so everything below jumps
+  // to its new place immediately however long the animation runs. A `layout`
+  // animation on the siblings is the intended answer, and it cannot be used
+  // here: it would also animate the height change while a cell is expanding,
+  // on top of the spring already doing that, which is what made opening crawl.
+  //
+  // So the cell keeps its place in the tree and animates its own height down.
+  // That is precisely what opening already does, and the rows below follow it
+  // frame by frame for the same reason.
+  const removal = useAnimatedStyle(() => {
+    if (shrink.value < 0) return {}
+    const left = shrink.value / Math.max(measured.value, 1)
+    return {
+      height: shrink.value,
+      // The gap goes with it, in step, so the row below does not travel the
+      // last 8pt on its own at the end.
+      marginBottom: left * SPACE[2],
+      // Gone at once. It was fading as it shrank, which showed the workout
+      // being squashed — and a card being crushed is a strange last thing to
+      // see of it. What should be animated is the space closing, not the thing
+      // that was in it.
+      opacity: 0,
+    }
+  })
+
+  useEffect(() => {
+    if (!removing) return
+    // Fixed at what it currently occupies, then taken to nothing on the spring
+    // the cell opens with, so leaving looks like the reverse of arriving.
+    shrink.value = measured.value
+    shrink.value = withSpring(0, EXPAND_SPRING, (done) => {
+      'worklet'
+      if (done) runOnJS(onRemoved)()
+    })
+  }, [removing, shrink, measured, onRemoved])
+
+
 
   useEffect(() => {
     height.value = withSpring(open ? bodyHeight : 0, EXPAND_SPRING)
@@ -225,19 +330,6 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete }) {
             ) : null}
           </View>
 
-          {/* The one control here that destroys something, so it keeps its
-              own red on every colour rather than joining the palette — and
-              it only exists once the cell is open and you can see what you
-              would be deleting. */}
-          <Pressable
-            onPress={onDelete}
-            accessibilityRole="button"
-            accessibilityLabel={`Delete this ${session.routineName} workout`}
-            hitSlop={10}
-            style={styles.delete}
-          >
-            <TrashIcon size={24} color={LIGHT.danger} />
-          </Pressable>
 
           <View style={styles.lifts}>
             {session.exercises.map((exercise, i) => {
@@ -287,7 +379,7 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete }) {
           {/* After the skipped note when both are here, so the marks are
               explained in the order they appear above. */}
           {kcal !== null ? (
-            <Text style={[styles.footnote, styles.sentence, { color: pale.ink }, styles.faded]}>
+            <Text style={[styles.footnote, { color: pale.ink }, styles.faded]}>
               {KCAL_DISCLAIMER}
             </Text>
           ) : null}
@@ -295,11 +387,79 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete }) {
   ) : null
 
   return (
-    <View ref={root} style={styles.cell}>
+    <Animated.View
+      ref={root}
+      style={[styles.cell, removal]}
+      onLayout={(e) => {
+        // Only while it is settled: once the collapse starts this is the very
+        // thing being animated, and reading it back would chase itself to zero.
+        if (shrink.value < 0) measured.value = e.nativeEvent.layout.height
+      }}
+    >
+      {/* Uncovered by the swipe, and clipped by the cell's own rounded corners
+          so it reads as part of the cell rather than a panel behind it. */}
+      {/* Fills the cell, which is what the design draws — an expanded cell shows
+          the red down its whole height and centres the icon in all of it, not
+          in the row at the top. My first guess was the other way round.
+
+          No opacity of its own: it sits *under* the cell and is covered
+          completely at rest, so fading it in was both unnecessary and visible —
+          the threshold cut it off a couple of points before the cell was home,
+          which is the red edge that flashed on the way back. */}
+      <View style={styles.action}>
+        {/* The card's own shape, doubled underneath it, purely to cast a
+            shadow. A gradient strip could not do this: it is a rectangle, so
+            where the card's corners curve away it stood proud of them — the
+            nick at the top and bottom of the edge.
+            
+            The silhouette is never seen. It is the same size, radius and
+            colour as the card and moves with it, so the card covers it exactly;
+            only what spills out from underneath shows. And because the action
+            clips to the cell, the spill above, below and to the left is cut off
+            there — leaving just the right-hand edge, on the red, which is the
+            only place two surfaces meet. */}
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.silhouette,
+            { backgroundColor: styleFor(kind).background },
+            slide,
+          ]}
+        />
+        <Pressable
+          onPress={onDelete}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete this ${session.routineName} workout`}
+          style={styles.actionHit}
+        >
+          <TrashIcon size={24} color={LIGHT.onInk} />
+        </Pressable>
+      </View>
+
+      <GestureDetector gesture={swipe}>
+        {/* The shadow is what separates the cell from the action beneath it,
+            and it has to be: on a full-body workout the two are the same red.
+            Cast to the right only — offset x 2, no y — so it reads as the cell
+            lifted off the action rather than floating above the page.
+
+            The background matters as much as the shadow. iOS draws a layer's
+            shadow from its own shape, and a container with a transparent
+            background has none, so the shadow simply would not appear. It is
+            never seen: the head covers it while shut and the body while open. */}
+        <Animated.View
+          style={[styles.slider, { backgroundColor: styleFor(kind).background }, slide]}
+        >
+        <View style={styles.sliderClip}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
         onPress={() => {
+          // A cell that has been swiped aside puts itself back rather than
+          // opening — the same tap that would dismiss the action elsewhere.
+          if (slid.value !== 0) {
+            shut()
+            return
+          }
           // Measured on the press, while the cell is still shut, so the
           // numbers describe a settled layout rather than one already
           // springing. Where it will end up is that plus the body, which has
@@ -361,7 +521,10 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete }) {
           <View style={styles.body}>{body}</View>
         </Animated.View>
       </View>
-    </View>
+        </View>
+        </Animated.View>
+      </GestureDetector>
+    </Animated.View>
   )
 }
 
@@ -390,6 +553,10 @@ export default function History() {
     return () => cancelAnimationFrame(frame)
   }, [])
   const [scrolled, setScrolled] = useState(false)
+  // The workout on its way out. It is already gone from the database by the
+  // time this is set — what is left is the cell closing up, and the list is
+  // told to forget it only once that has finished.
+  const [removingId, setRemovingId] = useState(null)
   // The bar compresses rather than swapping: the surface, and the year that
   // joins the title, are both faded so nothing appears or jumps. The big year
   // heading below simply scrolls away under it.
@@ -476,13 +643,24 @@ export default function History() {
           text: 'Delete workout',
           style: 'destructive',
           onPress: async () => {
+            // Written away first, then closed up. The other order would leave
+            // the cell gone from the screen and still in the database if the
+            // write failed, which is the worse of the two to be wrong about.
             await deleteSession(session.id)
-            load()
+            setRemovingId(session.id)
           },
         },
       ],
     )
   }
+
+  // Dropped from the list only once its cell has finished closing, and from
+  // what is held here rather than by reloading — a reload would rebuild the
+  // list under the animation and undo it.
+  const finishRemoval = useCallback((id) => {
+    setSessions((current) => (current ?? []).filter((s) => s.id !== id))
+    setRemovingId((current) => (current === id ? null : current))
+  }, [])
 
   const years = sessions ? groupByWeek(sessions) : []
 
@@ -559,7 +737,7 @@ export default function History() {
             {weeks.map(({ weekStart, sessions: inWeek }) => (
               <View key={weekStart}>
                 <Text style={styles.weekLabel}>{weekLabel(weekStart)}</Text>
-                <View style={styles.weekList}>
+                <View>
                   {inWeek.map((session) => (
                     <WorkoutCell
                       key={session.id}
@@ -569,6 +747,8 @@ export default function History() {
                       onToggle={() => toggle(session.id)}
                       onReveal={revealInView}
                       onDelete={() => confirmDelete(session)}
+                      removing={removingId === session.id}
+                      onRemoved={() => finishRemoval(session.id)}
                     />
                   ))}
                 </View>
@@ -581,6 +761,13 @@ export default function History() {
     </View>
   )
 }
+
+// The chip around "Ended early": its total vertical padding, kept at what it
+// was so the chip stays the same height, and how unevenly that has to be
+// split for the capitals inside it to look centred.
+const TAG_PADDING = 12
+const TAG_CAP_OFFSET =
+  (SYSTEM_ASCENT - SYSTEM_CAP - SYSTEM_DESCENT) * TYPE.label.fontSize
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: LIGHT.bg },
@@ -597,15 +784,22 @@ const styles = StyleSheet.create({
   back: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   barYear: { ...TYPE.body, color: LIGHT.text, textAlign: 'center', overflow: 'hidden' },
   title: { ...TYPE.title, color: LIGHT.text },
-  year: { ...TYPE.title, fontFamily: FONTS.bold, color: LIGHT.text, marginTop: SPACE[4] },
+  year: { ...TYPE.title, color: LIGHT.text, marginTop: SPACE[4] },
   weekLabel: {
     ...TYPE.label,
     color: LIGHT.textDim,
     paddingTop: SPACE[3],
     paddingBottom: SPACE[2],
   },
-  weekList: { gap: SPACE[2] },
-  cell: { borderRadius: RADIUS.card, overflow: 'hidden' },
+  // Deliberately not clipping. The card is meant to travel out of the cell and
+  // off the screen keeping its own rounded corners, the way the design draws it
+  // at x -36 — clipping here would cut it square against the cell's edge
+  // instead. What stops it is the scroll view, which is the screen.
+  cell: { marginBottom: SPACE[2] },
+  // Two views because the inner one clips its children to the rounded corners
+  // and the outer one is what the swipe moves.
+  slider: { borderRadius: RADIUS.card },
+  sliderClip: { borderRadius: RADIUS.card, overflow: 'hidden' },
   head: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -628,8 +822,16 @@ const styles = StyleSheet.create({
   tag: {
     alignSelf: 'center',
     marginRight: SPACE[2],
-    paddingTop: 7.5,
-    paddingBottom: 4.5,
+    // What is being centred is the capitals, not the line box. Uppercase inks
+    // only the cap height, and a line box is not symmetrical around it: SF Pro
+    // leaves 0.262em above the capitals and 0.211em below the baseline, so
+    // centring the box leaves the letters sitting high.
+    //
+    // The old 7.5 / 4.5 was tuned by eye against Funnel and tilted the wrong
+    // way — 3pt more above where the font already gives more above. Derived now,
+    // so it follows the typeface rather than needing to be re-eyeballed.
+    paddingTop: (TAG_PADDING - TAG_CAP_OFFSET) / 2,
+    paddingBottom: (TAG_PADDING + TAG_CAP_OFFSET) / 2,
     paddingHorizontal: 9,
     borderRadius: RADIUS.chip,
   },
@@ -642,8 +844,38 @@ const styles = StyleSheet.create({
   summary: { gap: SPACE[1] },
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE[2] },
   summaryText: { ...TYPE.label },
-  // Level with the duration, which is the first line of the body.
-  delete: { position: 'absolute', top: SPACE[3], right: SPACE[2], padding: SPACE[1] },
+  // Uncovered by the swipe. Its own red on every routine colour rather than
+  // joining the palette, because it is the one thing here that destroys
+  // something.
+  action: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: LIGHT.danger,
+    borderRadius: RADIUS.card,
+    // A row, so the target can stretch down the cell while sitting at its end.
+    // It was a column with `alignSelf: 'stretch'` on the child, which quietly
+    // cancels the parent's `alignItems: 'flex-end'` and puts the icon at the
+    // *left* of the cell — under the card, where nothing could ever see it.
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'stretch',
+    // So the shading is cut off at the cell rather than trailing across the
+    // page while the card is home.
+    overflow: 'hidden',
+  },
+  silhouette: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: RADIUS.card,
+    shadowColor: '#6C0000',
+    shadowOpacity: 0.5,
+    shadowOffset: { width: 2, height: 0 },
+    shadowRadius: 5,
+  },
+  // The icon centres in the strip the swipe uncovers, not in the cell.
+  actionHit: {
+    width: ACTION_WIDTH,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   lifts: { marginTop: SPACE[3] },
   // Name against the left edge, sets against the right, so a long name that
   // wraps still reads across to its own figures.
@@ -693,8 +925,6 @@ const styles = StyleSheet.create({
   // Applied once per element, never nested — a missed set inside a skipped
   // exercise used to take it twice and read as a third state.
   faded: { opacity: 0.76 },
-  footnote: { ...TYPE.label, marginTop: SPACE[3] },
-  // A sentence, where the marks above it are labels.
-  sentence: { fontFamily: FONTS.regular, textTransform: 'none', letterSpacing: 0 },
+  footnote: { ...TYPE.caption, marginTop: SPACE[3] },
   empty: { ...TYPE.body, color: LIGHT.textDim, marginTop: SPACE[5] },
 })

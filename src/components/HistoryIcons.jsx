@@ -46,10 +46,19 @@ export function BoltIcon({ size = 24, color }) {
   )
 }
 
+// Taken from the swipe design rather than redrawn: a lidded can with a handle,
+// where the old one was a tapering bin. Normalised into a 24x24 box from the
+// file's own coordinates, so the proportions are the drawn ones.
 export function TrashIcon({ size = 24, color }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M4 7h16M10 7V5h4v2M6 7l1 13h10l1-13M10 11v6M14 11v6" {...stroke(color)} />
+      <Path
+        d="M19 6V20C19 20.53 18.789 21.039 18.414 21.414C18.039 21.789 17.53 22 17 22H7C6.47 22 5.961 21.789 5.586 21.414C5.211 21.039 5 20.53 5 20V6M8 6V4C8 3.47 8.211 2.961 8.586 2.586C8.961 2.211 9.47 2 10 2H14C14.53 2 15.039 2.211 15.414 2.586C15.789 2.961 16 3.47 16 4V6"
+        {...stroke(color)}
+      />
+      <Path d="M3 6H5H21" {...stroke(color)} />
+      <Path d="M10 11V17" {...stroke(color)} />
+      <Path d="M14 11V17" {...stroke(color)} />
     </Svg>
   )
 }
