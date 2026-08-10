@@ -13,7 +13,7 @@ import Animated, {
 
 import { inkFor, styleFor } from '../data/routineStyles.js'
 import { VISIBLE_WEEKS, yearOfWeek } from '../data/weeks.js'
-import { FONTS, LIGHT, RADIUS, SPACE, TYPE, WEIGHT } from '../theme/index.js'
+import { LIGHT, RADIUS, SPACE, TYPE } from '../theme/index.js'
 
 // How long a finger has to stay put before the press is read as "show me this
 // workout" rather than the beginning of a scroll. Short enough to feel
@@ -287,13 +287,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: RADIUS.card,
   },
-  readoutText: {
-    fontFamily: FONTS.text,
-    fontWeight: WEIGHT.bold,
-    fontSize: 13,
-    textTransform: 'uppercase',
-    letterSpacing: 0.52,
-  },
+  // The last type in the app that sat outside the scale: 13pt Bold with its
+  // tracking written as a raw 0.52 rather than a ratio, so it would not have
+  // followed a size change. It is a small uppercase mark on a chart, which is
+  // what `label` is, and it gets a point smaller and a weight lighter for
+  // saying so.
+  readoutText: { ...TYPE.label },
   week: { alignItems: 'center', gap: SPACE[2] },
   // The empty column: a pale capsule the full height of the chart, so a week
   // without training still reads as a week rather than as nothing.

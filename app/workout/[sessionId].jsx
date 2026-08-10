@@ -795,7 +795,12 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
 
   head: { paddingHorizontal: SPACE[4] },
-  routine: { ...TYPE.caption, textTransform: 'uppercase', opacity: 0.85 },
+  // The same label the completion screen puts at the top, because it is the
+  // same line: "{routine} workout", in the same place, on the same colour. The
+  // two screens are one screen as far as anyone using them is concerned — the
+  // completion state replaces the workout in place — so this cannot differ
+  // from it without looking like something changed underneath.
+  routine: { ...TYPE.label, opacity: 0.85 },
   stepper: { flexDirection: 'row', gap: SPACE[2], marginTop: SPACE[2] },
   step: { flex: 1, height: 3, borderRadius: RADIUS.pill },
   close: { alignSelf: 'flex-end', marginTop: SPACE[3], marginRight: -SPACE[2], padding: SPACE[2] },
@@ -846,7 +851,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  setsLabel: { ...TYPE.caption, textTransform: 'uppercase' },
+  // `label`, not caption wearing an uppercase. The role already carries the
+  // case, the Medium weight and the tracking that uppercase needs — spelling
+  // two of the three by hand got the case right and the weight wrong.
+  setsLabel: { ...TYPE.label },
   sets: { flexDirection: 'row', gap: 15, marginTop: SPACE[2] },
   muted: { opacity: 0 },
   dot: { width: 48, height: 48, borderRadius: RADIUS.pill, borderWidth: 2, backgroundColor: 'transparent' },

@@ -7,7 +7,7 @@ import { Confetti } from './Confetti.jsx'
 import { caloriesFor, KCAL_DISCLAIMER } from '../data/calories.js'
 import { washFor } from '../data/routineStyles.js'
 import { WORKOUT_CONTENT_FADE } from '../data/motion.js'
-import { LIGHT, RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, SYSTEM_LINE, TYPE, WEIGHT } from '../theme/index.js'
+import { LIGHT, RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, SYSTEM_LINE, TYPE } from '../theme/index.js'
 
 // What a finished workout leaves you with.
 //
@@ -59,7 +59,7 @@ export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }
             <Text style={[styles.time, { color: ink }]}>
               {formatDuration(session.endedAt - session.startedAt)}
             </Text>
-            <Text style={styles.caption}>Total time</Text>
+            <Text style={[styles.caption, { color: ink }]}>Total time</Text>
           </View>
           <Text style={[styles.stats, { color: ink }]}>
             {logged}/{targetSetCount(session)} sets{'\n'}
@@ -100,14 +100,15 @@ export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }
 // 40pt line box leaves above capitals at `heading` size.
 const STATS_CAP_GAP = 33.6
 const FIGURE_DESCENT = SYSTEM_DESCENT * TYPE.hero.fontSize
+const STATS_LINE = 40
 const STATS_CAP_INSET =
-  (40 - SYSTEM_LINE * TYPE.heading.fontSize) / 2 +
-  (SYSTEM_ASCENT - SYSTEM_CAP) * TYPE.heading.fontSize
+  (STATS_LINE - SYSTEM_LINE * TYPE.screenTitle.fontSize) / 2 +
+  (SYSTEM_ASCENT - SYSTEM_CAP) * TYPE.screenTitle.fontSize
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { flex: 1, paddingHorizontal: SPACE[4] },
-  routine: { ...TYPE.caption, textTransform: 'uppercase', opacity: 0.85 },
+  routine: { ...TYPE.label, opacity: 0.85 },
   // The same room the exercise had during the workout, so nothing moves
   // underneath you when the screen changes what it says.
   body: { flex: 1, justifyContent: 'center', gap: SPACE[2] },
@@ -116,27 +117,23 @@ const styles = StyleSheet.create({
   title: { ...TYPE.heading, marginBottom: SPACE[2] },
   timeRow: { flexDirection: 'row', alignItems: 'baseline', gap: SPACE[2] },
   time: { ...TYPE.hero },
-  // White rather than the routine's ink, and at full strength: it labels the
-  // figure beside it and is not a footnote to it.
-  caption: {
-    ...TYPE.caption,
-    fontWeight: WEIGHT.medium,
-    textTransform: 'uppercase',
-    color: LIGHT.onInk,
-  },
-  // One block with a stated line height, which is what the design asks for
-  // and what an earlier reading of it got wrong: three lines 40 apart, not
-  // small print with a large gap. 40 sits above Funnel's own 37.5 at this
-  // size, so stating it cannot clip anything.
+  // It was white, spelled out as caption plus medium plus uppercase — which
+  // is `label`, written the long way. White was right when it was specified
+  // and wrong once seen: on a pale routine the ink is near-black and a white
+  // label beside a near-black figure reads as a mistake. It takes the ink now,
+  // like everything else on the screen.
+  caption: { ...TYPE.label },
+  // One block with a stated line height: three lines a fixed distance apart,
+  // not small print with a large gap. STATS_LINE sits above what SF Pro spends
+  // on a line at this size, so stating it cannot clip anything.
   //
   // The margin is negative because the two line boxes already spend more
-  // between the figure and these than the design leaves: 20.5 below the
-  // figure's baseline at 82pt, 11 above these capitals inside a 40 box, and
-  // the body's own 8 between them — 39.5 where the design wants 33.6. Written
-  // as the difference rather than as -6, so it follows if either size moves.
+  // between the figure and these than the design leaves. Written as the
+  // difference rather than as a number, which is what let the size change here
+  // without anything else being touched.
   stats: {
-    ...TYPE.heading,
-    lineHeight: 40,
+    ...TYPE.screenTitle,
+    lineHeight: STATS_LINE,
     marginTop: STATS_CAP_GAP - FIGURE_DESCENT - SPACE[2] - STATS_CAP_INSET,
   },
   actions: { gap: SPACE[2] },
