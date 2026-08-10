@@ -5,22 +5,22 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { View } from 'react-native'
 
-import { useAppFonts } from '../src/theme/fonts.js'
 import { LIGHT } from '../src/theme/index.js'
 import { seedExercisesIfEmpty } from '../src/db/exercises.js'
 import { seedRoutinesIfEmpty } from '../src/db/routines.js'
 import { LaunchProvider } from '../src/components/LaunchOverlay.jsx'
 
-// The root of the app. Two things have to finish before anything renders:
-// the fonts, because text laid out in the fallback and then reflowed is
-// visible and cheap to avoid, and seeding, because the first screen reads the
-// routines it adds.
+// The root of the app. One thing has to finish before anything renders:
+// seeding, because the first screen reads the routines it adds.
+//
+// It used to wait on fonts too, and no longer does. The app is set entirely in
+// SF Pro and SF Pro Rounded, which iOS already has — there is nothing to load,
+// so there is no gap to hide and no flash of a fallback face to prevent.
 //
 // Routing mirrors the web app's split, and for the same reason: the tabbed
 // screens live in (tabs) and share the floating tab bar, while a workout in
 // progress sits outside them so it fills the display with no tab bar.
 export default function RootLayout() {
-  const { loaded, error } = useAppFonts()
   const [seeded, setSeeded] = useState(false)
 
   useEffect(() => {
@@ -35,7 +35,7 @@ export default function RootLayout() {
     }
   }, [])
 
-  if ((!loaded && !error) || !seeded) {
+  if (!seeded) {
     return <View style={{ flex: 1, backgroundColor: LIGHT.bg }} />
   }
 

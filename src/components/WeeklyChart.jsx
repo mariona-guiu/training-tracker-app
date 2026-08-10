@@ -13,7 +13,7 @@ import Animated, {
 
 import { inkFor, styleFor } from '../data/routineStyles.js'
 import { VISIBLE_WEEKS, yearOfWeek } from '../data/weeks.js'
-import { FONTS, LIGHT, RADIUS, SPACE, TYPE } from '../theme/index.js'
+import { FONTS, LIGHT, RADIUS, SPACE, TYPE, WEIGHT } from '../theme/index.js'
 
 // How long a finger has to stay put before the press is read as "show me this
 // workout" rather than the beginning of a scroll. Short enough to feel
@@ -288,7 +288,8 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.card,
   },
   readoutText: {
-    fontFamily: FONTS.bold,
+    fontFamily: FONTS.text,
+    fontWeight: WEIGHT.bold,
     fontSize: 13,
     textTransform: 'uppercase',
     letterSpacing: 0.52,

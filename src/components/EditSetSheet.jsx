@@ -14,7 +14,7 @@ import Animated, {
 
 import { CloseIcon } from './WorkoutIcons.jsx'
 import { SHEET_SPRING } from '../data/motion.js'
-import { RADIUS, SPACE, TYPE } from '../theme/index.js'
+import { RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, TYPE } from '../theme/index.js'
 
 // Correcting a set already logged.
 //
@@ -248,6 +248,9 @@ export function EditSetSheet({ exercise, setIndex, colour, ink, onSave, onRemove
 // scale — which is why it stays a named value instead of joining one.
 const KEYPAD_INSET = 69
 
+// What the design leaves between the two figures, to the eye.
+const STACK_VISIBLE = 20
+
 const styles = StyleSheet.create({
   backdrop: { backgroundColor: 'rgba(0,0,0,0.35)' },
   dock: { position: 'absolute', left: 0, right: 0, bottom: 0 },
@@ -279,12 +282,19 @@ const styles = StyleSheet.create({
   // The whole row is the target, so it is never a question of hitting the
   // digits themselves.
   value: { flexDirection: 'row', alignItems: 'center' },
-  // 20pt of visible separation, which is not 20pt of gap. At 82pt Funnel
-  // leaves 26.7pt above its capitals and 20.5pt below the baseline — 47.2pt of
-  // space between two rows before anything is added. Measured from the font
-  // rather than guessed, and re-measured twice: once when the typeface changed
-  // and once when the figure grew from 72 to 82. See native/CLAUDE.md.
-  stacked: { marginTop: 20 - 47.2 },
+  // 20pt of visible separation, which is not 20pt of gap. Every line carries
+  // empty space above its capitals and below its baseline, so two stacked rows
+  // are already far apart before anything is added — which is why this is a
+  // subtraction and lands negative.
+  //
+  // Written as the arithmetic rather than the answer, and that has now paid for
+  // itself three times: once when Favorit became Funnel, once when the figure
+  // grew from 72 to 82, and again here. The number went 39.5, then 47.2, then
+  // 38.8, and this line never changed. See native/CLAUDE.md.
+  stacked: {
+    marginTop:
+      STACK_VISIBLE - (SYSTEM_ASCENT - SYSTEM_CAP + SYSTEM_DESCENT) * TYPE.hero.fontSize,
+  },
   // While one value is being edited the other steps back, so it is obvious
   // which number the keypad is pointed at.
   dimmed: { opacity: 0.35 },

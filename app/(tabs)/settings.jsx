@@ -8,6 +8,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native'
+import { router } from 'expo-router'
 import * as Haptics from 'expo-haptics'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, {
@@ -428,7 +429,7 @@ export default function Settings() {
                   {breakdown(mode).map((row) => (
                     <View key={row.of} style={styles.spreadRow}>
                       <Text style={styles.spreadOf}>{row.of}</Text>
-                      <Text style={styles.spreadSeconds}>{row.seconds}s</Text>
+                      <Text style={styles.spreadSeconds}>{row.seconds}sec</Text>
                     </View>
                   ))}
                 </View>
@@ -520,6 +521,12 @@ export default function Settings() {
             </Pressable>
           </Animated.View>
         </View>
+
+        {/* TEMPORARY: reaches the SF Pro Rounded test. Delete this and
+            app/fonttest.jsx together once the typeface question is settled. */}
+        <Pressable onPress={() => router.push('/fonttest')} style={styles.fontTest}>
+          <Text style={styles.label}>Font test</Text>
+        </Pressable>
       </Animated.ScrollView>
     </View>
   )
@@ -531,6 +538,7 @@ const styles = StyleSheet.create({
   // No stroke: the fill is enough to separate it from the page, and an
   // outline as well would make two statements about the same edge.
   card: { padding: SPACE[3], borderRadius: RADIUS.card, backgroundColor: CARD },
+  fontTest: { marginTop: SPACE[5], opacity: 0.5 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -540,7 +548,10 @@ const styles = StyleSheet.create({
   label: { flex: 1, ...TYPE.label, color: INK },
   // Light rather than regular: this is the one thing on the page you read
   // once and then stop seeing, so it steps back in weight as well as ink.
-  note: { ...TYPE.note, color: QUIET },
+  // These run to two and three lines, which is the one place this role needs a
+  // line height stated. 17 against Funnel's own 15 at this size — above it, so
+  // it cannot clip, and enough to stop the lines closing up.
+  note: { ...TYPE.caption, lineHeight: 17, color: QUIET },
   reveal: { overflow: 'hidden' },
   // Laid out, measured, and never seen or touched.
   measure: { position: 'absolute', left: 0, right: 0, opacity: 0 },
@@ -576,6 +587,12 @@ const styles = StyleSheet.create({
   paceChosen: { backgroundColor: INK },
   // Unchosen options step back rather than sitting at full strength — the row
   // reads as one selection among four, not four equal buttons.
+  //
+  // sectionTitle rather than title, which is the same size and weight in plain
+  // SF Pro: these are figures being looked at inside a control, not a name
+  // being read down a list, so they take the rounded cut. Borrowed rather than
+  // given a role of its own — the spec is identical and a thirteenth role that
+  // duplicated an existing one is how the scale drifted last time.
   paceLabel: { ...TYPE.title, color: QUIET },
   paceLabelChosen: { color: LIGHT.onInk },
   paceName: { marginTop: SPACE[4], ...TYPE.label, color: INK },
@@ -590,7 +607,19 @@ const styles = StyleSheet.create({
     borderTopColor: LIGHT.border,
   },
   spreadOf: { ...TYPE.label, color: QUIET },
-  spreadSeconds: { ...TYPE.label, color: INK },
+  // The same treatment History gives a set's figures: label's size and weight,
+  // but mixed case and caption's tracking, because "120sec" is not an
+  // abbreviation in capitals — under `label` the s came out as "120S".
+  //
+  // Written out rather than shared with history.jsx's liftRun. Two sites is
+  // not yet a pattern, and the type scale is twelve roles by agreement; if a
+  // third place wants this, it earns a role rather than a third copy.
+  spreadSeconds: {
+    ...TYPE.label,
+    textTransform: 'none',
+    letterSpacing: TYPE.caption.letterSpacing,
+    color: INK,
+  },
 
   weight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   // Outlined while it is being typed in, so it is obvious which card the
@@ -599,10 +628,10 @@ const styles = StyleSheet.create({
   weightValue: { flexDirection: 'row', alignItems: 'center' },
   // No line height stated: the font's own is 1.25em and anything below it
   // clips. See native/CLAUDE.md.
-  weightTyped: { ...TYPE.figureInline, color: INK },
+  weightTyped: { ...TYPE.screenTitle, color: INK },
   // At rest the figure and its unit are one thing, in one ink. The unit only
   // steps back while the number is being typed.
-  weightUnit: { ...TYPE.figureInline, color: INK },
+  weightUnit: { ...TYPE.screenTitle, color: INK },
   weightUnitDimmed: { opacity: 0.45 },
   caret: { width: 3, height: 24, marginLeft: 2, marginRight: 1, backgroundColor: INK },
   // Present, focusable and never seen. It holds what is typed and summons the

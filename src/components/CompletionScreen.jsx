@@ -7,7 +7,7 @@ import { Confetti } from './Confetti.jsx'
 import { caloriesFor, KCAL_DISCLAIMER } from '../data/calories.js'
 import { washFor } from '../data/routineStyles.js'
 import { WORKOUT_CONTENT_FADE } from '../data/motion.js'
-import { FONTS, FUNNEL_LINE, LIGHT, RADIUS, SPACE, TYPE } from '../theme/index.js'
+import { LIGHT, RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, SYSTEM_LINE, TYPE, WEIGHT } from '../theme/index.js'
 
 // What a finished workout leaves you with.
 //
@@ -99,8 +99,10 @@ export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }
 // is applied: what Funnel drops below a baseline at `hero` size, and what a
 // 40pt line box leaves above capitals at `heading` size.
 const STATS_CAP_GAP = 33.6
-const FIGURE_DESCENT = 0.25 * TYPE.hero.fontSize
-const STATS_CAP_INSET = (40 - FUNNEL_LINE * TYPE.heading.fontSize) / 2 + 0.325 * TYPE.heading.fontSize
+const FIGURE_DESCENT = SYSTEM_DESCENT * TYPE.hero.fontSize
+const STATS_CAP_INSET =
+  (40 - SYSTEM_LINE * TYPE.heading.fontSize) / 2 +
+  (SYSTEM_ASCENT - SYSTEM_CAP) * TYPE.heading.fontSize
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
@@ -118,7 +120,7 @@ const styles = StyleSheet.create({
   // figure beside it and is not a footnote to it.
   caption: {
     ...TYPE.caption,
-    fontFamily: FONTS.medium,
+    fontWeight: WEIGHT.medium,
     textTransform: 'uppercase',
     color: LIGHT.onInk,
   },
@@ -156,7 +158,6 @@ const styles = StyleSheet.create({
   // A footnote qualifying the figure above, not a caution about it.
   note: {
     ...TYPE.caption,
-    fontFamily: FONTS.light,
     textAlign: 'center',
     opacity: 0.7,
     marginTop: SPACE[3],

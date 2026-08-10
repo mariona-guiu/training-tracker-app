@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 
 import { Glass } from './Glass.jsx'
-import { FUNNEL_LINE, LIGHT, SPACE, TYPE } from '../theme/index.js'
+import { SYSTEM_LINE, LIGHT, SPACE, TYPE } from '../theme/index.js'
 
 // A page title the content runs behind.
 //
@@ -18,7 +18,7 @@ import { FUNNEL_LINE, LIGHT, SPACE, TYPE } from '../theme/index.js'
 // What the bar actually occupies below `top`: one line of the title, plus the
 // padding under it. Derived rather than stated — 52 was measured against a
 // 40pt title and quietly stopped being true when that became 32.
-export const TITLE_HEIGHT = TYPE.screenTitle.fontSize * FUNNEL_LINE + SPACE[2]
+export const TITLE_HEIGHT = TYPE.screenTitle.fontSize * SYSTEM_LINE + SPACE[2]
 // And the air between the bar and the first card. SPACE[3] rather than
 // SPACE[4]: at 40pt the gap came to 18, and letting both halves follow the
 // smaller title put it at 28 — more space than the smaller title had earned.

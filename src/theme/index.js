@@ -19,7 +19,11 @@ export const DARK = {
   textDim: '#8a8a86',
   accent: '#c6ff3d',
   accentText: '#0a0a0a',
-  danger: '#ff4d4d',
+  // From the swipe design. It is the same red as the full-body routine, which
+  // is a collision on purpose rather than an accident: swiping that one cell
+  // puts red on red, and what separates them there is the shadow the cell
+  // casts onto the action, not a difference in hue.
+  danger: '#EC1C22',
   // A header the page scrolls behind: the page's own colour, thinned, with
   // the content underneath blurred through it.
   surfaceFloating: 'rgba(10, 10, 10, 0.66)',
@@ -54,103 +58,185 @@ LIGHT.controlTrack = '#d9d9d7'
 DARK.onInk = '#0a0a0a'
 DARK.controlTrack = '#2e2e2e'
 
-// Two families rather than one, and the split is by job rather than by size.
+// Two families, both from the system, and the split is by job rather than by
+// size: SF Pro Rounded is what gets looked at — the routine card, the page
+// title, the exercise you are on, the figure you are lifting. Plain SF Pro is
+// what gets read and operated: labels, prose, controls, list rows.
 //
-// Funnel Sans is what gets read: labels, prose, controls, anything you are
-// working through. Funnel Display is what gets looked at — the routine card,
-// the page title, the exercise you are on, the figure you are lifting.
+// Nothing is bundled. These are the fonts iOS already has, which is the point
+// of the pivot — and it means no font files, no loader, and no splash gate
+// waiting on them.
 //
-// The mono cut is gone. It was the app's voice, and there is no Funnel Mono to
-// replace it, so the tracked capitals are now set in Sans. What that would
-// have cost is the column alignment in History's set lists — recovered with
-// tabular figures, which Funnel Sans carries.
+// The names were settled on the device rather than from documentation,
+// because the failure here is silent: an unresolved family renders perfectly
+// in plain SF Pro and looks like it worked. Of twelve candidates only two draw
+// rounded — `ui-rounded` and `.AppleSystemUIFontRounded`. Everything else,
+// including the entirely plausible 'SF Pro Rounded' and 'SFProRounded-Regular',
+// falls back without a word.
 //
-// These names are what the font loader registers, so the two have to agree.
+// `ui-rounded` is the one used: a standard CSS generic that iOS's font matcher
+// accepts, rather than Apple's private internal name, so it is the likelier of
+// the two to survive an OS update. `.AppleSystemUIFontRounded` is the fallback
+// if it ever stops — it was checked alongside and behaves identically.
+//
+// Both honour fontWeight from 300 to 800 and both carry tabular figures, which
+// is why weights below are `fontWeight` rather than a family per cut. That was
+// the open question: a named family in React Native often ignores fontWeight
+// and hands back one cut for every weight asked of it.
 export const FONTS = {
-  light: 'FunnelSans-Light',
-  regular: 'FunnelSans-Regular',
-  medium: 'FunnelSans-Medium',
-  bold: 'FunnelSans-Bold',
-  displayRegular: 'FunnelDisplay-Regular',
-  displayMedium: 'FunnelDisplay-Medium',
-  displayBold: 'FunnelDisplay-Bold',
+  text: 'System',
+  rounded: 'ui-rounded',
 }
 
-// The type scale. Eleven roles, each taken from the size already doing that job
-// rather than invented, and named for the job so a screen picks a role instead
-// of a number.
+export const WEIGHT = { regular: '400', medium: '500', bold: '700' }
+
+// SF Pro and SF Pro Rounded share these exactly — one em, one set of numbers,
+// read from /System/Library/Fonts. Which means a single constant covers both
+// families, the same way one covered Funnel's seven cuts.
 //
-// Tracking is written as `size * ratio`, never as a bare value, because that is
-// the rule the app already half-followed: uppercase mono opens up (+2% small,
-// +8% for controls), display tightens (-1% to -3%). Stating it as a ratio means
-// changing a size cannot silently change how tight the text reads. Three of
-// these — label, figureInline, hero — come out at exactly the values already in
-// the code, which is what says the rule was there before it was written down.
+//   upem 2048   ascent 1980   descent -432   gap 0   cap 1444
 //
-// No lineHeight above `note`: React Native clips text to its line box where CSS
-// lets it spill, and Funnel's own is 1.25em, so anything tighter cuts the tops
-// off numerals. Recover tightness with margins, which do not clip.
+// Every derived measurement in the app is built from these, so they live here
+// rather than being written out at each site. They replace Funnel's, which
+// were 1.25 / 0.675 / 0.250 — so text boxes are shorter and capitals taller,
+// and nothing that was tuned against Funnel carries over unchanged.
+export const SYSTEM_LINE = 1.1777
+export const SYSTEM_ASCENT = 0.9668
+export const SYSTEM_CAP = 0.705
+export const SYSTEM_DESCENT = 0.2109
+
+// The type scale. Eleven roles, each named for the job so a screen picks a
+// role instead of a number.
+//
+// Tracking is written as `size * ratio`, never as a bare value, so changing a
+// size cannot silently change how tight the text reads — the page title going
+// 40 to 32 carried its own tracking with it and needed no second edit.
+//
+// The signs run the other way from most scales: large rounded type *tightens*
+// (-1% to -3%) and small type opens (+1%). SF Pro Rounded is already narrow-set
+// and its counters close up if it is tracked in, so `heading` takes +1% rather
+// than the 0 its neighbours use.
+//
+// Case is part of the role, not the copy. Four roles uppercase themselves —
+// routineCard, routineCardMeta and label — and the strings stay written as
+// sentences, so nothing has to be shouted in the source.
+//
+// `control` is deliberately not one of them. Uppercase button labels tracked
+// out is Material's convention, not Apple's; iOS sets buttons in sentence case
+// and lets SF Pro's own optical tracking do the spacing. Since the whole point
+// of this typeface is feeling native, the buttons speak rather than shout.
 export const TYPE = {
-  label: {
-    fontFamily: FONTS.regular,
-    fontSize: 12,
-    letterSpacing: 12 * 0.02,
-    textTransform: 'uppercase',
-    // What the mono cut used to give for nothing. Every label here is at
-    // some point a column of digits — sets, seconds, kilos — and Funnel Sans
-    // carries tabular figures, so they still line up.
-    fontVariant: ['tabular-nums'],
-  },
-  // Small text that is neither a label nor prose — a chart's year and its
-  // week-endings. Same size as `label` and deliberately not the same role: it
-  // is set in the text cut rather than the mono one, mixed case, and tracks
-  // in rather than out, because it is being read as data rather than announced
-  // as a heading.
   caption: {
-    fontFamily: FONTS.regular,
+    fontFamily: FONTS.text,
+    fontWeight: WEIGHT.regular,
     fontSize: 12,
-    letterSpacing: 12 * -0.01,
+    letterSpacing: 0,
     fontVariant: ['tabular-nums'],
   },
-  note: { fontFamily: FONTS.light, fontSize: 13, lineHeight: 19 },
-  body: { fontFamily: FONTS.regular, fontSize: 16 },
-  control: {
-    fontFamily: FONTS.medium,
+  label: {
+    fontFamily: FONTS.text,
+    fontWeight: WEIGHT.medium,
+    fontSize: 12,
+    letterSpacing: 12 * 0.01,
+    textTransform: 'uppercase',
+    fontVariant: ['tabular-nums'],
+  },
+  body: {
+    fontFamily: FONTS.text,
+    fontWeight: WEIGHT.regular,
     fontSize: 16,
-    letterSpacing: 16 * 0.08,
+    letterSpacing: 0,
+  },
+  control: {
+    fontFamily: FONTS.text,
+    fontWeight: WEIGHT.medium,
+    fontSize: 16,
+    letterSpacing: 0,
+  },
+  // The card's two lines under its name — "50 min", "6 exercises".
+  routineCardMeta: {
+    fontFamily: FONTS.rounded,
+    fontWeight: WEIGHT.regular,
+    fontSize: 16,
+    letterSpacing: 0,
+    textTransform: 'uppercase',
+    // "50 MIN", "6 EXERCISES" — digits, so they hold their place as a card is
+    // dragged and the numbers under it change.
+    fontVariant: ['tabular-nums'],
+  },
+  // Everything named at 20: the heading over a section, the header of a pushed
+  // view, a year in History, a routine's name in a cell, and the figures in the
+  // rest-pace control.
+  //
+  // This was two roles for a day — a plain `title` for names read down a column
+  // and a rounded `sectionTitle` for headings — on the theory that being read
+  // and being looked at want different cuts. At 20pt they do not: the plain one
+  // was used exactly once, and next to its rounded neighbours it read as an
+  // oversight rather than a distinction.
+  //
+  // Rounded won because that is the one the app leans on. And `title` kept the
+  // name because `sectionTitle` had already stopped being true — a figure
+  // inside a control is not a section heading.
+  title: {
+    fontFamily: FONTS.rounded,
+    fontWeight: WEIGHT.bold,
+    fontSize: 20,
+    letterSpacing: 0,
+  },
+  // The exercise being done, and the figures a finished workout comes to.
+  heading: {
+    fontFamily: FONTS.rounded,
+    fontWeight: WEIGHT.medium,
+    fontSize: 30,
+    letterSpacing: 30 * 0.01,
+  },
+  // The routine's name on its card. Regular rather than medium: the card is
+  // already a slab of colour and does not need the weight as well.
+  routineCard: {
+    fontFamily: FONTS.rounded,
+    fontWeight: WEIGHT.regular,
+    fontSize: 30,
+    letterSpacing: 0,
     textTransform: 'uppercase',
   },
-  title: { fontFamily: FONTS.medium, fontSize: 20, letterSpacing: 20 * -0.01 },
-  // A heading inside a screen rather than the screen's own — the exercise
-  // being done, the figures a finished workout comes to. Two uses, kept on
-  // purpose rather than folded into its neighbours: 20 is too quiet for it
-  // and a screen title announces a whole page.
+  // A screen's own title — and the typed body weight on Settings, which used
+  // to have a role of its own at 34 until it turned out to want exactly this.
   //
-  // It now sits 2pt from `screenTitle`, which used to be 40. That is close
-  // enough that the two are near enough indistinguishable side by side, and
-  // the pair is worth revisiting — but they are told apart by where they
-  // appear rather than by size, and nothing shows both at once.
-  heading: { fontFamily: FONTS.displayMedium, fontSize: 30, letterSpacing: 0 },
-  // An inline figure — a number sitting inside a card rather than owning the
-  // screen. Kept as a role after the first attempt to retire it: body weight
-  // cannot be `figure`, because the card is not tall enough to hold 56.
-  figureInline: { fontFamily: FONTS.bold, fontSize: 34, letterSpacing: 34 * -0.02 },
-  screenTitle: { fontFamily: FONTS.displayMedium, fontSize: 32, letterSpacing: 32 * -0.02 },
-  figure: { fontFamily: FONTS.displayBold, fontSize: 56, letterSpacing: 56 * -0.02, fontVariant: ['tabular-nums'] },
+  // Proportional figures, like `hero`: see the note there. The body weight does
+  // shuffle slightly as it is typed, which is the price, and at 32pt across
+  // three digits it is small enough to accept.
+  screenTitle: {
+    fontFamily: FONTS.rounded,
+    fontWeight: WEIGHT.bold,
+    fontSize: 32,
+    letterSpacing: 32 * -0.01,
+  },
+  figure: {
+    fontFamily: FONTS.rounded,
+    fontWeight: WEIGHT.bold,
+    fontSize: 64,
+    letterSpacing: 64 * -0.03,
+    fontVariant: ['tabular-nums'],
+  },
+  // Proportional figures, deliberately, where every other numeric role is
+  // tabular. Tabular forces each digit onto the same advance width, and at 82pt
+  // the padding a 1 does not need is wide enough to read as a gap — which is
+  // exactly what it looked like.
+  //
+  // The cost is that a figure shifts as its digits change, since this is a
+  // number being edited rather than one sitting still. Accepted: the spacing is
+  // visible all the time and the shuffle only while typing.
+  //
+  // `figure` on Stats stays tabular — it is a column of counters that should
+  // line up with each other, and 64pt is small enough that the padding does not
+  // show the same way.
   hero: {
-    fontFamily: FONTS.displayMedium,
+    fontFamily: FONTS.rounded,
+    fontWeight: WEIGHT.bold,
     fontSize: 82,
     letterSpacing: 82 * -0.01,
-    fontVariant: ['tabular-nums'],
   },
 }
-
-// What a line of Funnel occupies: ascent 1200 + descent 300 on a 1200 em.
-// React Native clips to the line box, so this is the real height of one line
-// at any size, and the number to derive a bar or a gap from. Named for the
-// family on purpose — another typeface would want this revisited, not
-// inherited.
-export const FUNNEL_LINE = 1.25
 
 export const SPACE = { 1: 4, 2: 8, 3: 16, 4: 24, 5: 32, 6: 48 }
 

@@ -10,7 +10,7 @@ import Animated, {
 
 import { CANONICAL_ORDER, inkFor, styleFor } from '../data/routineStyles.js'
 import { GLIDE_SPRING, TILT_SPRING } from '../data/motion.js'
-import { FONTS, RADIUS, SPACE } from '../theme/index.js'
+import { RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, TYPE } from '../theme/index.js'
 
 function sortForStack(routines) {
   return [...routines].sort((a, b) => {
@@ -319,6 +319,13 @@ export function WorkoutStack({ routines, resetAt, onDisturb, onStart }) {
   )
 }
 
+// Where the design puts the top of the card name's capitals, measured from
+// the top of the card. Held fixed while the font underneath it changes: the
+// old `top: 10` was that distance minus the 0.325em Funnel left above its
+// capitals, and SF Pro leaves 0.262em, so the same 10 would have lifted the
+// name by 2pt.
+const CARD_CAP_TOP = 19.75
+
 const styles = StyleSheet.create({
   canvas: { ...StyleSheet.absoluteFillObject },
   card: {
@@ -329,15 +336,14 @@ const styles = StyleSheet.create({
   },
   // Measured from the design: the capitals sit 19.4 from the card's top edge.
   // Stated as the text box that produces, since layout takes the box and the
-  // font leaves 0.325em above its capitals.
+  // font leaves above its capitals — 0.262em for SF Pro, and the constant
+  // above holds the capitals still while that changes.
   label: {
     position: 'absolute',
-    top: 10,
+    top: CARD_CAP_TOP - (SYSTEM_ASCENT - SYSTEM_CAP) * TYPE.routineCard.fontSize,
     left: SPACE[3],
     right: SPACE[3],
-    fontFamily: FONTS.displayRegular,
-    fontSize: 30,
-    textTransform: 'uppercase',
+    ...TYPE.routineCard,
     textAlign: 'center',
   },
   // Two centred lines and no icons — the design has three elements on a card
@@ -352,10 +358,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACE[1],
   },
-  metaText: {
-    fontFamily: FONTS.displayRegular,
-    fontSize: 16,
-    textTransform: 'uppercase',
-    fontVariant: ['tabular-nums'],
-  },
+  metaText: { ...TYPE.routineCardMeta },
 })
