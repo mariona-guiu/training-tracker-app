@@ -1,22 +1,21 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import Svg, { Path } from 'react-native-svg'
 
 import { listCompletedSessions } from '../../src/db/sessions.js'
 import { WeeklyChart } from '../../src/components/WeeklyChart.jsx'
+import { ChevronRightIcon } from '../../src/components/WorkoutIcons.jsx'
 import { addDays, buildWeeks, startOfDay, startOfWeek } from '../../src/data/weeks.js'
 import { ScreenTitle, TITLE_CLEARANCE } from '../../src/components/ScreenTitle.jsx'
-import { FONTS, LIGHT, RADIUS, SPACE, TAB_BAR_CLEARANCE, TYPE } from '../../src/theme/index.js'
+import { LIGHT, RADIUS, SPACE, SYSTEM_DESCENT, TAB_BAR_CLEARANCE, TYPE } from '../../src/theme/index.js'
 
 // What the font reserves below the baseline at `figure` size and a row of
-// digits never uses. Measured from the font, not guessed: Funnel's descent
-// is 300 on a 1200 unit em, so 0.25em, and 0.25 x 56 is this. It was 17.5
-// under Favorit, whose descent was 0.312em — the sort of number that has to
-// move when the typeface does. See the note on line heights in
-// native/CLAUDE.md.
-const FIGURE_DESCENDER = 14
+// digits never uses. Derived rather than stated, because it has had to move
+// every time anything underneath it did: 17.5 under Favorit, 14 under Funnel,
+// and now 13.5 — a smaller descent on a larger figure. See the note on line
+// heights in native/CLAUDE.md.
+const FIGURE_DESCENDER = SYSTEM_DESCENT * TYPE.figure.fontSize
 
 function monthsBefore(ts, months) {
   const d = new Date(ts)
@@ -41,20 +40,6 @@ function Counter({ label, value }) {
       <Text style={styles.counterLabel}>{label}</Text>
       <Text style={styles.counterValue}>{value}</Text>
     </View>
-  )
-}
-
-function ArrowIcon({ color }) {
-  return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M4 12h15m0 0l-6-6m6 6l-6 6"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
   )
 }
 
@@ -123,11 +108,27 @@ export default function Stats() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
 
+  // Two ways in — the words and the chevron — and a tap on either takes a
+  // moment to commit. A second tap inside that moment used to push History
+  // twice, leaving two identical views to come back through.
+  //
+  // Latched rather than debounced by a timer: a timer has to guess how long
+  // the push takes, and would still be wrong on a slow launch. This reopens
+  // when the screen is focused again, which is exactly when another push is
+  // due to be allowed.
+  const pushing = useRef(false)
+  const openHistory = useCallback(() => {
+    if (pushing.current) return
+    pushing.current = true
+    router.push('/history')
+  }, [router])
+
   // Reloaded on focus rather than once: deleting a workout in History changes
   // what this page is counting, and this screen is never unmounted while that
   // happens.
   useFocusEffect(
     useCallback(() => {
+      pushing.current = false
       if (mock) setSessions(mockSessions(mock))
       else listCompletedSessions().then(setSessions)
     }, [mock]),
@@ -172,10 +173,14 @@ export default function Stats() {
               <View style={styles.sectionHead}>
                 {/* TEMPORARY: long-press cycles the mock training above. */}
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="All past workouts"
+                  onPress={openHistory}
                   onLongPress={() =>
                     setMock((now) => (now === null ? 'typical' : now === 'typical' ? 'dense' : null))
                   }
                   delayLongPress={600}
+                  hitSlop={10}
                 >
                   <Text style={styles.sectionTitle}>
                     My workouts{mock === 'typical' ? ' ·' : mock === 'dense' ? ' ··' : ''}
@@ -186,10 +191,10 @@ export default function Stats() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="All past workouts"
-                  onPress={() => router.push('/history')}
+                  onPress={openHistory}
                   hitSlop={10}
                 >
-                  <ArrowIcon color={LIGHT.text} />
+                  <ChevronRightIcon size={22} color={LIGHT.text} />
                 </Pressable>
               </View>
               <WeeklyChart weeks={stats.weeks} />
@@ -247,5 +252,5 @@ const styles = StyleSheet.create({
   // 20 carries two jobs in this app — a section heading in bold here, an
   // object's own name in medium on a history cell — and that is a real
   // difference rather than a drift, so the role does not fix the weight.
-  sectionTitle: { ...TYPE.title, fontFamily: FONTS.bold, color: LIGHT.text },
+  sectionTitle: { ...TYPE.title, color: LIGHT.text },
 })

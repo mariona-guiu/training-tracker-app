@@ -46,7 +46,7 @@ import {
   SWIPE_DISTANCE,
   SWIPE_VELOCITY,
 } from '../../src/data/motion.js'
-import { DARK, FUNNEL_LINE, LIGHT, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
+import { DARK, SYSTEM_LINE, LIGHT, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
 
 // A workout in progress. It lives outside the (tabs) group so it fills the
 // display with no tab bar over it — the same split the web app makes.
@@ -217,6 +217,7 @@ export default function WorkoutMode() {
   const insets = useSafeAreaInsets()
   const screen = useWindowDimensions()
   const router = useRouter()
+  const leaving = useRef(false)
   const { beginReveal } = useLaunch()
 
   const width = screen.width
@@ -502,7 +503,17 @@ export default function WorkoutMode() {
   // The colour is handed back still covering the screen: whichever tab we
   // land on opens underneath it and dissolves it away, so there is never a
   // frame of bare page between the two.
+  // Latched, like the card that opened this screen. Both buttons on the
+  // completion screen come through here, and a second tap before the dismissal
+  // commits would begin the reveal twice and queue a second navigation — which
+  // is how two identical History views ended up stacked from Stats.
+  //
+  // Never reopened, and does not need to be: leaving dismisses this screen. If
+  // the dismissal itself failed the buttons would be dead, but so would the
+  // navigation they were asking for.
   function leave(then) {
+    if (leaving.current) return
+    leaving.current = true
     beginReveal(colour)
     router.dismissTo('/')
     // The tab is switched after the dismissal rather than dismissed straight
@@ -812,7 +823,7 @@ const styles = StyleSheet.create({
   // be cut. The tight stack the design wants is recovered by pulling the
   // second figure up by the difference (1.249em - 1.05em = 12.7pt), which a
   // margin does without touching the line box.
-  valueStacked: { marginTop: -(FUNNEL_LINE - DESIGN_LINE) * TYPE.hero.fontSize },
+  valueStacked: { marginTop: -(SYSTEM_LINE - DESIGN_LINE) * TYPE.hero.fontSize },
   figureRow: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0 },
   figurePress: { flex: 1, minWidth: 0, justifyContent: 'center' },
   figure: { ...TYPE.hero, padding: 0 },
