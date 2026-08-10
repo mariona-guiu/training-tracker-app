@@ -8,7 +8,6 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native'
-import { router } from 'expo-router'
 import * as Haptics from 'expo-haptics'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Animated, {
@@ -522,11 +521,6 @@ export default function Settings() {
           </Animated.View>
         </View>
 
-        {/* TEMPORARY: reaches the SF Pro Rounded test. Delete this and
-            app/fonttest.jsx together once the typeface question is settled. */}
-        <Pressable onPress={() => router.push('/fonttest')} style={styles.fontTest}>
-          <Text style={styles.label}>Font test</Text>
-        </Pressable>
       </Animated.ScrollView>
     </View>
   )
@@ -538,7 +532,6 @@ const styles = StyleSheet.create({
   // No stroke: the fill is enough to separate it from the page, and an
   // outline as well would make two statements about the same edge.
   card: { padding: SPACE[3], borderRadius: RADIUS.card, backgroundColor: CARD },
-  fontTest: { marginTop: SPACE[5], opacity: 0.5 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

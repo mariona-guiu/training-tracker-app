@@ -364,18 +364,33 @@ anything here without asking — the user vendored `canvas-confetti` into the
 web repo rather than depending on it, and reviews dependencies before they
 land.
 
-## Temporary scaffolding to remove
+## Temporary scaffolding
 
-Long-pressing **"My workouts"** on Stats cycles fabricated training —
-`typical`, then `dense`, then back to the real database. It writes nothing.
-`typical` is copied verbatim from the web app's `/stats?mock` so the two
-charts can be put side by side against identical data; `dense` runs 1 to 17
-workouts a week, because the chart's scale only animates when the busiest
-visible week changes and a real install almost never swings it far enough to
-show a fault. It was what made the segment easing bug visible at all.
+None. Both pieces were removed on 2026-08-10 once they had answered their
+questions, and both are worth knowing about because the next hard problem
+will want one like them.
 
-Marked TEMPORARY in `app/(tabs)/stats.jsx`. Delete it and the web app's
-`/stats?mock` together, once Stats is settled.
+**The mock training** was a long-press on "My workouts" that cycled
+fabricated weeks — `typical`, copied from the web app so the two charts could
+be compared against identical data, and `dense`, running 1 to 17 workouts a
+week. `dense` existed because the chart's scale only moves when the busiest
+visible week changes, and a real install almost never swings far enough to
+show a fault. It is what made the segment easing bug visible at all. In
+`app/(tabs)/stats.jsx` before it went.
+
+**The font test** was a screen listing candidate font family names with a
+sample in each, reachable from the bottom of Settings. It settled which names
+iOS actually resolves for SF Pro Rounded — the answer is recorded in
+`src/theme/index.js`, since the failure is silent and someone will otherwise
+try 'SF Pro Rounded' and believe it worked. `app/fonttest.jsx` before it went.
+
+Both took one round to build and each ended an exchange that was going
+nowhere. Reach for the same thing rather than guessing a fourth time — the
+chart's own readout, added and deleted the same day, is the shortest example
+in the history.
+
+The web app's `/stats?mock` still exists and is now unrelated: that app is
+frozen, so it keeps whatever it had.
 
 ## Where the port has got to
 
