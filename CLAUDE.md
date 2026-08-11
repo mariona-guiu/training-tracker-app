@@ -350,6 +350,29 @@ literals inside the tab bar with no dark answer until they had names. The pill
 marking the current tab is the one that matters: light mode marks it by
 *darkening*, which on a dark bar marks it by making it vanish.
 
+## Contrast: what is measured, and what is accepted
+
+An audit on 2026-08-11 checked all 138 text-on-background pairs — both schemes,
+all six routines, opacity composited in. 29 failed WCAG AA; 10 still do, and
+**those 10 are known and accepted.** Do not re-raise them as a finding.
+
+Seven of them are text sitting on a routine's **rest sweep**. The ink is chosen
+against the card, the sweep is a deeper shade of the same colour, and the same
+text sits on both — so a routine whose ink is comfortable on its card can be
+marginal on its sweep. Closing that means lifting the sweep colours, which is a
+palette decision the designer has looked at and declined. The remaining three
+are lower body dark and the delete-swipe red, both a hair under 4.5:1.
+
+Two things this does *not* mean. New work is still held to AA — the accepted
+ten are these ten, not a licence. And the machinery that found them is worth
+reusing: the audit was a script that imports `theme/index.js` and
+`data/routineStyles.js` directly and walks every pair, so it measures what the
+app actually renders rather than a transcription of it. Rebuild it rather than
+eyeballing a colour pair, and note that **opacity on text is invisible to every
+off-the-shelf contrast checker** — it composites against the ground, and it was
+where the worst failure in the app was hiding (2.09:1 on a footnote whose
+colour pair measured fine).
+
 ## A routine's colour takes the scheme first
 
 It is the one thing in the app that is neither a token nor scheme-independent:
