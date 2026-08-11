@@ -8,7 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { SettingsIcon, StatsIcon, WorkoutIcon } from '../../src/components/TabIcons.jsx'
 import { Glass, LIQUID_GLASS } from '../../src/components/Glass.jsx'
 import { createSpringTabNavigator } from '../../src/components/SpringTabs.jsx'
-import { LIGHT, NAV_FLOAT_GAP, NAV_HEIGHT, RADIUS } from '../../src/theme/index.js'
+import { NAV_FLOAT_GAP, NAV_HEIGHT, RADIUS } from '../../src/theme/index.js'
+import { useTheme, useThemedStyles } from '../../src/theme/ThemeProvider.jsx'
 import { TAB_SPRING } from '../../src/data/motion.js'
 
 // The three tabbed screens and the floating bar that switches them. A workout
@@ -27,8 +28,6 @@ const TABS = [
   { name: 'settings', Icon: SettingsIcon, label: 'Settings' },
 ]
 
-const ICON_INK = LIGHT.text
-
 // One pill, moved — not one per tab, switched. The bar's own padding puts the
 // first item here, and each one after it is a width and a gap further along,
 // so where the pill belongs is arithmetic rather than measurement.
@@ -40,6 +39,8 @@ const STEP = ITEM_WIDTH + ITEM_GAP
 
 function TabBar({ state, navigation }) {
   const insets = useSafeAreaInsets()
+  const theme = useTheme()
+  const styles = useThemedStyles(makeStyles)
   const pill = useSharedValue(state.index * STEP)
 
   useEffect(() => {
@@ -66,7 +67,7 @@ function TabBar({ state, navigation }) {
         style={[styles.bar, !LIQUID_GLASS && styles.barFallback]}
         fallback={
           <LinearGradient
-            colors={['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.32)']}
+            colors={theme.glassWash}
             style={StyleSheet.absoluteFill}
           />
         }
@@ -93,7 +94,7 @@ function TabBar({ state, navigation }) {
               }}
               style={styles.item}
             >
-              <tab.Icon active={active} color={ICON_INK} />
+              <tab.Icon active={active} color={theme.text} />
             </Pressable>
           )
         })}
@@ -112,7 +113,7 @@ export default function TabsLayout() {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t) => StyleSheet.create({
   dock: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 2 },
   bar: {
     flexDirection: 'row',
@@ -140,7 +141,7 @@ const styles = StyleSheet.create({
   barEdge: {
     ...StyleSheet.absoluteFillObject,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.55)',
+    borderColor: t.glassEdge,
     borderRadius: RADIUS.pill,
   },
   item: {
@@ -157,9 +158,10 @@ const styles = StyleSheet.create({
     width: ITEM_WIDTH,
     height: ITEM_HEIGHT,
     borderRadius: RADIUS.pill,
-    // A quarter lighter than the web's 0.16 — the material underneath is the
-    // system's now rather than a blurred gradient, and the pill does not need
-    // to work as hard against it.
-    backgroundColor: 'rgba(10,10,10,0.12)',
+    // The value it landed on — a quarter lighter than the web's 0.16, since
+    // the material underneath is the system's now rather than a blurred
+    // gradient and the pill does not have to work as hard against it — is
+    // recorded on the palette, which is also where its dark counterpart is.
+    backgroundColor: t.highlight,
   },
 })

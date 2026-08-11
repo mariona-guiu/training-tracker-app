@@ -2,6 +2,8 @@ import Animated from 'react-native-reanimated'
 import { BlurView } from 'expo-blur'
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect'
 
+import { useTheme } from '../theme/ThemeProvider.jsx'
+
 // The blurred stand-in, animatable. Opacity on it is only a problem for the
 // real material, so the fallback can be faded like anything else.
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView)
@@ -46,15 +48,22 @@ export function Glass({
   hidden = false,
   fadeStyle,
   intensity = 40,
-  tint = 'light',
+  tint,
   ...rest
 }) {
+  const theme = useTheme()
+  // The tint follows the palette unless a caller insists otherwise. A light
+  // blur under dark type is opaque haze, and it is the one property every
+  // frosted surface in the app shares — so it is decided here rather than at
+  // each of the three call sites, none of which has an opinion about it.
+  const resolvedTint = tint ?? theme.scheme
+
   if (LIQUID_GLASS) {
     return (
       <GlassView
         style={style}
         glassEffectStyle={{ style: hidden ? 'none' : 'regular', animate: true }}
-        colorScheme={tint}
+        colorScheme={resolvedTint}
         {...rest}
       >
         {children}
@@ -65,7 +74,7 @@ export function Glass({
   return (
     <AnimatedBlurView
       intensity={intensity}
-      tint={tint}
+      tint={resolvedTint}
       // `fadeStyle` when the caller wants it animated; the flat `hidden`
       // otherwise, for surfaces that simply are or are not there.
       style={[style, fadeStyle ?? (hidden && { opacity: 0 })]}

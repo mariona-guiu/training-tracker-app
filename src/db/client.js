@@ -21,7 +21,7 @@ import * as Crypto from 'expo-crypto'
 // boundary, so nothing above here ever sees a 1 where it expects true.
 
 const DB_NAME = 'training-tracker.db'
-const SCHEMA_VERSION = 3
+const SCHEMA_VERSION = 4
 
 let dbPromise
 
@@ -112,6 +112,14 @@ async function migrate(db) {
       UPDATE routines SET name = 'Mobility'
       WHERE key = 'stretching' AND isCustom = 0 AND name = 'Stretching';
     `)
+  }
+
+  if (current < 4) {
+    // Light, dark, or whatever the phone is set to. No backfill and no
+    // default written: a null here means the row predates the choice, and
+    // getSettings reads that as 'system' — which is also what a fresh install
+    // gets, so an existing phone and a new one behave the same.
+    await db.execAsync(`ALTER TABLE settings ADD COLUMN themeMode TEXT;`)
   }
 
   await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`)

@@ -3,7 +3,8 @@ import { StyleSheet, Text, View } from 'react-native'
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 
 import { Glass } from './Glass.jsx'
-import { SYSTEM_LINE, LIGHT, SPACE, TYPE } from '../theme/index.js'
+import { SYSTEM_LINE, SPACE, TYPE } from '../theme/index.js'
+import { useThemedStyles } from '../theme/ThemeProvider.jsx'
 
 // A page title the content runs behind.
 //
@@ -26,6 +27,7 @@ export const TITLE_HEIGHT = TYPE.screenTitle.fontSize * SYSTEM_LINE + SPACE[2]
 export const TITLE_CLEARANCE = TITLE_HEIGHT + SPACE[3]
 
 export function ScreenTitle({ title, scrolled, top }) {
+  const styles = useThemedStyles(makeStyles)
   const frost = useSharedValue(0)
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export function ScreenTitle({ title, scrolled, top }) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t) => StyleSheet.create({
   bar: {
     position: 'absolute',
     left: 0,
@@ -59,5 +61,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE[3],
     paddingBottom: SPACE[2],
   },
-  title: { ...TYPE.screenTitle, color: LIGHT.text },
+  title: { ...TYPE.screenTitle, color: t.text },
 })

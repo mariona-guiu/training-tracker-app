@@ -11,9 +11,10 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated'
 
-import { inkFor, styleFor } from '../data/routineStyles.js'
+import { useRoutineColours } from '../theme/ThemeProvider.jsx'
 import { VISIBLE_WEEKS, yearOfWeek } from '../data/weeks.js'
-import { LIGHT, RADIUS, SPACE, TYPE } from '../theme/index.js'
+import { RADIUS, SPACE, TYPE } from '../theme/index.js'
+import { useThemedStyles } from '../theme/ThemeProvider.jsx'
 
 // How long a finger has to stay put before the press is read as "show me this
 // workout" rather than the beginning of a scroll. Short enough to feel
@@ -50,6 +51,9 @@ function segmentHeight(rows) {
 // comparable within one screenful. That is the trade for never wasting the
 // card on a quiet stretch.
 function Segment({ workout, height, gap, dimmed, last }) {
+  const styles = useThemedStyles(makeStyles)
+  const { styleFor } = useRoutineColours()
+
   const style = useAnimatedStyle(() => ({
     height: height.value,
     marginBottom: last ? 0 : gap.value,
@@ -68,6 +72,8 @@ function Segment({ workout, height, gap, dimmed, last }) {
 }
 
 export function WeeklyChart({ weeks }) {
+  const styles = useThemedStyles(makeStyles)
+  const { inkFor, styleFor } = useRoutineColours()
   const [columnWidth, setColumnWidth] = useState(0)
   const [reading, setReading] = useState(null)
   const scrollX = useRef(0)
@@ -341,16 +347,16 @@ export function WeeklyChart({ weeks }) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (t) => StyleSheet.create({
   chart: {
-    backgroundColor: LIGHT.bgRaised,
+    backgroundColor: t.bgRaised,
     borderRadius: RADIUS.card,
     paddingTop: SPACE[3],
     paddingHorizontal: 12,
     paddingBottom: SPACE[4],
   },
   caption: { height: 50, justifyContent: 'flex-start' },
-  year: { ...TYPE.caption, color: LIGHT.text },
+  year: { ...TYPE.caption, color: t.text },
   // Full width so a long routine name never truncates, and carrying that
   // routine's colour — which is what ties it to the segment under the finger,
   // since it is not sitting next to it.
@@ -376,7 +382,7 @@ const styles = StyleSheet.create({
     width: TRACK_WIDTH,
     height: TRACK_HEIGHT,
     borderRadius: RADIUS.pill,
-    backgroundColor: LIGHT.bg,
+    backgroundColor: t.bg,
     overflow: 'hidden',
   },
   segment: { width: TRACK_WIDTH, borderRadius: RADIUS.pill },
@@ -387,6 +393,6 @@ const styles = StyleSheet.create({
     width: 29,
     textAlign: 'center',
     ...TYPE.caption,
-    color: LIGHT.text,
+    color: t.text,
   },
 })

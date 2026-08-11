@@ -12,11 +12,12 @@ import * as Haptics from 'expo-haptics'
 
 import { listRoutines } from '../../src/db/routines.js'
 import { startSession, getActiveSession } from '../../src/db/sessions.js'
-import { styleFor } from '../../src/data/routineStyles.js'
+
 import { originFrom, useLaunch } from '../../src/components/LaunchOverlay.jsx'
 import { WorkoutStack } from '../../src/components/WorkoutStack.jsx'
 import { StackIcon, StackIconPressed } from '../../src/components/StackIcon.jsx'
-import { LIGHT, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
+import { RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
+import { useRoutineColours, useTheme, useThemedStyles } from '../../src/theme/ThemeProvider.jsx'
 
 // The Workouts screen: a canvas of cards you can push around, not a list.
 //
@@ -35,6 +36,9 @@ export default function Workouts() {
   const [resetAt, setResetAt] = useState(0)
   const insets = useSafeAreaInsets()
   const screen = useWindowDimensions()
+  const theme = useTheme()
+  const styles = useThemedStyles(makeStyles)
+  const { styleFor } = useRoutineColours()
   const router = useRouter()
   const { beginLaunch, endLaunch } = useLaunch()
   const launching = useRef(false)
@@ -161,10 +165,10 @@ export default function Workouts() {
                   appearance and the press are opacity. */}
               <Animated.View style={[styles.icons, pressScale]}>
                 <Animated.View style={restingIcon}>
-                  <StackIcon color={LIGHT.text} />
+                  <StackIcon color={theme.text} />
                 </Animated.View>
                 <Animated.View style={[styles.iconOver, pressedIcon]}>
-                  <StackIconPressed color={LIGHT.text} />
+                  <StackIconPressed color={theme.text} />
                 </Animated.View>
               </Animated.View>
             </Glass>
@@ -175,8 +179,12 @@ export default function Workouts() {
   )
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: LIGHT.bg },
+// A factory rather than a sheet, because StyleSheet.create runs at import and
+// would bake in whichever palette was current when the module loaded. Defined
+// at module scope so its identity is stable and useThemedStyles rebuilds the
+// sheet only when the palette actually changes.
+const makeStyles = (t) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: t.bg },
   header: {
     position: 'absolute',
     left: SPACE[3],
@@ -187,7 +195,7 @@ const styles = StyleSheet.create({
     // Over the canvas, so a card dragged upward passes behind the title.
     zIndex: 20,
   },
-  title: { ...TYPE.screenTitle, color: LIGHT.text },
+  title: { ...TYPE.screenTitle, color: t.text },
   restack: {
     width: 44,
     height: 44,
@@ -196,7 +204,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  restackWash: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.5)' },
+  // Was a literal rgba(255,255,255,0.5), which in a dark scheme is a bright
+  // disc rather than a wash. surfaceCard is the same value in light — the
+  // raised colour at half strength — and inverts on its own.
+  restackWash: { ...StyleSheet.absoluteFillObject, backgroundColor: t.surfaceCard },
   icons: { width: 24, height: 24 },
   // Laid exactly over the resting one so the two crossfade in place.
   //

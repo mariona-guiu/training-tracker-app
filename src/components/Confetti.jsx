@@ -9,7 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated'
 
-import { ROUTINE_COLOURS } from '../data/routineStyles.js'
+import { useRoutineColours } from '../theme/ThemeProvider.jsx'
 
 // The shower over the completion screen.
 //
@@ -29,7 +29,8 @@ const WAVES = [0, 120, 300, 560, 780]
 const spread = (i) => (i * 0.618) % 1
 
 function Piece({ index, width, height }) {
-  const colour = ROUTINE_COLOURS[index % ROUTINE_COLOURS.length]
+  const { routineColours } = useRoutineColours()
+  const colour = routineColours[index % routineColours.length]
   const size = 7 + ((index * 3) % 6)
   const startX = spread(index) * width
   const delay = WAVES[index % WAVES.length] + ((index * 37) % 400)

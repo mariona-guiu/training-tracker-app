@@ -8,7 +8,8 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated'
 
-import { CANONICAL_ORDER, inkFor, styleFor } from '../data/routineStyles.js'
+import { CANONICAL_ORDER } from '../data/routineStyles.js'
+import { useRoutineColours } from '../theme/ThemeProvider.jsx'
 import { GLIDE_SPRING, TILT_SPRING } from '../data/motion.js'
 import { RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, TYPE } from '../theme/index.js'
 
@@ -79,6 +80,7 @@ function rubber(value, min, max, elastic) {
 }
 
 function StackCard({ routine, slotIndex, zIndex, isTop, canvas, resetAt, onLift, onDisturb, onStart }) {
+  const { inkFor, styleFor } = useRoutineColours()
   const kind = routine.type ?? routine.name
   const style = styleFor(kind, slotIndex)
   const ink = inkFor(kind, slotIndex)

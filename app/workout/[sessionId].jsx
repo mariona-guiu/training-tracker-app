@@ -25,7 +25,7 @@ import * as Haptics from 'expo-haptics'
 
 import { deleteSession, endSession, getSession, saveSession } from '../../src/db/sessions.js'
 import { getSettings } from '../../src/db/settings.js'
-import { inkOn, restTintFor, styleFor, washFor } from '../../src/data/routineStyles.js'
+import { inkOn } from '../../src/data/routineStyles.js'
 import { restSecondsFor } from '../../src/data/rest.js'
 import { CompletionScreen } from '../../src/components/CompletionScreen.jsx'
 import { useLaunch } from '../../src/components/LaunchOverlay.jsx'
@@ -46,7 +46,8 @@ import {
   SWIPE_DISTANCE,
   SWIPE_VELOCITY,
 } from '../../src/data/motion.js'
-import { DARK, SYSTEM_LINE, LIGHT, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
+import { SYSTEM_LINE, LIGHT, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
+import { useRoutineColours, useTheme } from '../../src/theme/ThemeProvider.jsx'
 
 // A workout in progress. It lives outside the (tabs) group so it fills the
 // display with no tab bar over it — the same split the web app makes.
@@ -217,6 +218,8 @@ export default function WorkoutMode() {
   const insets = useSafeAreaInsets()
   const screen = useWindowDimensions()
   const router = useRouter()
+  const theme = useTheme()
+  const { restTintFor, styleFor, washFor } = useRoutineColours()
   const leaving = useRef(false)
   const { beginReveal } = useLaunch()
 
@@ -292,10 +295,18 @@ export default function WorkoutMode() {
   // follow. Falls back to the name for anything recorded before the type was
   // stored.
   const kind = session?.routineType ?? session?.routineName
-  const colour = handed ?? (session ? styleFor(kind, 0).background : DARK.bg)
+  // Only reachable before the session has loaded and with no colour handed
+  // over, which the card's own transition makes very nearly never. The page
+  // colour rather than a fixed dark, so the moment it does happen the screen
+  // matches the app it was opened from.
+  const colour = handed ?? (session ? styleFor(kind, 0).background : theme.bg)
   const ink = inkOn(colour)
   // Whether the routine's colour asked for white ink, which is the same
   // question the status bar and the button's material both need answering.
+  //
+  // LIGHT.onInk is being used as the constant '#ffffff' here, not as a
+  // theme lookup: inkOn() weighs the *routine's* colour, which does not
+  // change with the app's scheme, so this answer must not either.
   const inkIsLight = ink === LIGHT.onInk
 
   function goTo(next) {

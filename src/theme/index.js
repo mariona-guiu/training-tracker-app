@@ -11,30 +11,13 @@
 // via styleFor() in data/routineStyles.js — a routine's colour is its
 // identity, shared by its card, its workout screen and its days on Stats.
 
-export const DARK = {
-  bg: '#0a0a0a',
-  bgRaised: '#161616',
-  border: '#2e2e2e',
-  text: '#f5f5f2',
-  textDim: '#8a8a86',
-  accent: '#c6ff3d',
-  accentText: '#0a0a0a',
-  // From the swipe design. It is the same red as the full-body routine, which
-  // is a collision on purpose rather than an accident: swiping that one cell
-  // puts red on red, and what separates them there is the shadow the cell
-  // casts onto the action, not a difference in hue.
-  danger: '#EC1C22',
-  // A header the page scrolls behind: the page's own colour, thinned, with
-  // the content underneath blurred through it.
-  surfaceFloating: 'rgba(10, 10, 10, 0.66)',
-  // A card sitting on the page: the raised colour at half strength, so it
-  // reads as a tint of the page rather than a panel laid over it.
-  surfaceCard: 'rgba(22, 22, 22, 0.5)',
-  scheme: 'dark',
-}
+// The accent is identity rather than scheme: the same lime in both, because it
+// is the app's colour and not a shade of its background. It already carries
+// 16.76:1 against its own text, which is why it needs no dark variant.
+const ACCENT = '#c6ff3d'
+const ACCENT_TEXT = '#0a0a0a'
 
 export const LIGHT = {
-  ...DARK,
   bg: '#fdfdfc',
   // Taken from the Stats design, and the same card colour Settings already
   // draws — the two screens had drifted a step apart from each other.
@@ -45,18 +28,90 @@ export const LIGHT = {
   // once here, which is the whole point of it being a token.
   text: '#191919',
   textDim: '#6f6f6a',
+  accent: ACCENT,
+  accentText: ACCENT_TEXT,
+  // From the swipe design. It is the same red as the full-body routine, which
+  // is a collision on purpose rather than an accident: swiping that one cell
+  // puts red on red, and what separates them there is the shadow the cell
+  // casts onto the action, not a difference in hue.
+  danger: '#EC1C22',
+  // A header the page scrolls behind: the page's own colour, thinned, with
+  // the content underneath blurred through it.
   surfaceFloating: 'rgba(253, 253, 252, 0.72)',
+  // A card sitting on the page: the raised colour at half strength, so it
+  // reads as a tint of the page rather than a panel laid over it.
   surfaceCard: 'rgba(247, 247, 246, 0.5)',
+  // Two roles every screen had been spelling out by hand: what sits on top of
+  // a filled ink surface, and the unfilled half of a control.
+  onInk: '#ffffff',
+  controlTrack: '#d9d9d7',
+  // The floating bar, where the phone has no Liquid Glass and the blurred
+  // stand-in has to imply the material by hand: a wash lit from the top, a
+  // hairline edge over it, and the pill that marks the tab you are on.
+  //
+  // These were three literals inside (tabs)/_layout.jsx, all of them white or
+  // near-black, which is exactly the kind of value that has no dark answer
+  // until it is given a name.
+  glassWash: ['rgba(255, 255, 255, 0.6)', 'rgba(255, 255, 255, 0.32)'],
+  glassEdge: 'rgba(255, 255, 255, 0.55)',
+  highlight: 'rgba(10, 10, 10, 0.12)',
   scheme: 'light',
 }
 
-// Two roles the palette was missing, which every screen had been spelling out
-// by hand: what sits on top of a filled dark surface, and the unfilled half of
-// a control. Named here so a second toggle cannot invent its own grey.
-LIGHT.onInk = '#ffffff'
-LIGHT.controlTrack = '#d9d9d7'
-DARK.onInk = '#0a0a0a'
-DARK.controlTrack = '#2e2e2e'
+// Derived from LIGHT rather than inherited from the in-workout screen, which is
+// what used to be here. That old palette was built for one dark screen sitting
+// under a routine's colour, and read as a different app when it was asked to
+// carry every screen.
+//
+// Three things decide the values, and each is a rule rather than a taste:
+//
+// **Never pure black.** #121211 rather than #000. Light text on true black
+// smears on OLED, and a page already at the bottom of the range has nowhere
+// left to go when a surface needs to sit above it.
+//
+// **Elevation runs the other way.** bgRaised is *lighter* than bg here and
+// darker than it in LIGHT. A dark theme cannot lift a surface with a shadow —
+// there is nothing for a shadow to darken — so it lifts it with light.
+// controlTrack inverts for the same reason.
+//
+// **Saturation comes down.** A fully saturated hue against a dark ground
+// vibrates, and #EC1C22 also fails AA with white on it (4.42:1). #ff5257 is
+// the same red lightened until it clears: 5.89:1. The cost is that it no
+// longer collides exactly with the full-body routine — see the note on
+// LIGHT.danger. In dark mode that collision could not have worked anyway,
+// since what separated the two there was a shadow.
+//
+// Contrast, measured rather than judged: text 16.71:1 on the page and 14.89:1
+// on a card, textDim 5.39:1 and 4.81:1. The light palette's own figures are
+// 17.27 / 16.40 and 4.96 / 4.71, so quiet text stays as quiet as it is in
+// light mode instead of being brightened past it — which is the usual way a
+// ported dark palette goes wrong.
+//
+// The warm cast is deliberate: #fdfdfc, #e3e3de and #6f6f6a all lean warm, so
+// their opposites do too. A neutral or blue-grey dark would read as a
+// different product.
+export const DARK = {
+  bg: '#121211',
+  bgRaised: '#1e1e1c',
+  border: '#34342f',
+  text: '#f2f2ef',
+  textDim: '#8a8a83',
+  accent: ACCENT,
+  accentText: ACCENT_TEXT,
+  danger: '#ff5257',
+  surfaceFloating: 'rgba(18, 18, 17, 0.66)',
+  surfaceCard: 'rgba(30, 30, 28, 0.5)',
+  onInk: '#121211',
+  controlTrack: '#3a3a35',
+  // All three invert, and the pill is the one that matters: light mode marks
+  // the current tab by darkening it, which on a dark bar would mark it by
+  // making it disappear. Lighter here, at a slightly higher alpha because a
+  // light film over a dark ground reads weaker than a dark one over a light.
+  glassWash: ['rgba(58, 58, 53, 0.62)', 'rgba(36, 36, 33, 0.38)'],
+  glassEdge: 'rgba(242, 242, 239, 0.14)',
+  highlight: 'rgba(242, 242, 239, 0.16)',
+  scheme: 'dark',
+}
 
 // Two families, both from the system, and the split is by job rather than by
 // size: SF Pro Rounded is what gets looked at — the routine card, the page

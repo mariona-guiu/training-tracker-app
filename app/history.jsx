@@ -27,7 +27,7 @@ import {
   listCompletedSessions,
 } from '../src/db/sessions.js'
 import { caloriesFor, KCAL_DISCLAIMER } from '../src/data/calories.js'
-import { inkFor, inkOn, paleFor, restTintFor, styleFor } from '../src/data/routineStyles.js'
+import { inkOn } from '../src/data/routineStyles.js'
 import { addDays, startOfWeek } from '../src/data/weeks.js'
 import {
   BackIcon,
@@ -40,7 +40,8 @@ import {
 } from '../src/components/HistoryIcons.jsx'
 import { Glass } from '../src/components/Glass.jsx'
 import { EXPAND_SPRING } from '../src/data/motion.js'
-import { LIGHT, RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, TYPE } from '../src/theme/index.js'
+import { RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, TYPE } from '../src/theme/index.js'
+import { useRoutineColours, useTheme, useThemedStyles } from '../src/theme/ThemeProvider.jsx'
 
 const MONTH = new Intl.DateTimeFormat('en-GB', { month: 'long' })
 
@@ -165,6 +166,9 @@ const ACTION_WIDTH = 60
 const SNAP_FRACTION = 0.4
 
 function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete, removing, onRemoved }) {
+  const theme = useTheme()
+  const styles = useThemedStyles(makeStyles)
+  const { inkFor, paleFor, restTintFor, styleFor } = useRoutineColours()
   const root = useRef(null)
   const pending = useRef(null)
   // The kind of session, falling back to its name for anything recorded
@@ -432,7 +436,7 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete, remov
           accessibilityLabel={`Delete this ${session.routineName} workout`}
           style={styles.actionHit}
         >
-          <TrashIcon size={24} color={LIGHT.onInk} />
+          <TrashIcon size={24} color={theme.onInk} />
         </Pressable>
       </View>
 
@@ -562,6 +566,8 @@ export default function History() {
   // heading below simply scrolls away under it.
   const compressed = useSharedValue(0)
   const insets = useSafeAreaInsets()
+  const theme = useTheme()
+  const styles = useThemedStyles(makeStyles)
   const router = useRouter()
   const { height: windowHeight } = useWindowDimensions()
 
@@ -687,7 +693,7 @@ export default function History() {
             hitSlop={10}
             style={styles.back}
           >
-            <BackIcon color={LIGHT.text} />
+            <BackIcon color={theme.text} />
           </Pressable>
           <Text style={styles.title}>My workouts</Text>
           {/* Balances the back control, so the title sits centred on the
@@ -769,8 +775,8 @@ const TAG_PADDING = 12
 const TAG_CAP_OFFSET =
   (SYSTEM_ASCENT - SYSTEM_CAP - SYSTEM_DESCENT) * TYPE.label.fontSize
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: LIGHT.bg },
+const makeStyles = (t) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: t.bg },
   barSlot: {
     position: 'absolute',
     left: 0,
@@ -782,12 +788,12 @@ const styles = StyleSheet.create({
   },
   barRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   back: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  barYear: { ...TYPE.body, color: LIGHT.text, textAlign: 'center', overflow: 'hidden' },
-  title: { ...TYPE.title, color: LIGHT.text },
-  year: { ...TYPE.title, color: LIGHT.text, marginTop: SPACE[4] },
+  barYear: { ...TYPE.body, color: t.text, textAlign: 'center', overflow: 'hidden' },
+  title: { ...TYPE.title, color: t.text },
+  year: { ...TYPE.title, color: t.text, marginTop: SPACE[4] },
   weekLabel: {
     ...TYPE.label,
-    color: LIGHT.textDim,
+    color: t.textDim,
     paddingTop: SPACE[3],
     paddingBottom: SPACE[2],
   },
@@ -849,7 +855,7 @@ const styles = StyleSheet.create({
   // something.
   action: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: LIGHT.danger,
+    backgroundColor: t.danger,
     borderRadius: RADIUS.card,
     // A row, so the target can stretch down the cell while sitting at its end.
     // It was a column with `alignSelf: 'stretch'` on the child, which quietly
@@ -926,5 +932,5 @@ const styles = StyleSheet.create({
   // exercise used to take it twice and read as a third state.
   faded: { opacity: 0.76 },
   footnote: { ...TYPE.caption, marginTop: SPACE[3] },
-  empty: { ...TYPE.body, color: LIGHT.textDim, marginTop: SPACE[5] },
+  empty: { ...TYPE.body, color: t.textDim, marginTop: SPACE[5] },
 })

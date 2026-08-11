@@ -8,7 +8,8 @@ import { WeeklyChart } from '../../src/components/WeeklyChart.jsx'
 import { ChevronRightIcon } from '../../src/components/WorkoutIcons.jsx'
 import { addDays, buildWeeks, startOfDay } from '../../src/data/weeks.js'
 import { ScreenTitle, TITLE_CLEARANCE } from '../../src/components/ScreenTitle.jsx'
-import { LIGHT, RADIUS, SPACE, SYSTEM_DESCENT, TAB_BAR_CLEARANCE, TYPE } from '../../src/theme/index.js'
+import { RADIUS, SPACE, SYSTEM_DESCENT, TAB_BAR_CLEARANCE, TYPE } from '../../src/theme/index.js'
+import { useTheme, useThemedStyles } from '../../src/theme/ThemeProvider.jsx'
 
 // What the font reserves below the baseline at `figure` size and a row of
 // digits never uses. Derived rather than stated, because it has had to move
@@ -35,6 +36,8 @@ function countSince(sessions, from) {
 // all year only reaches 730. The card is laid out for three so a big year
 // does not reflow it.
 function Counter({ label, value }) {
+  const styles = useThemedStyles(makeStyles)
+
   return (
     <View style={styles.counter}>
       <Text style={styles.counterLabel}>{label}</Text>
@@ -50,6 +53,8 @@ export default function Stats() {
   const [scrolled, setScrolled] = useState(false)
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const theme = useTheme()
+  const styles = useThemedStyles(makeStyles)
 
   // Two ways in — the words and the chevron — and a tap on either takes a
   // moment to commit. A second tap inside that moment used to push History
@@ -129,7 +134,7 @@ export default function Stats() {
                   onPress={openHistory}
                   hitSlop={10}
                 >
-                  <ChevronRightIcon size={22} color={LIGHT.text} />
+                  <ChevronRightIcon size={22} color={theme.text} />
                 </Pressable>
               </View>
               <WeeklyChart weeks={stats.weeks} />
@@ -141,8 +146,8 @@ export default function Stats() {
   )
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: LIGHT.bg },
+const makeStyles = (t) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: t.bg },
   counters: { flexDirection: 'row', gap: SPACE[2] },
   // Height and radius as designed; the padding has been moved onto the
   // spacing scale — 21/19/30 became 24/16/24, which is a deliberate change
@@ -159,15 +164,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     borderRadius: RADIUS.card,
-    backgroundColor: LIGHT.bgRaised,
+    backgroundColor: t.bgRaised,
   },
-  counterLabel: { ...TYPE.label, color: LIGHT.text },
+  counterLabel: { ...TYPE.label, color: t.text },
   // Sized for three digits. No line height stated — the font's own is 1.25em
   // and anything below it clips, which is why the web's trick of trimming to
   // the cap height cannot be ported directly. See native/CLAUDE.md.
   counterValue: {
     ...TYPE.figure,
-    color: LIGHT.text,
+    color: t.text,
     // The gap under the figure is the card's bottom padding plus the depth
     // the font reserves for descenders at this size, which digits never use.
     // Half of the two together, pulled back — written as the sum rather than
@@ -187,5 +192,5 @@ const styles = StyleSheet.create({
   // 20 carries two jobs in this app — a section heading in bold here, an
   // object's own name in medium on a history cell — and that is a real
   // difference rather than a drift, so the role does not fix the weight.
-  sectionTitle: { ...TYPE.title, color: LIGHT.text },
+  sectionTitle: { ...TYPE.title, color: t.text },
 })

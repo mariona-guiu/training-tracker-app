@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar'
 
 import { Confetti } from './Confetti.jsx'
 import { caloriesFor, KCAL_DISCLAIMER } from '../data/calories.js'
-import { washFor } from '../data/routineStyles.js'
+import { useRoutineColours } from '../theme/ThemeProvider.jsx'
 import { WORKOUT_CONTENT_FADE } from '../data/motion.js'
 import { LIGHT, RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, SYSTEM_LINE, TYPE } from '../theme/index.js'
 
@@ -35,12 +35,17 @@ const isDone = (exercise) => exercise.sets.some((set) => set.done)
 
 export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }) {
   const insets = useSafeAreaInsets()
+  const { washFor } = useRoutineColours()
   const kcal = caloriesFor(session)
   const logged = loggedSetCount(session)
   const done = session.exercises.filter(isDone).length
 
   return (
     <View style={[styles.screen, { backgroundColor: colour }]}>
+      {/* LIGHT.onInk as the constant '#ffffff', not as a theme lookup: the ink
+          is weighed against the *routine's* colour, which does not follow the
+          app's scheme, so this must not either. Same idiom as the workout
+          screen's inkIsLight. */}
       <StatusBar style={ink === LIGHT.onInk ? 'light' : 'dark'} />
       <Confetti />
 

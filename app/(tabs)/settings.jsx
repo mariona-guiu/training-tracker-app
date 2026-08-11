@@ -29,7 +29,8 @@ import { getSettings, saveSettings } from '../../src/db/settings.js'
 import { REST_MODES, restModeById } from '../../src/data/rest.js'
 import { KCAL_NOTE } from '../../src/data/calories.js'
 import { ScreenTitle, TITLE_CLEARANCE } from '../../src/components/ScreenTitle.jsx'
-import { LIGHT, RADIUS, SPACE, TAB_BAR_CLEARANCE, TYPE } from '../../src/theme/index.js'
+import { RADIUS, SPACE, TAB_BAR_CLEARANCE, TYPE } from '../../src/theme/index.js'
+import { useTheme, useThemeMode, useThemedStyles } from '../../src/theme/ThemeProvider.jsx'
 
 // iOS animates its keyboard over roughly this, on a curve of its own that is
 // private. The page travels on both, so the two move as one thing rather than
@@ -43,10 +44,17 @@ const KEYBOARD_EASING = Easing.linear
 
 // The palette lives in the theme. This screen used to keep its own — a
 // near-black one step off the token's, and a grey two steps off it — which
-// is how Settings and every other screen came to disagree.
-const INK = LIGHT.text
-const QUIET = LIGHT.textDim
-const CARD = LIGHT.bgRaised
+// is how Settings and every other screen came to disagree. It then kept
+// three aliases of the tokens, which is the same mistake one step milder:
+// they were module constants, and a module constant is fixed at import.
+
+// System first, and the default. The order runs from deferring to the
+// phone through to overriding it.
+const APPEARANCES = [
+  { id: 'system', label: 'System' },
+  { id: 'light', label: 'Light' },
+  { id: 'dark', label: 'Dark' },
+]
 
 // Digits and a single decimal point. Body weight is the one number here that
 // can sensibly carry one.
@@ -74,15 +82,21 @@ function breakdown(mode) {
 // Drawn rather than the platform's, because the platform's cannot be given
 // these measurements. Same shape as the web's.
 function Switch({ value, onChange, label }) {
+  const theme = useTheme()
+  const styles = useThemedStyles(makeStyles)
   const on = useSharedValue(value ? 1 : 0)
 
   useEffect(() => {
     on.value = withTiming(value ? 1 : 0, { duration: 200 })
   }, [value, on])
 
-  const track = useAnimatedStyle(() => ({
-    backgroundColor: on.value > 0.5 ? INK : LIGHT.controlTrack,
-  }))
+  // Depends on the palette as well as on the switch's own value, and the
+  // dependency has to be stated: the worklet closes over these colours, so
+  // without it the track keeps whichever scheme it was first built under.
+  const track = useAnimatedStyle(
+    () => ({ backgroundColor: on.value > 0.5 ? theme.text : theme.controlTrack }),
+    [theme],
+  )
   const knob = useAnimatedStyle(() => ({ transform: [{ translateX: on.value * 18 }] }))
 
   return (
@@ -103,6 +117,7 @@ function Switch({ value, onChange, label }) {
 // text and the real field is parked out of sight, so there is no system caret
 // to show.
 function Caret() {
+  const styles = useThemedStyles(makeStyles)
   const on = useSharedValue(1)
 
   useEffect(() => {
@@ -131,6 +146,7 @@ function Caret() {
 // copy is out of the flow, invisible and untouchable, so it is laid out at
 // its natural size whatever the wrapper is doing.
 function Reveal({ open, fade, children }) {
+  const styles = useThemedStyles(makeStyles)
   const [height, setHeight] = useState(0)
   const shown = useSharedValue(0)
 
@@ -210,6 +226,8 @@ export default function Settings() {
   const saved = useRef(false)
   const insets = useSafeAreaInsets()
   const screen = useWindowDimensions()
+  const styles = useThemedStyles(makeStyles)
+  const { mode: appearance, setMode: setAppearance } = useThemeMode()
 
   useEffect(() => {
     let cancelled = false
@@ -365,6 +383,49 @@ export default function Settings() {
         }}
         keyboardShouldPersistTaps="handled"
       >
+        {/* First on the page: it decides how everything below it looks, and it
+            is the one setting whose effect is visible the instant it is
+            tapped. Built as the pace control underneath it rather than as a
+            new kind of thing — same row, same cell, same selected treatment,
+            three choices instead of four. */}
+        <View style={styles.section}>
+          <View style={styles.card}>
+            <View style={styles.row}>
+              <Text style={styles.label}>Appearance</Text>
+            </View>
+            <View style={styles.appearanceRow}>
+              {APPEARANCES.map((option) => {
+                const chosen = option.id === appearance
+                return (
+                  <Pressable
+                    key={option.id}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: chosen }}
+                    accessibilityLabel={`${option.label} appearance`}
+                    // selectionAsync and the same silence on a re-tap as the
+                    // pace row: one choice among three, and re-choosing what
+                    // is already in force changes nothing.
+                    onPress={() => {
+                      if (chosen) return
+                      Haptics.selectionAsync()
+                      setAppearance(option.id)
+                    }}
+                    style={[styles.appearance, chosen && styles.appearanceChosen]}
+                  >
+                    <Text style={[styles.appearanceLabel, chosen && styles.appearanceLabelChosen]}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                )
+              })}
+            </View>
+          </View>
+
+          <Text style={styles.note}>
+            System follows your phone, switching with it when it changes.
+          </Text>
+        </View>
+
         <View style={styles.section}>
           <View style={styles.card}>
             <View style={styles.row}>
@@ -526,25 +587,35 @@ export default function Settings() {
   )
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: LIGHT.bg },
+// The geometry both segmented rows on this page share. Stated once so the
+// appearance control is the pace control rather than a near-miss of it.
+const CHOICE = {
+  flex: 1,
+  height: 90,
+  borderRadius: RADIUS.card,
+  alignItems: 'center',
+  justifyContent: 'center',
+}
+
+const makeStyles = (t) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: t.bg },
   section: { gap: SPACE[2] },
   // No stroke: the fill is enough to separate it from the page, and an
   // outline as well would make two statements about the same edge.
-  card: { padding: SPACE[3], borderRadius: RADIUS.card, backgroundColor: CARD },
+  card: { padding: SPACE[3], borderRadius: RADIUS.card, backgroundColor: t.bgRaised },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: SPACE[3],
   },
-  label: { flex: 1, ...TYPE.label, color: INK },
+  label: { flex: 1, ...TYPE.label, color: t.text },
   // Light rather than regular: this is the one thing on the page you read
   // once and then stop seeing, so it steps back in weight as well as ink.
   // These run to two and three lines, which is the one place this role needs a
   // line height stated. 17 against Funnel's own 15 at this size — above it, so
   // it cannot clip, and enough to stop the lines closing up.
-  note: { ...TYPE.caption, lineHeight: 17, color: QUIET },
+  note: { ...TYPE.caption, lineHeight: 17, color: t.textDim },
   reveal: { overflow: 'hidden' },
   // Laid out, measured, and never seen or touched.
   measure: { position: 'absolute', left: 0, right: 0, opacity: 0 },
@@ -560,24 +631,26 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: RADIUS.pill,
-    backgroundColor: LIGHT.onInk,
-    shadowColor: LIGHT.text,
+    backgroundColor: t.onInk,
+    shadowColor: t.text,
     shadowOpacity: 0.22,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 1 },
   },
 
+  // The appearance row, in the same cell as the pace row below it. Its own
+  // names rather than a second use of `pace*`: two controls that happen to
+  // look alike today should not be one edit away from each other.
+  appearanceRow: { flexDirection: 'row', gap: SPACE[2], marginTop: SPACE[3] },
+  appearance: { ...CHOICE, backgroundColor: t.onInk },
+  appearanceChosen: { backgroundColor: t.text },
+  appearanceLabel: { ...TYPE.title, color: t.textDim },
+  appearanceLabelChosen: { color: t.onInk },
+
   paces: { paddingTop: SPACE[3] },
   paceRow: { flexDirection: 'row', gap: SPACE[2] },
-  pace: {
-    flex: 1,
-    height: 90,
-    borderRadius: RADIUS.card,
-    backgroundColor: LIGHT.onInk,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  paceChosen: { backgroundColor: INK },
+  pace: { ...CHOICE, backgroundColor: t.onInk },
+  paceChosen: { backgroundColor: t.text },
   // Unchosen options step back rather than sitting at full strength — the row
   // reads as one selection among four, not four equal buttons.
   //
@@ -586,10 +659,10 @@ const styles = StyleSheet.create({
   // being read down a list, so they take the rounded cut. Borrowed rather than
   // given a role of its own — the spec is identical and a thirteenth role that
   // duplicated an existing one is how the scale drifted last time.
-  paceLabel: { ...TYPE.title, color: QUIET },
-  paceLabelChosen: { color: LIGHT.onInk },
-  paceName: { marginTop: SPACE[4], ...TYPE.label, color: INK },
-  paceDescription: { marginTop: SPACE[2], ...TYPE.body, color: INK },
+  paceLabel: { ...TYPE.title, color: t.textDim },
+  paceLabelChosen: { color: t.onInk },
+  paceName: { marginTop: SPACE[4], ...TYPE.label, color: t.text },
+  paceDescription: { marginTop: SPACE[2], ...TYPE.body, color: t.text },
   spread: { marginTop: SPACE[4] },
   spreadRow: {
     flexDirection: 'row',
@@ -597,9 +670,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: SPACE[2],
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: LIGHT.border,
+    borderTopColor: t.border,
   },
-  spreadOf: { ...TYPE.label, color: QUIET },
+  spreadOf: { ...TYPE.label, color: t.textDim },
   // The same treatment History gives a set's figures: label's size and weight,
   // but mixed case and caption's tracking, because "120sec" is not an
   // abbreviation in capitals — under `label` the s came out as "120S".
@@ -611,22 +684,22 @@ const styles = StyleSheet.create({
     ...TYPE.label,
     textTransform: 'none',
     letterSpacing: TYPE.caption.letterSpacing,
-    color: INK,
+    color: t.text,
   },
 
   weight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   // Outlined while it is being typed in, so it is obvious which card the
   // keypad belongs to.
-  weightEditing: { borderWidth: 1, borderColor: INK },
+  weightEditing: { borderWidth: 1, borderColor: t.text },
   weightValue: { flexDirection: 'row', alignItems: 'center' },
   // No line height stated: the font's own is 1.25em and anything below it
   // clips. See native/CLAUDE.md.
-  weightTyped: { ...TYPE.screenTitle, color: INK },
+  weightTyped: { ...TYPE.screenTitle, color: t.text },
   // At rest the figure and its unit are one thing, in one ink. The unit only
   // steps back while the number is being typed.
-  weightUnit: { ...TYPE.screenTitle, color: INK },
+  weightUnit: { ...TYPE.screenTitle, color: t.text },
   weightUnitDimmed: { opacity: 0.45 },
-  caret: { width: 3, height: 24, marginLeft: 2, marginRight: 1, backgroundColor: INK },
+  caret: { width: 3, height: 24, marginLeft: 2, marginRight: 1, backgroundColor: t.text },
   // Present, focusable and never seen. It holds what is typed and summons the
   // keypad; everything visible is drawn.
   parked: { position: 'absolute', left: 0, top: 0, width: 1, height: 1, opacity: 0, padding: 0 },
@@ -636,9 +709,9 @@ const styles = StyleSheet.create({
     marginTop: SPACE[4],
     height: 52,
     borderRadius: RADIUS.pill,
-    backgroundColor: INK,
+    backgroundColor: t.text,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  saveLabel: { ...TYPE.control, color: LIGHT.onInk },
+  saveLabel: { ...TYPE.control, color: t.onInk },
 })

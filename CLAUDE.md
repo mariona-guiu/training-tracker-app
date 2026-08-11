@@ -17,12 +17,19 @@ workouts, rotation — changes UX, logic and the data model. Each of those makes
 the web app a less useful thing to look at. Expect to consult it rarely, and
 to stop consulting it entirely.
 
-One practical consequence while it lasts: `src/data/` is still a literal copy
-in both, so a change to the calorie model, the rest tiers, the week grouping,
-the routine colours or slot resolution belongs in both copies today. Springs
-likewise, per the rule in `motion.js`. That sharing ends the moment the data
-model here moves — when it does, let it end rather than porting the change
-backwards.
+**And it is not to be edited.** Decided by the user on 2026-08-11: the web app
+stays exactly as it is, as legacy documentation and as something they can open
+to see how far this one has moved since. Nothing new goes into it — not a
+shared-data change, not a fix, not a tidy-up. Its whole value is that it does
+not move, and a change ported into it destroys the comparison it exists for.
+
+This replaces the rule that used to live here, which said a change to the
+calorie model, the rest tiers, the week grouping, the routine colours, slot
+resolution or a spring in `motion.js` belonged in both copies. It does not.
+`src/data/` was a literal copy in both and is now free to diverge — the first
+divergence is `restTintFor`'s key, renamed `stretching` → `mobility` here on
+2026-08-11 and deliberately left alone there, since that app's routine is still
+called Stretching.
 
 Read the root `CLAUDE.md` first. Everything it says about what the app *is*
 still holds; what follows is only what differs on native.
@@ -153,27 +160,32 @@ configures Reanimated itself), and the SDK docs index is wrong about the blur
 package — it is `expo-blur`, and `expo-blur-view` 404s on npm. Check the docs,
 then check the package actually installs.
 
-## What is shared with the web app, and what is not
+## What came from the web app
 
-`src/data/` is **copied, not adapted**. Those files were written with no I/O
+Past tense throughout. The web app is frozen — see the top of this file — so
+none of this is a live obligation to keep two copies in step. It is here to
+explain why these files look the way they do.
+
+`src/data/` was **copied, not adapted**. Those files were written with no I/O
 and no DOM, so they run here unchanged — the calorie model, the rest tiers,
-the week grouping, the routine colours, slot resolution. Keep them that way:
-a change to one should be made in both copies, and anything that cannot be is
-a sign it belongs in a screen instead.
+the week grouping, the routine colours, slot resolution. Change them here
+freely; the other copy stays where it is. What is still worth keeping from the
+old rule: anything in `src/data/` that cannot be written without reaching for
+a screen or a database belongs in a screen instead. That was never about the
+web app.
 
-`src/data/motion.js` **has** been ported, and carries the same rule with one
-addition. Framer Motion and Reanimated describe a spring identically —
+`src/data/motion.js` came across the same way, and the reason it could is
+worth knowing. Framer Motion and Reanimated describe a spring identically —
 stiffness, damping and mass, fed to the same physics — so the numbers crossed
-over unchanged and the two apps genuinely share a feel rather than
-approximating each other. **A spring retuned in one app must be retuned in the
-other.** Durations are the one difference: seconds on the web, milliseconds
-here.
+over unchanged rather than being approximated. Durations are the one
+difference: seconds on the web, milliseconds here.
 
-Not everything in it is shared, though, because the same name can drive
-different things in the two apps. `PUSH_SPRING` settles the web's History push
-*and* its tab changes; here it drives only the tab pager, because History is
-pushed by the native stack, whose speed is `animationDuration` on the route in
-`app/_layout.jsx`. Check which one a screen actually uses before retuning it.
+The same name can drive different things in the two apps, which matters when
+reading the web app for reference. `PUSH_SPRING` settles the web's History
+push *and* its tab changes; here it drives only the tab pager, because History
+is pushed by the native stack, whose speed is `animationDuration` on the route
+in `app/_layout.jsx`. Check which one a screen actually uses before retuning
+it.
 
 `src/db/` is rewritten rather than copied — it is the one layer that could not
 come across, since IndexedDB does not exist here.
@@ -293,6 +305,83 @@ Work it out rather than nudging it: `visible - (ascent - capHeight + descent)
 `LIGHT` and `DARK` in `src/theme/` replace the web app's two sets of CSS
 variables, and carry the same rule: build with the tokens, never with literal
 colours. The only literal colours belong to routines, through `styleFor()`.
+
+`DARK` is **derived from `LIGHT`**, not left over from the draft. The palette
+that used to sit here was the first version's in-workout screen — one dark
+screen under a routine's colour — and it read as a different app when asked to
+carry every screen. Three rules produced the values, and each is written out at
+the definition: never pure black; elevation runs the other way, so `bgRaised`
+and `controlTrack` are *lighter* than the page where their light counterparts
+are darker; and saturation comes down, which is why `danger` is not the same
+red in both. Contrast was measured rather than judged — the aim was to match
+the light palette's *relationships* (quiet text as quiet as it is in light
+mode, 5.39:1 against 4.96:1) rather than to clear 4.5:1 by as much as possible.
+
+**A themed stylesheet is a factory, not a sheet.** `StyleSheet.create` runs
+once, at import: a sheet naming `LIGHT.text` has baked that colour in before
+the app has read a preference, and no re-render will change it. So a screen
+that themes writes
+
+```js
+const makeStyles = (t) => StyleSheet.create({ screen: { backgroundColor: t.bg } })
+// ...inside the component:
+const styles = useThemedStyles(makeStyles)
+```
+
+with the factory at **module scope** — a new function identity each render
+rebuilds the sheet each render, which is what the memo exists to prevent. A
+component nested in the same file (`Counter` on Stats, `Segment` on the chart)
+calls the hook itself rather than being passed the sheet.
+
+Which palette is decided by `ThemeProvider`, from the stored `themeMode`
+(`system` | `light` | `dark`, default `system`) resolved against
+`useColorScheme()`. The root layout reads the stored mode inside the wait it
+was already doing for seeding, so the app opens in the right scheme instead of
+opening light and correcting itself. The one paint that cannot consult it is
+the gate itself, which uses the phone's scheme as the closest available guess.
+
+**A blur has a tint, and it is not a colour you pass in.** `Glass` defaults
+`tint` from the palette. A light blur under dark type is opaque haze — this is
+the same trap as the `rgba(253,253,252,0.72)` row in the table above, one level
+further down.
+
+`glassWash`, `glassEdge` and `highlight` are on the palette because they were
+literals inside the tab bar with no dark answer until they had names. The pill
+marking the current tab is the one that matters: light mode marks it by
+*darkening*, which on a dark bar marks it by making it vanish.
+
+## A routine's colour takes the scheme first
+
+It is the one thing in the app that is neither a token nor scheme-independent:
+identity, but a different hex in each scheme. So **every function in
+`src/data/routineStyles.js` takes the scheme as its first argument**, and
+screens never call them directly — they take `useRoutineColours()` from the
+theme, which binds the scheme and hands back the signatures those functions had
+before (`styleFor(kind, index)`).
+
+The scheme is *checked*, not defaulted. A call site that was missed throws
+rather than quietly rendering light colours on a dark page, which is the exact
+shape of failure this file keeps recording. Two exports stay scheme-free
+because they genuinely are: `inkOn`, which weighs whatever colour it is handed,
+and `CANONICAL_ORDER`.
+
+Three tones per routine per scheme, all **stated by the designer** — base,
+sweep, card. They used to be one stated colour with the sweep and the History
+card computed from it in HSL, which is why that file carried a colour-space
+conversion and two solvers. Both are gone, and a custom routine now takes a
+whole palette from the cycle rather than having one derived for it.
+
+**The button wash is the one thing still solved for**, and its rule changed. It
+holds a constant *perceptual* step from its ground rather than a constant
+opacity, because a fixed opacity does not look fixed — at the same 55% the pale
+pink routine moved by 21 and the blue by 6. What is new is a floor against the
+**sweep** as well as the card: the button spends much of its life over the rest
+countdown, so a fixed distance from the card says nothing about whether it can
+still be seen once the sweep arrives. That used to bite Core alone and was
+fixed by pinning Core's wash by hand. On the current colours it would bite
+three of the six, so the pin was generalised — where both distances cannot
+hold, the wash goes where the smaller of the two is largest. The five routines
+that were already fine keep exactly the wash they had.
 
 ## npm
 
