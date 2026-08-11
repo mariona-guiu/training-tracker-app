@@ -40,7 +40,7 @@ import {
 } from '../src/components/HistoryIcons.jsx'
 import { Glass } from '../src/components/Glass.jsx'
 import { EXPAND_SPRING } from '../src/data/motion.js'
-import { RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, TYPE } from '../src/theme/index.js'
+import { CAP, RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, TYPE } from '../src/theme/index.js'
 import { useRoutineColours, useTheme, useThemedStyles } from '../src/theme/ThemeProvider.jsx'
 
 const MONTH = new Intl.DateTimeFormat('en-GB', { month: 'long' })
@@ -308,19 +308,19 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete, remov
           <View style={styles.summary}>
             <View style={styles.summaryRow}>
               <ClockIcon size={24} color={pale.ink} />
-              <Text style={[styles.summaryText, { color: pale.ink }]}>
+              <Text {...CAP.label} style={[styles.summaryText, { color: pale.ink }]}>
                 {durationLabel(session) ?? '—'}
               </Text>
             </View>
             <View style={styles.summaryRow}>
               <DumbbellIcon size={24} color={pale.ink} />
-              <Text style={[styles.summaryText, { color: pale.ink }]}>
+              <Text {...CAP.label} style={[styles.summaryText, { color: pale.ink }]}>
                 {exercisesDone}/{exercises} exercises completed
               </Text>
             </View>
             <View style={styles.summaryRow}>
               <RepeatIcon size={24} color={pale.ink} />
-              <Text style={[styles.summaryText, { color: pale.ink }]}>
+              <Text {...CAP.label} style={[styles.summaryText, { color: pale.ink }]}>
                 {setsDone}/{sets} sets completed
               </Text>
             </View>
@@ -329,7 +329,7 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete, remov
             {kcal !== null ? (
               <View style={styles.summaryRow}>
                 <BoltIcon size={24} color={pale.ink} />
-                <Text style={[styles.summaryText, { color: pale.ink }]}>~{kcal} kcal*</Text>
+                <Text {...CAP.label} style={[styles.summaryText, { color: pale.ink }]}>~{kcal} kcal*</Text>
               </View>
             ) : null}
           </View>
@@ -344,7 +344,7 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete, remov
               const untouched = !exercise.sets.some((set) => set.done)
               return (
                 <View key={`${exercise.exerciseId}-${i}`} style={styles.lift}>
-                  <Text
+                  <Text {...CAP.label}
                     style={[
                       styles.liftName,
                       { color: pale.ink },
@@ -356,7 +356,7 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete, remov
                   </Text>
                   <View style={styles.liftSets}>
                     {setRuns(exercise).map((run, j) => (
-                      <Text
+                      <Text {...CAP.label}
                         key={j}
                         style={[
                           styles.liftRun,
@@ -481,8 +481,8 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete, remov
           {/* Sentence case whatever the routine is stored as, matching the
               page titles — "Lower Body" reads as a label, "Lower body" as a
               thing you did. */}
-          <Text style={[styles.name, { color: ink }]}>{sentenceCase(session.routineName)}</Text>
-          <Text style={[styles.when, { color: ink }]}>
+          <Text {...CAP.title} style={[styles.name, { color: ink }]}>{sentenceCase(session.routineName)}</Text>
+          <Text {...CAP.label} style={[styles.when, { color: ink }]}>
             {fullDate(session.startedAt)}, {clockTime(session.startedAt)}
           </Text>
         </View>
@@ -491,7 +491,7 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete, remov
             was tracked have no answer either way. */}
         {session.endedEarly === true ? (
           <View style={[styles.tag, { backgroundColor: restTintFor(kind) }]}>
-            <Text style={[styles.tagText, { color: inkOn(restTintFor(kind)) }]}>
+            <Text {...CAP.label} style={[styles.tagText, { color: inkOn(restTintFor(kind)) }]}>
               Ended early
             </Text>
           </View>
@@ -695,7 +695,7 @@ export default function History() {
           >
             <BackIcon color={theme.text} />
           </Pressable>
-          <Text style={styles.title}>My workouts</Text>
+          <Text {...CAP.title} style={styles.title}>My workouts</Text>
           {/* Balances the back control, so the title sits centred on the
               screen rather than on the space left beside it. */}
           <View style={styles.back} />
@@ -739,10 +739,10 @@ export default function History() {
             needs keeping in view. */}
         {years.map(({ year, weeks }) => (
           <View key={year}>
-            <Text style={styles.year}>{year}</Text>
+            <Text {...CAP.title} style={styles.year}>{year}</Text>
             {weeks.map(({ weekStart, sessions: inWeek }) => (
               <View key={weekStart}>
-                <Text style={styles.weekLabel}>{weekLabel(weekStart)}</Text>
+                <Text {...CAP.label} style={styles.weekLabel}>{weekLabel(weekStart)}</Text>
                 <View>
                   {inWeek.map((session) => (
                     <WorkoutCell
@@ -827,6 +827,12 @@ const makeStyles = (t) => StyleSheet.create({
   // colour, deeper" rather than two.
   tag: {
     alignSelf: 'center',
+    // Yields before the name does. Without this the tag held its full
+    // intrinsic width and squeezed `heading` down to a couple of characters —
+    // at large text sizes "Core" came out one letter per line. `heading` is
+    // flex: 1 with minWidth: 0, so it takes what is left once this has given
+    // way rather than the other way round.
+    flexShrink: 1,
     marginRight: SPACE[2],
     // What is being centred is the capitals, not the line box. Uppercase inks
     // only the cap height, and a line box is not symmetrical around it: SF Pro

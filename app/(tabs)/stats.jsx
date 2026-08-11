@@ -7,8 +7,8 @@ import { listCompletedSessions } from '../../src/db/sessions.js'
 import { WeeklyChart } from '../../src/components/WeeklyChart.jsx'
 import { ChevronRightIcon } from '../../src/components/WorkoutIcons.jsx'
 import { addDays, buildWeeks, startOfDay } from '../../src/data/weeks.js'
-import { ScreenTitle, TITLE_CLEARANCE } from '../../src/components/ScreenTitle.jsx'
-import { RADIUS, SPACE, SYSTEM_DESCENT, TAB_BAR_CLEARANCE, TYPE } from '../../src/theme/index.js'
+import { ScreenTitle, useTitleMetrics } from '../../src/components/ScreenTitle.jsx'
+import { CAP, RADIUS, SPACE, SYSTEM_DESCENT, TAB_BAR_CLEARANCE, TYPE } from '../../src/theme/index.js'
 import { useTheme, useThemedStyles } from '../../src/theme/ThemeProvider.jsx'
 
 // What the font reserves below the baseline at `figure` size and a row of
@@ -40,8 +40,10 @@ function Counter({ label, value }) {
 
   return (
     <View style={styles.counter}>
-      <Text style={styles.counterLabel}>{label}</Text>
-      <Text style={styles.counterValue}>{value}</Text>
+      <Text {...CAP.label} style={styles.counterLabel}>{label}</Text>
+      <Text {...CAP.figure} style={styles.counterValue}>
+        {value}
+      </Text>
     </View>
   )
 }
@@ -55,6 +57,7 @@ export default function Stats() {
   const router = useRouter()
   const theme = useTheme()
   const styles = useThemedStyles(makeStyles)
+  const title = useTitleMetrics()
 
   // Two ways in — the words and the chevron — and a tap on either takes a
   // moment to commit. A second tap inside that moment used to push History
@@ -100,7 +103,7 @@ export default function Stats() {
         scrollEventThrottle={32}
         onScroll={(e) => setScrolled(e.nativeEvent.contentOffset.y > 4)}
         contentContainerStyle={{
-          paddingTop: insets.top + SPACE[4] + TITLE_CLEARANCE,
+          paddingTop: insets.top + SPACE[4] + title.clearance,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE + SPACE[4],
           paddingHorizontal: SPACE[3],
           gap: SPACE[4],
@@ -124,7 +127,7 @@ export default function Stats() {
                   onPress={openHistory}
                   hitSlop={10}
                 >
-                  <Text style={styles.sectionTitle}>My workouts</Text>
+                  <Text {...CAP.title} style={styles.sectionTitle}>My workouts</Text>
                 </Pressable>
                 {/* Per-workout detail and earlier months live in History, a
                   view pushed over this one rather than a tab of its own. */}
@@ -157,7 +160,11 @@ const makeStyles = (t) => StyleSheet.create({
   // phone instead of leaving a strip of dead space on a wider one.
   counter: {
     flex: 1,
-    height: 153,
+    // minHeight, not height. At 1.17x text — one step above the default — the
+    // label and the figure together no longer fit 153 and the figure was
+    // clipped. A floor lets the card grow with whatever the reader has asked
+    // for; at the default nothing moves, since the content comes to 137.
+    minHeight: 153,
     paddingTop: SPACE[4],
     paddingHorizontal: SPACE[3],
     paddingBottom: SPACE[4],

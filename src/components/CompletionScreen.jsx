@@ -7,7 +7,7 @@ import { Confetti } from './Confetti.jsx'
 import { caloriesFor, KCAL_DISCLAIMER } from '../data/calories.js'
 import { useRoutineColours } from '../theme/ThemeProvider.jsx'
 import { WORKOUT_CONTENT_FADE } from '../data/motion.js'
-import { LIGHT, RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, SYSTEM_LINE, TYPE } from '../theme/index.js'
+import { CAP, LIGHT, RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, SYSTEM_LINE, TYPE } from '../theme/index.js'
 
 // What a finished workout leaves you with.
 //
@@ -56,17 +56,17 @@ export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }
           { paddingTop: insets.top + SPACE[3], paddingBottom: insets.bottom + SPACE[3] },
         ]}
       >
-        <Text style={[styles.routine, { color: ink }]}>{session.routineName} workout</Text>
+        <Text {...CAP.label} style={[styles.routine, { color: ink }]}>{session.routineName} workout</Text>
 
         <View style={styles.body}>
-          <Text style={[styles.title, { color: ink }]}>Nice work!</Text>
+          <Text {...CAP.heading} style={[styles.title, { color: ink }]}>Nice work!</Text>
           <View style={styles.timeRow}>
-            <Text style={[styles.time, { color: ink }]}>
+            <Text {...CAP.hero} style={[styles.time, { color: ink }]}>
               {formatDuration(session.endedAt - session.startedAt)}
             </Text>
-            <Text style={[styles.caption, { color: ink }]}>Total time</Text>
+            <Text {...CAP.label} style={[styles.caption, { color: ink }]}>Total time</Text>
           </View>
-          <Text style={[styles.stats, { color: ink }]}>
+          <Text {...CAP.screenTitle} style={[styles.stats, { color: ink }]}>
             {logged}/{targetSetCount(session)} sets{'\n'}
             {done}/{session.exercises.length} exercises
             {/* Left out entirely without a body weight to reckon it against —
@@ -82,13 +82,13 @@ export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }
             onPress={onSeeHistory}
             style={[styles.primary, { backgroundColor: ink }]}
           >
-            <Text style={[styles.primaryLabel, { color: colour }]}>See completed workouts</Text>
+            <Text {...CAP.control} style={[styles.primaryLabel, { color: colour }]}>See completed workouts</Text>
           </Pressable>
           <Pressable
             onPress={onAgain}
             style={[styles.secondary, { backgroundColor: washFor(session.routineType ?? session.routineName) }]}
           >
-            <Text style={[styles.primaryLabel, { color: ink }]}>Do another workout</Text>
+            <Text {...CAP.control} style={[styles.primaryLabel, { color: ink }]}>Do another workout</Text>
           </Pressable>
           {kcal !== null ? (
             <Text style={[styles.note, { color: ink }]}>{KCAL_DISCLAIMER}</Text>
@@ -113,7 +113,7 @@ const STATS_CAP_INSET =
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { flex: 1, paddingHorizontal: SPACE[4] },
-  routine: { ...TYPE.label, opacity: 0.85 },
+  routine: { ...TYPE.label },
   // The same room the exercise had during the workout, so nothing moves
   // underneath you when the screen changes what it says.
   body: { flex: 1, justifyContent: 'center', gap: SPACE[2] },
@@ -143,14 +143,16 @@ const styles = StyleSheet.create({
   },
   actions: { gap: SPACE[2] },
   primary: {
-    height: 52,
+    minHeight: 52,
+    paddingVertical: SPACE[2],
     borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: SPACE[3],
   },
   secondary: {
-    height: 52,
+    minHeight: 52,
+    paddingVertical: SPACE[2],
     borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
@@ -161,7 +163,6 @@ const styles = StyleSheet.create({
   note: {
     ...TYPE.caption,
     textAlign: 'center',
-    opacity: 0.7,
     marginTop: SPACE[3],
   },
 })

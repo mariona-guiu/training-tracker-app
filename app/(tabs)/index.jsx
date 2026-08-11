@@ -16,7 +16,7 @@ import { startSession, getActiveSession } from '../../src/db/sessions.js'
 import { originFrom, useLaunch } from '../../src/components/LaunchOverlay.jsx'
 import { WorkoutStack } from '../../src/components/WorkoutStack.jsx'
 import { StackIcon, StackIconPressed } from '../../src/components/StackIcon.jsx'
-import { RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
+import { CAP, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
 import { useRoutineColours, useTheme, useThemedStyles } from '../../src/theme/ThemeProvider.jsx'
 
 // The Workouts screen: a canvas of cards you can push around, not a list.
@@ -133,7 +133,7 @@ export default function Workouts() {
 
       {/* Above the cards, so they pass behind it. */}
       <View style={[styles.header, { top: headerTop }]} pointerEvents="box-none">
-        <Text style={styles.title}>Workouts</Text>
+        <Text {...CAP.screenTitle} style={styles.title}>Workouts</Text>
 
         {/* Only once the cards have been moved: it is a way back, so there is
             nothing for it to do until there is something to undo. Present

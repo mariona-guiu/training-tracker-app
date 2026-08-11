@@ -293,6 +293,47 @@ export const TYPE = {
   },
 }
 
+// How far each role follows iOS text scaling before it stops.
+//
+// Spread onto a Text as props — `<Text {...CAP.label} style={styles.x}>` —
+// because maxFontSizeMultiplier is a prop and not a style, so it cannot ride
+// along inside the role the way size and tracking do. Explicit at the call
+// site is the trade; grep for CAP to find every capped Text.
+//
+// The tiers, and why they differ:
+//
+// **Uncapped: body and caption.** These are what someone actually reads, and
+// they are the reason the setting exists. A person who turns text up to 3x
+// needs the prose at 3x. Both live in boxes that grow.
+//
+// **1.5x: control and label.** Buttons and small caps, always inside a box
+// whose width is fixed by the layout around it. Past about 1.5 they wrap into
+// two lines and the control stops looking like a control.
+//
+// **1.4x / 1.3x: title, screenTitle, heading, routineCard.** Names and
+// headings. They start large, so a smaller multiplier still adds real size,
+// and they sit in cells and bars that cannot reflow far.
+//
+// **1.2x: figure and hero.** `hero` is 82pt already. At 3.12x it is 256pt on a
+// 390pt screen, which is not a layout problem to solve but a number nobody
+// needs bigger — it is the largest thing on the screen at any setting.
+//
+// Never allowFontScaling={false} anywhere: that refuses the setting outright
+// rather than bounding it.
+export const CAP = {
+  body: {},
+  caption: {},
+  control: { maxFontSizeMultiplier: 1.5 },
+  label: { maxFontSizeMultiplier: 1.5 },
+  title: { maxFontSizeMultiplier: 1.4 },
+  screenTitle: { maxFontSizeMultiplier: 1.3 },
+  heading: { maxFontSizeMultiplier: 1.3 },
+  routineCard: { maxFontSizeMultiplier: 1.3 },
+  routineCardMeta: { maxFontSizeMultiplier: 1.3 },
+  figure: { maxFontSizeMultiplier: 1.2 },
+  hero: { maxFontSizeMultiplier: 1.2 },
+}
+
 export const SPACE = { 1: 4, 2: 8, 3: 16, 4: 24, 5: 32, 6: 48 }
 
 // Three shapes, which is all this app turns out to need: a chip, a card, and

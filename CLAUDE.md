@@ -371,17 +371,29 @@ card computed from it in HSL, which is why that file carried a colour-space
 conversion and two solvers. Both are gone, and a custom routine now takes a
 whole palette from the cycle rather than having one derived for it.
 
-**The button wash is the one thing still solved for**, and its rule changed. It
-holds a constant *perceptual* step from its ground rather than a constant
+**The button wash is the one thing still solved for**, and it is worth reading
+before touching. It holds a constant *perceptual* step rather than a constant
 opacity, because a fixed opacity does not look fixed — at the same 55% the pale
-pink routine moved by 21 and the blue by 6. What is new is a floor against the
-**sweep** as well as the card: the button spends much of its life over the rest
-countdown, so a fixed distance from the card says nothing about whether it can
-still be seen once the sweep arrives. That used to bite Core alone and was
-fixed by pinning Core's wash by hand. On the current colours it would bite
-three of the six, so the pin was generalised — where both distances cannot
-hold, the wash goes where the smaller of the two is largest. The five routines
-that were already fine keep exactly the wash they had.
+pink routine moved by 21 and the blue by 6.
+
+**A light ground and a dark one want different directions, not just different
+amounts.** On a dark card the sweep is a genuinely deeper shade, so laying the
+sweep over the card separates the button. On a light one — the pink, the yellow,
+the lime — the sweep is barely a different colour, 11 to 16 apart in Lab, so no
+opacity of it buys anything: those three shipped at 5.6 to 6.8 from their ground
+and were reported as invisible, in both schemes. A light ground gets a *shadow*
+instead, the same near-black its own text uses, at 0.15–0.20. That is not the
+"mixing with black drains the colour out" trap recorded on the sweep — that was
+about replacing a colour outright, this is a film that darkens and keeps the hue.
+
+There is also a floor against the **sweep**, because the button spends much of
+its life over the rest countdown and a distance from the card says nothing about
+whether it survives the sweep arriving. Mobility is what sets that floor:
+darkening lime walks it straight through its own sweep, and it only clears on
+the far side.
+
+The three routines on dark grounds are untouched by all of this and their washes
+are byte-identical to what they were.
 
 ## npm
 

@@ -11,7 +11,7 @@ import Animated, {
 import { CANONICAL_ORDER } from '../data/routineStyles.js'
 import { useRoutineColours } from '../theme/ThemeProvider.jsx'
 import { GLIDE_SPRING, TILT_SPRING } from '../data/motion.js'
-import { RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, TYPE } from '../theme/index.js'
+import { CAP, RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, TYPE } from '../theme/index.js'
 
 function sortForStack(routines) {
   return [...routines].sort((a, b) => {
@@ -263,11 +263,11 @@ function StackCard({ routine, slotIndex, zIndex, isTop, canvas, resetAt, onLift,
           moved,
         ]}
       >
-        <Text style={[styles.label, { color: ink }]}>{routine.name}</Text>
+        <Text {...CAP.routineCard} style={[styles.label, { color: ink }]}>{routine.name}</Text>
 
         <View style={styles.meta}>
-          <Text style={[styles.metaText, { color: ink }]}>{estimatedMinutes(routine)} min</Text>
-          <Text style={[styles.metaText, { color: ink }]}>
+          <Text {...CAP.routineCardMeta} style={[styles.metaText, { color: ink }]}>{estimatedMinutes(routine)} min</Text>
+          <Text {...CAP.routineCardMeta} style={[styles.metaText, { color: ink }]}>
             {routine.slots.length} exercises
           </Text>
         </View>

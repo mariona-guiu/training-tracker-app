@@ -13,7 +13,7 @@ import Animated, {
 
 import { useRoutineColours } from '../theme/ThemeProvider.jsx'
 import { VISIBLE_WEEKS, yearOfWeek } from '../data/weeks.js'
-import { RADIUS, SPACE, TYPE } from '../theme/index.js'
+import { CAP, RADIUS, SPACE, TYPE } from '../theme/index.js'
 import { useThemedStyles } from '../theme/ThemeProvider.jsx'
 
 // How long a finger has to stay put before the press is read as "show me this
@@ -279,10 +279,10 @@ export function WeeklyChart({ weeks }) {
               { backgroundColor: styleFor(reading.routineType ?? reading.routineName).background },
             ]}
           >
-            <Text style={[styles.readoutText, { color: inkFor(reading.routineType ?? reading.routineName) }]}>
+            <Text {...CAP.label} style={[styles.readoutText, { color: inkFor(reading.routineType ?? reading.routineName) }]}>
               {DAY(reading.startedAt)}
             </Text>
-            <Text style={[styles.readoutText, { color: inkFor(reading.routineType ?? reading.routineName) }]}>
+            <Text {...CAP.label} style={[styles.readoutText, { color: inkFor(reading.routineType ?? reading.routineName) }]}>
               {reading.routineName}
             </Text>
           </Animated.View>
@@ -338,7 +338,7 @@ export function WeeklyChart({ weeks }) {
                   />
                 ))}
               </View>
-              <Text style={styles.label}>{DAY(week.weekStart)}</Text>
+              <Text {...CAP.label} style={styles.label} numberOfLines={1}>{DAY(week.weekStart)}</Text>
             </View>
           ))}
         </ScrollView>
@@ -364,7 +364,7 @@ const makeStyles = (t) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: 33,
+    minHeight: 33,
     paddingHorizontal: 12,
     borderRadius: RADIUS.card,
   },
@@ -390,7 +390,11 @@ const makeStyles = (t) => StyleSheet.create({
   // Fixed width and centred, so the date sits under the middle of its column
   // whatever the column works out to on a given phone.
   label: {
-    width: 29,
+    // Stretches to its column rather than being pinned to 29. The fixed width
+    // was there to centre the date under the middle of its column, which the
+    // column's own alignItems already does — and at large text sizes 29pt was
+    // narrower than the date, so it wrapped a digit at a time.
+    alignSelf: 'stretch',
     textAlign: 'center',
     ...TYPE.caption,
     color: t.text,

@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 
 import { Glass } from './Glass.jsx'
-import { SYSTEM_LINE, SPACE, TYPE } from '../theme/index.js'
+import { CAP, SYSTEM_LINE, SPACE, TYPE } from '../theme/index.js'
 import { useThemedStyles } from '../theme/ThemeProvider.jsx'
 
 // A page title the content runs behind.
@@ -15,16 +15,28 @@ import { useThemedStyles } from '../theme/ThemeProvider.jsx'
 // `body.is-scrolled` work together.
 //
 // The title floats rather than scrolling away, so the screen using it has to
-// leave TITLE_CLEARANCE of room at the top of its content.
-// What the bar actually occupies below `top`: one line of the title, plus the
-// padding under it. Derived rather than stated — 52 was measured against a
-// 40pt title and quietly stopped being true when that became 32.
-export const TITLE_HEIGHT = TYPE.screenTitle.fontSize * SYSTEM_LINE + SPACE[2]
-// And the air between the bar and the first card. SPACE[3] rather than
-// SPACE[4]: at 40pt the gap came to 18, and letting both halves follow the
+// leave `clearance` of room at the top of its content.
+//
+// A hook rather than the two module constants this used to export, and that is
+// the whole point of the change. They were computed once at import from a
+// fixed fontSize, so with iOS text scaling turned up the title grew and the
+// room reserved for it did not — the content scrolled up into it. Anything
+// derived from a type size has to be derived from the *scaled* type size.
+//
+// `height` is what the bar occupies below `top`: one line of the title plus the
+// padding under it. Derived rather than stated — 52 was measured against a 40pt
+// title and quietly stopped being true when that became 32.
+//
+// `clearance` adds the air between the bar and the first card. SPACE[3] rather
+// than SPACE[4]: at 40pt the gap came to 18, and letting both halves follow the
 // smaller title put it at 28 — more space than the smaller title had earned.
-// This brings it to 16.
-export const TITLE_CLEARANCE = TITLE_HEIGHT + SPACE[3]
+// This brings it to 16. It does not scale: it is a gap between two things, not
+// a measure of any text.
+export function useTitleMetrics() {
+  const { fontScale } = useWindowDimensions()
+  const height = TYPE.screenTitle.fontSize * SYSTEM_LINE * fontScale + SPACE[2]
+  return { height, clearance: height + SPACE[3] }
+}
 
 export function ScreenTitle({ title, scrolled, top }) {
   const styles = useThemedStyles(makeStyles)
@@ -46,7 +58,7 @@ export function ScreenTitle({ title, scrolled, top }) {
             the whole surface here. */}
         <Glass intensity={70} style={StyleSheet.absoluteFill} />
       </Animated.View>
-      <Text style={styles.title}>{title}</Text>
+      <Text {...CAP.screenTitle} style={styles.title}>{title}</Text>
     </View>
   )
 }

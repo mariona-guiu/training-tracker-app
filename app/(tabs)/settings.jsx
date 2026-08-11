@@ -28,8 +28,8 @@ import { REVEAL_SPRING } from '../../src/data/motion.js'
 import { getSettings, saveSettings } from '../../src/db/settings.js'
 import { REST_MODES, restModeById } from '../../src/data/rest.js'
 import { KCAL_NOTE } from '../../src/data/calories.js'
-import { ScreenTitle, TITLE_CLEARANCE } from '../../src/components/ScreenTitle.jsx'
-import { RADIUS, SPACE, TAB_BAR_CLEARANCE, TYPE } from '../../src/theme/index.js'
+import { ScreenTitle, useTitleMetrics } from '../../src/components/ScreenTitle.jsx'
+import { CAP, RADIUS, SPACE, TAB_BAR_CLEARANCE, TYPE } from '../../src/theme/index.js'
 import { useTheme, useThemeMode, useThemedStyles } from '../../src/theme/ThemeProvider.jsx'
 
 // iOS animates its keyboard over roughly this, on a curve of its own that is
@@ -228,6 +228,7 @@ export default function Settings() {
   const screen = useWindowDimensions()
   const styles = useThemedStyles(makeStyles)
   const { mode: appearance, setMode: setAppearance } = useThemeMode()
+  const title = useTitleMetrics()
 
   useEffect(() => {
     let cancelled = false
@@ -376,7 +377,7 @@ export default function Settings() {
           setScrolled(scrollY.current > 4)
         }}
         contentContainerStyle={{
-          paddingTop: insets.top + SPACE[4] + TITLE_CLEARANCE,
+          paddingTop: insets.top + SPACE[4] + title.clearance,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE + SPACE[4] + keypadRoom,
           paddingHorizontal: SPACE[3],
           gap: SPACE[5],
@@ -391,7 +392,7 @@ export default function Settings() {
         <View style={styles.section}>
           <View style={styles.card}>
             <View style={styles.row}>
-              <Text style={styles.label}>Appearance</Text>
+              <Text {...CAP.label} style={styles.label}>Appearance</Text>
             </View>
             <View style={styles.appearanceRow}>
               {APPEARANCES.map((option) => {
@@ -412,7 +413,7 @@ export default function Settings() {
                     }}
                     style={[styles.appearance, chosen && styles.appearanceChosen]}
                   >
-                    <Text style={[styles.appearanceLabel, chosen && styles.appearanceLabelChosen]}>
+                    <Text {...CAP.title} style={[styles.appearanceLabel, chosen && styles.appearanceLabelChosen]}>
                       {option.label}
                     </Text>
                   </Pressable>
@@ -429,7 +430,7 @@ export default function Settings() {
         <View style={styles.section}>
           <View style={styles.card}>
             <View style={styles.row}>
-              <Text style={styles.label}>Show rest time between sets</Text>
+              <Text {...CAP.label} style={styles.label}>Show rest time between sets</Text>
               <Switch
                 value={restOn}
                 // A light impact, the same one the restack button and logging
@@ -473,14 +474,14 @@ export default function Settings() {
                         }}
                         style={[styles.pace, chosen && styles.paceChosen]}
                       >
-                        <Text style={[styles.paceLabel, chosen && styles.paceLabelChosen]}>
+                        <Text {...CAP.title} style={[styles.paceLabel, chosen && styles.paceLabelChosen]}>
                           {option.seconds.heavy}s
                         </Text>
                       </Pressable>
                     )
                   })}
                 </View>
-                <Text style={styles.paceName}>{mode.label}</Text>
+                <Text {...CAP.label} style={styles.paceName}>{mode.label}</Text>
                 <Text style={styles.paceDescription}>{mode.description}</Text>
                 {/* What the chosen pace means for each kind of work. Four
                     short facts, not a sentence — so they are laid out as
@@ -488,8 +489,8 @@ export default function Settings() {
                 <View style={styles.spread}>
                   {breakdown(mode).map((row) => (
                     <View key={row.of} style={styles.spreadRow}>
-                      <Text style={styles.spreadOf}>{row.of}</Text>
-                      <Text style={styles.spreadSeconds}>{row.seconds}sec</Text>
+                      <Text {...CAP.label} style={styles.spreadOf}>{row.of}</Text>
+                      <Text {...CAP.label} style={styles.spreadSeconds}>{row.seconds}sec</Text>
                     </View>
                   ))}
                 </View>
@@ -534,15 +535,15 @@ export default function Settings() {
             }}
             style={[styles.card, styles.weight, editing && styles.weightEditing]}
           >
-            <Text style={styles.label}>Body weight</Text>
+            <Text {...CAP.label} style={styles.label}>Body weight</Text>
             {/* The number on screen is text, not the field — the same
                 arrangement the workout screen uses for reps and weight. */}
             <View style={styles.weightValue}>
-              <Text style={styles.weightTyped}>
+              <Text {...CAP.screenTitle} style={styles.weightTyped}>
                 {weightDraft === '' && !editing ? '0' : weightDraft}
               </Text>
               {editing ? <Caret /> : null}
-              <Text style={[styles.weightUnit, editing && styles.weightUnitDimmed]}>kg</Text>
+              <Text {...CAP.screenTitle} style={[styles.weightUnit, editing && styles.weightUnitDimmed]}>kg</Text>
               {editing ? (
                 <TextInput
                   ref={field}
@@ -577,7 +578,7 @@ export default function Settings() {
                 than as one more tap on the page. */}
           <Animated.View style={saveBar} pointerEvents={editing ? 'auto' : 'none'}>
             <Pressable onPressIn={saveWeight} style={styles.save}>
-              <Text style={styles.saveLabel}>Save changes</Text>
+              <Text {...CAP.control} style={styles.saveLabel}>Save changes</Text>
             </Pressable>
           </Animated.View>
         </View>
@@ -591,7 +592,10 @@ export default function Settings() {
 // appearance control is the pace control rather than a near-miss of it.
 const CHOICE = {
   flex: 1,
-  height: 90,
+  minHeight: 90,
+  // Only reached once the label outgrows the 90, which is where a fixed height
+  // would have clipped it instead.
+  paddingVertical: SPACE[2],
   borderRadius: RADIUS.card,
   alignItems: 'center',
   justifyContent: 'center',
@@ -707,7 +711,8 @@ const makeStyles = (t) => StyleSheet.create({
   save: {
     // Clear of the note above it, which the button was sitting on top of.
     marginTop: SPACE[4],
-    height: 52,
+    minHeight: 52,
+    paddingVertical: SPACE[2],
     borderRadius: RADIUS.pill,
     backgroundColor: t.text,
     alignItems: 'center',

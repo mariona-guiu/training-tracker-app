@@ -14,7 +14,7 @@ import Animated, {
 
 import { CloseIcon } from './WorkoutIcons.jsx'
 import { SHEET_SPRING } from '../data/motion.js'
-import { RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, TYPE } from '../theme/index.js'
+import { CAP, RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, TYPE } from '../theme/index.js'
 
 // Correcting a set already logged.
 //
@@ -75,11 +75,11 @@ function Figure({ value, unit, ink, active, asleep, stacked, onPress }) {
       accessibilityRole="button"
       accessibilityLabel={`Edit ${unit} for this set`}
     >
-      <Text style={[styles.figure, { color: ink }]}>{value}</Text>
+      <Text {...CAP.hero} style={[styles.figure, { color: ink }]}>{value}</Text>
       {active ? <Caret ink={ink} /> : null}
       {/* The unit steps back only while its own value is being typed, so the
           resting panel reads as one solid figure. */}
-      <Text style={[styles.unit, active && styles.unitDimmed, { color: ink }]}>{unit}</Text>
+      <Text {...CAP.hero} style={[styles.unit, active && styles.unitDimmed, { color: ink }]}>{unit}</Text>
     </Pressable>
   )
 }
@@ -175,7 +175,7 @@ export function EditSetSheet({ exercise, setIndex, colour, ink, onSave, onRemove
       >
         <View style={[styles.sheet, { backgroundColor: colour }]}>
           <View style={styles.head}>
-            <Text style={[styles.title, { color: ink }]}>
+            <Text {...CAP.label} style={[styles.title, { color: ink }]}>
               Editing set {setIndex + 1}/{exercise.targetSets}
             </Text>
             <Pressable
@@ -220,14 +220,14 @@ export function EditSetSheet({ exercise, setIndex, colour, ink, onSave, onRemove
             onPress={() => leave(() => onSave(reps, weight))}
             style={[styles.save, { backgroundColor: ink }]}
           >
-            <Text style={[styles.saveLabel, { color: colour }]}>Save changes</Text>
+            <Text {...CAP.control} style={[styles.saveLabel, { color: colour }]}>Save changes</Text>
           </Pressable>
 
           {/* Offered for every set, not only the one at the end of the row.
               Tapping a circle already takes any set back, so the row can have
               a gap in it whatever this does. */}
           <Pressable onPress={() => leave(onRemove)} style={styles.remove}>
-            <Text style={[styles.removeLabel, { color: ink }]}>Remove set</Text>
+            <Text {...CAP.control} style={[styles.removeLabel, { color: ink }]}>Remove set</Text>
           </Pressable>
         </View>
 
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: SPACE[3],
   },
-  title: { ...TYPE.label, opacity: 0.85 },
+  title: { ...TYPE.label },
   close: { padding: SPACE[2], margin: -SPACE[2] },
   // The panel is anchored to the keypad, so opening this up lifts the figures
   // rather than pushing the buttons down. Funnel already leaves 20.5pt below

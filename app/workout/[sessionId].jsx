@@ -46,7 +46,7 @@ import {
   SWIPE_DISTANCE,
   SWIPE_VELOCITY,
 } from '../../src/data/motion.js'
-import { SYSTEM_LINE, LIGHT, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
+import { SYSTEM_LINE, CAP, LIGHT, RADIUS, SPACE, TYPE } from '../../src/theme/index.js'
 import { useRoutineColours, useTheme } from '../../src/theme/ThemeProvider.jsx'
 
 // A workout in progress. It lives outside the (tabs) group so it fills the
@@ -123,7 +123,9 @@ function ExercisePanel({
                 after the render that caused it, so the width was always a
                 frame behind and every keystroke jumped. */}
             <View style={styles.field}>
-              <Text style={[styles.figure, { color: ink }]}>{draft}</Text>
+              <Text {...CAP.hero} style={[styles.figure, { color: ink }]}>
+                {draft}
+              </Text>
               <TextInput
                 value={draft}
                 onChangeText={onDraft}
@@ -134,16 +136,16 @@ function ExercisePanel({
                 style={[styles.figure, styles.fieldInput]}
               />
             </View>
-            <Text style={[styles.unit, styles.unitDimmed, { color: ink }]}>{unit}</Text>
+            <Text {...CAP.hero} style={[styles.unit, styles.unitDimmed, { color: ink }]}>{unit}</Text>
           </View>
         ) : (
           <Pressable
             onPress={() => live && onStartEditing(field, current)}
             style={styles.figurePress}
           >
-            <Text style={[styles.figure, { color: ink }]} numberOfLines={1}>
+            <Text {...CAP.hero} style={[styles.figure, { color: ink }]} numberOfLines={1}>
               {current ?? 0}
-              <Text style={styles.unit}>{unit}</Text>
+              <Text {...CAP.hero} style={styles.unit}>{unit}</Text>
             </Text>
           </Pressable>
         )}
@@ -161,7 +163,7 @@ function ExercisePanel({
 
   return (
     <Animated.View style={[{ width }, styles.panel, style]} pointerEvents={live ? 'auto' : 'none'}>
-      <Text style={[styles.name, { color: ink }]}>{exercise.exerciseName}</Text>
+      <Text {...CAP.heading} style={[styles.name, { color: ink }]}>{exercise.exerciseName}</Text>
 
       <View style={styles.values}>
         {exercise.tracksWeight
@@ -174,7 +176,7 @@ function ExercisePanel({
 
       {/* Steps aside while a value is being typed, so the only thing on
           screen is the number being changed. */}
-      <Text style={[styles.setsLabel, { color: ink, opacity: editing ? 0 : 0.85 }]}>
+      <Text {...CAP.label} style={[styles.setsLabel, { color: ink, opacity: editing ? 0 : 1 }]}>
         {restLabel ??
           (allSetsLogged ? 'All set!' : `Tap to log set ${logged + 1}/${exercise.targetSets}`)}
       </Text>
@@ -219,7 +221,7 @@ export default function WorkoutMode() {
   const screen = useWindowDimensions()
   const router = useRouter()
   const theme = useTheme()
-  const { restTintFor, styleFor, washFor } = useRoutineColours()
+  const { inkFor, restTintFor, styleFor, washFor } = useRoutineColours()
   const leaving = useRef(false)
   const { beginReveal } = useLaunch()
 
@@ -300,7 +302,12 @@ export default function WorkoutMode() {
   // colour rather than a fixed dark, so the moment it does happen the screen
   // matches the app it was opened from.
   const colour = handed ?? (session ? styleFor(kind, 0).background : theme.bg)
-  const ink = inkOn(colour)
+  // The *routine's* ink rather than the colour's, so a routine that states one
+  // is honoured here as well as on its card — this screen used to weigh the
+  // handed hex itself and would have ignored it. inkOn stays as the fallback
+  // for the frames before the session has loaded, when there is a colour on
+  // screen but no routine to ask yet.
+  const ink = kind ? inkFor(kind) : inkOn(colour)
   // Whether the routine's colour asked for white ink, which is the same
   // question the status bar and the button's material both need answering.
   //
@@ -639,7 +646,7 @@ export default function WorkoutMode() {
       />
 
       <View style={[styles.head, { paddingTop: insets.top + SPACE[3], opacity: editing ? 0 : 1 }]}>
-        <Text style={[styles.routine, { color: ink }]}>{session.routineName} workout</Text>
+        <Text {...CAP.label} style={[styles.routine, { color: ink }]}>{session.routineName} workout</Text>
 
         {/* Everything up to where you've reached is marked, not only what
             was done — moving past an exercise with the arrows leaves it
@@ -774,7 +781,7 @@ export default function WorkoutMode() {
               />
             }
           >
-            <Text style={[styles.primaryLabel, { color: ink }]}>{primaryLabel}</Text>
+            <Text {...CAP.control} style={[styles.primaryLabel, { color: ink }]}>{primaryLabel}</Text>
           </Glass>
         </Pressable>
       </View>
@@ -811,7 +818,10 @@ const styles = StyleSheet.create({
   // two screens are one screen as far as anyone using them is concerned — the
   // completion state replaces the workout in place — so this cannot differ
   // from it without looking like something changed underneath.
-  routine: { ...TYPE.label, opacity: 0.85 },
+  // Full strength. It was 0.85, which on the routines whose ink is already
+  // marginal took this to 2.45:1 — the dimming was invisible to any contrast
+  // check because opacity is not part of the colour pair.
+  routine: { ...TYPE.label },
   stepper: { flexDirection: 'row', gap: SPACE[2], marginTop: SPACE[2] },
   step: { flex: 1, height: 3, borderRadius: RADIUS.pill },
   close: { alignSelf: 'flex-end', marginTop: SPACE[3], marginRight: -SPACE[2], padding: SPACE[2] },
@@ -889,12 +899,11 @@ const styles = StyleSheet.create({
   // shrinking — it is one glyph and the name takes what is left.
   // Sized and faded with the name it belongs to, and never shrinking — it is
   // one mark and the name takes what is left.
-  navArrow: { opacity: 0.8 },
+  navArrow: {},
   navLabel: {
     ...TYPE.body,
     letterSpacing: 16 * -0.01,
     lineHeight: 21.6,
-    opacity: 0.8,
     flexShrink: 1,
   },
   navRight: { textAlign: 'right' },
