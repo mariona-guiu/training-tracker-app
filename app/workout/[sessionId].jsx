@@ -801,8 +801,12 @@ export default function WorkoutMode() {
   )
 }
 
-// Funnel's own line height, read from the font — ascent 1200 plus descent
-// 300 on a 1200 unit em — and the tighter one the design asks for.
+// The font's own line height, read from its tables — SF Pro is ascent 1980
+// plus descent 432 on a 2048 unit em, which is the 1.1777 in SYSTEM_LINE — and
+// the tighter one the design asks for. (It read "ascent 1200 plus descent 300
+// on a 1200 unit em" until 2026-08-12: Funnel's numbers, left behind when the
+// app moved to SF Pro. The ratio below was always derived, so only the note
+// was wrong.)
 // React Native clips to the line box where CSS lets glyphs spill, so the box
 // keeps the font's own height and the difference is taken back out with a
 // margin, which does not clip. Stated as ratios so this follows the type

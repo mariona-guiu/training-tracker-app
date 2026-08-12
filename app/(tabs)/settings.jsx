@@ -617,8 +617,10 @@ const makeStyles = (t) => StyleSheet.create({
   // Light rather than regular: this is the one thing on the page you read
   // once and then stop seeing, so it steps back in weight as well as ink.
   // These run to two and three lines, which is the one place this role needs a
-  // line height stated. 17 against Funnel's own 15 at this size — above it, so
-  // it cannot clip, and enough to stop the lines closing up.
+  // line height stated. 17 against the font's own 14.1 at this size — above
+  // it, so it cannot clip, and enough to stop the lines closing up. The
+  // comparison was written against Funnel's 15 and outlived it; the conclusion
+  // holds either way, but check SYSTEM_LINE rather than that number.
   note: { ...TYPE.caption, lineHeight: 17, color: t.textDim },
   reveal: { overflow: 'hidden' },
   // Laid out, measured, and never seen or touched.

@@ -276,8 +276,9 @@ const styles = StyleSheet.create({
   title: { ...TYPE.label },
   close: { padding: SPACE[2], margin: -SPACE[2] },
   // The panel is anchored to the keypad, so opening this up lifts the figures
-  // rather than pushing the buttons down. Funnel already leaves 20.5pt below
-  // the baseline at 82pt, which this is on top of.
+  // rather than pushing the buttons down. The font already leaves 17.3pt below
+  // the baseline at 82pt — SYSTEM_DESCENT — which this is on top of. It said
+  // 20.5, which was Funnel's.
   values: { marginBottom: 36 },
   // The whole row is the target, so it is never a question of hitting the
   // digits themselves.

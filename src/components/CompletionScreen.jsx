@@ -101,8 +101,10 @@ export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }
 
 // What the design leaves between the bottom of the figure's capitals and the
 // top of the tallies', and the two things the fonts spend before any margin
-// is applied: what Funnel drops below a baseline at `hero` size, and what a
-// 40pt line box leaves above capitals at `heading` size.
+// is applied: what the font drops below a baseline at `hero` size — 17.3pt in
+// SF Pro — and what a 40pt line box leaves above capitals at `heading` size.
+// Both come from SYSTEM_* rather than from any one typeface, so they followed
+// when the face changed and this note did not.
 const STATS_CAP_GAP = 33.6
 const FIGURE_DESCENT = SYSTEM_DESCENT * TYPE.hero.fontSize
 const STATS_LINE = 40
