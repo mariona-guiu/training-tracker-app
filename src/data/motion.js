@@ -1,7 +1,7 @@
 import { Easing } from 'react-native-reanimated'
 
 // The web app's timings, ported rather than re-invented — see
-// ../../../src/data/motion.js, which these mirror exactly.
+// the web app these were ported from, which is retired and not public.
 //
 // The numbers carry across unchanged because Framer Motion and Reanimated
 // describe a spring the same way: stiffness, damping and mass, fed to the

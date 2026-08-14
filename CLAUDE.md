@@ -2,37 +2,64 @@
 
 # The app
 
-The React Native tracker. It began as a port of the web app at the repository
-root, and for as long as that port was catching up, the web app was the
-reference for how everything should look and behave.
+A personal gym tracker, built in React Native and run on the author's own
+phone. No backend, no accounts, no network calls — everything lives on the
+device in SQLite.
 
-**That is over.** Decided on 2026-08-09: this is V1. The web app is the MVP —
-it stays on Vercel exactly as it is, and it is no longer being kept in step
-with. When the two disagree, this one is right, and a difference is not drift
-to be repaired.
+It began in 2026 as a port of a web PWA of the same app, and for a while that
+web version was the reference for how everything should look. That ended on
+2026-08-09: this is the app now, the web one is retired, and its repository is
+not public. Where a comment mentions "the web app", it is explaining where a
+value came from rather than pointing at something to go and read.
 
-The gap is going to widen, and not only in styling. The design system landed
-here and only here, and what comes next — the four-tab restructure, custom
-workouts, rotation — changes UX, logic and the data model. Each of those makes
-the web app a less useful thing to look at. Expect to consult it rarely, and
-to stop consulting it entirely.
+## What it is
 
-**And it is not to be edited.** Decided by the user on 2026-08-11: the web app
-stays exactly as it is, as legacy documentation and as something they can open
-to see how far this one has moved since. Nothing new goes into it — not a
-shared-data change, not a fix, not a tidy-up. Its whole value is that it does
-not move, and a change ported into it destroys the comparison it exists for.
+Six preset routines. You tap one, the colour grows out of the card and fills
+the screen, and you log sets against each exercise in turn. A rest countdown
+sweeps the screen between sets if you want it. Finishing gives you a summary;
+everything you have done is in History, grouped by week.
 
-This replaces the rule that used to live here, which said a change to the
-calorie model, the rest tiers, the week grouping, the routine colours, slot
-resolution or a spring in `motion.js` belonged in both copies. It does not.
-`src/data/` was a literal copy in both and is now free to diverge — the first
-divergence is `restTintFor`'s key, renamed `stretching` → `mobility` here on
-2026-08-11 and deliberately left alone there, since that app's routine is still
-called Stretching.
+A routine is **a list of slots** rather than a list of exercises — it describes
+the jobs to be done and which exercise fills each one is resolved when a
+workout starts. `docs/routines-as-slots.md` is the reasoning and the constraint
+that must not be crossed. Today every slot resolves to the exercise it was
+written around, so nothing behaves differently yet; rotation and equipment
+preference land in that one function rather than being scattered across
+screens.
 
-Read the root `CLAUDE.md` first. Everything it says about what the app *is*
-still holds; what follows is only what differs on native.
+## Avoiding regressions
+
+Every regression this project has had came from the same shape: **a change in a
+shared file breaking a screen nobody was looking at.** A style redefined for
+one screen broke another; an `overflow` on an ancestor made it a scroll
+container and unstuck every page title; a presence wrapper leaked layout
+projection into a portalled overlay two screens away. In each case the file
+being edited was fine.
+
+**Shared surfaces.** The theme, the navigation layout, anything in
+`src/data/` and anything in `src/components/` reaches every screen. Before
+changing one, say which screens it can reach and what you will check. Say it
+out loud — the sentence is the point, because "this makes an ancestor a scroll
+container" is the whole bug.
+
+**Prefer the local mechanism.** `overflow` on an ancestor, a transform on a
+wrapper, context from a presence wrapper — all act at a distance and none of
+them announce it. Where there is a choice, do it on the element itself.
+
+**Two failed hypotheses is a hard stop.** Stop changing code and go to the
+history or add a measurement instead. When something that worked stops working
+and its own code has not changed, diff it against the commit where it worked
+*first*. "Put it back how it was" is a git instruction, not a description.
+
+**When a design says "like screen X", read screen X before designing
+anything.** The existing implementation is the specification.
+
+## Session data model
+
+A session records `status: 'in-progress' | 'completed'` alongside `endedEarly`.
+Both a finished workout and one walked out of are `completed`, so History can
+list everything in one query and label the difference. Sessions predating that
+flag have no `endedEarly` — treat it as unknown rather than assuming either way.
 
 ## Commands
 
