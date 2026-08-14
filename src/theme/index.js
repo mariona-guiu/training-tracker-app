@@ -22,7 +22,12 @@ export const LIGHT = {
   // Taken from the Stats design, and the same card colour Settings already
   // draws — the two screens had drifted a step apart from each other.
   bgRaised: '#f7f7f6',
-  border: '#e3e3de',
+  // One neutral does both jobs. A hairline and the unfilled half of a control
+  // were #e3e3de and #d9d9d7 — 3.8 apart in Lab, which is a difference nobody
+  // could name and two decisions to keep in step forever. The track's value
+  // won because a track is a filled shape where the colour is actually seen,
+  // and a hairline can take being a shade stronger. Same merge in DARK.
+  border: '#d9d9d7',
   // #191919 rather than #0a0a0a: the Figma files specify it and Settings
   // rendered it, so it is the one with the most evidence behind it. Decided
   // once here, which is the whole point of it being a token.
@@ -93,7 +98,7 @@ export const LIGHT = {
 export const DARK = {
   bg: '#121211',
   bgRaised: '#1e1e1c',
-  border: '#34342f',
+  border: '#3a3a35',
   text: '#f2f2ef',
   textDim: '#8a8a83',
   accent: ACCENT,
@@ -107,7 +112,10 @@ export const DARK = {
   // the current tab by darkening it, which on a dark bar would mark it by
   // making it disappear. Lighter here, at a slightly higher alpha because a
   // light film over a dark ground reads weaker than a dark one over a light.
-  glassWash: ['rgba(58, 58, 53, 0.62)', 'rgba(36, 36, 33, 0.38)'],
+  // The bottom stop is the raised surface rather than a colour of its own —
+  // it was #242421 against bgRaised's #1e1e1c, 3.0 apart and rendered at 38%
+  // over a blur, where that difference was never visible to begin with.
+  glassWash: ['rgba(58, 58, 53, 0.62)', 'rgba(30, 30, 28, 0.38)'],
   glassEdge: 'rgba(242, 242, 239, 0.14)',
   highlight: 'rgba(242, 242, 239, 0.16)',
   scheme: 'dark',

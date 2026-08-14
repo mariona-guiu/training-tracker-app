@@ -34,5 +34,8 @@
   "private": true,
   "overrides": {
     "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "oxlint": "^1.78.0"
   }
 }
