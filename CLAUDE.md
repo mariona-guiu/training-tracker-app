@@ -127,7 +127,8 @@ was not.
 CLAUDE.md and was ignored all day. At the second failure: no third code
 change. Either ask the one question that separates the remaining hypotheses,
 or build something that measures — an on-screen readout, a control the user
-can drive. `src/components/TuningPanel.jsx` is the model.
+can drive. `src/components/TuningPanel.jsx` was the model — it is gone, and
+the section below says which commit to copy it from.
 
 **Check the patch landed.** A scripted edit that fails partway writes nothing,
 so the parts that "were applied" silently were not. Grep the result before
@@ -144,8 +145,9 @@ faster and less taxing than saying "a bit slower" and waiting a round to see.
 from the commit that removed it (values live in the screen's state, sliders
 drive them, a Defaults button, and the whole thing behind a long-press on the
 title). It cost one round to build and ended an exchange that had already run
-several. The card canvas's `THROW`, `GLIDE`, `TILT_PER_PX` and `ELASTIC` are
-the numbers it landed on.
+several. The card canvas's `THROW`, `TILT_PER_PX` and `ELASTIC` — and
+`GLIDE_SPRING`, which lives in `motion.js` rather than on the canvas — are the
+numbers it landed on.
 
 Mark it TEMPORARY, and when the values settle write them into the component as
 named constants — with the reasoning, not just the number — and delete the
@@ -570,15 +572,20 @@ frozen, so it keeps whatever it had.
 **Every screen is ported.** The card canvas, the workout with its carousel,
 rest sweep and completion screen, Stats and its weekly chart, History, and
 Settings. The colour grows out of a tapped card and hands itself back on the
-way out. The tabs settle on the same spring the web uses, from the same
-`motion.js`. The push to History does **not** — it is the native stack's
+way out. The tabs settle on a spring from `motion.js`. The push to History does
+**not** — it is the native stack's
 `simple_push`, timed by `animationDuration` in `app/_layout.jsx`, and no
 spring is involved.
+
+Since then the design system, dark mode with a light/dark/system setting, and
+an accessibility pass over contrast and text scaling have all landed here and
+only here. The port is not the frontier any more.
 
 What is left is not screens. It is the list under "Waiting on a development
 build" — the glass, the confetti, `@expo/ui`'s PagerView, and the app on the
 home screen with its own icon. All four want the same thing.
 
-Still standing after that: the four-tab restructure from the roadmap, which
-waits on the user's cue cards and is a change to both apps rather than to this
-one. Read `docs/routines-as-slots.md` and the roadmap before starting it.
+Still standing after that: a four-tab restructure with custom workouts,
+rotation and an equipment setting, which waits on concept screens. Read
+`docs/routines-as-slots.md` first — it holds the model, what is settled, what is
+open, and the line that must not be crossed.
