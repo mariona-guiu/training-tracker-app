@@ -247,23 +247,40 @@ walked straight into it. Fixing it there needs a backfill; here it was free.
 
 ## Fonts
 
-**Funnel Sans and Funnel Display**, seven cuts, each registered as its own
-family name (`src/theme/fonts.js`). React Native has no family/weight pairing:
-asking for weight 500 on a family that shipped one file gets a synthesised
-bold, not the real Medium. Style with `FONTS.medium`, never with `fontWeight`.
+**SF Pro and SF Pro Rounded, both from the system.** Nothing is bundled: no
+font files, no loader, and no splash gate waiting on one. That is the point of
+the choice as much as the look is — the app waits for nothing at launch.
 
-Sans for what is read, Display for what is looked at — the routine card, the
-page title, the exercise name, the figure being lifted. `TYPE` in
+Rounded for what is *looked at* — the routine card, the page title, the
+exercise you are on, the figure you are lifting. Plain SF Pro for what is read
+and operated: labels, prose, controls, list rows. `TYPE` in
 `src/theme/index.js` already encodes which is which; pick a role from there
-rather than naming a family directly.
+rather than naming a family.
 
-Both are OFL from Google Fonts. There is **no Funnel Mono**, which is why the
-tracked capitals that were the app's voice are now Sans rather than a mono
-cut, and why anything needing to align in columns asks for tabular figures
-explicitly — `TYPE.label`, `caption`, `figure` and `hero` all do.
+**Weights are `fontWeight`, not a family per cut**, and this is the rule that
+reversed. A bundled family that ships one file per weight has no
+family/weight pairing in React Native — asking for 500 gets a synthesised bold
+rather than the real Medium — so the app used to register each cut under its
+own name and forbid `fontWeight` entirely. Both system faces honour weight
+300–800 properly, so that machinery is gone and `WEIGHT` is ordinary
+`fontWeight`. Both also carry tabular figures, which `TYPE.label`, `caption`,
+`figure` and `hero` ask for explicitly where digits have to align.
 
-Favorit was here until 2026-08-09 and is gone. Comments that name it are
-explaining why a derived constant changed, not describing the present.
+**The family name was settled on the device, because the failure is silent.**
+An unresolved family renders perfectly in plain SF Pro and looks like it
+worked. Of twelve candidates only two actually draw rounded — `ui-rounded` and
+`.AppleSystemUIFontRounded`. Everything else, including the entirely plausible
+`'SF Pro Rounded'` and `'SFProRounded-Regular'`, falls back without a word.
+`ui-rounded` is the one used: a standard CSS generic that iOS's font matcher
+accepts, rather than Apple's private internal name, so it is likelier to
+survive an OS update. `.AppleSystemUIFontRounded` is the fallback if it ever
+stops.
+
+Favorit was here until 2026-08-09 and Funnel until the same day; both are gone,
+along with every font file. Comments that name either are explaining why a
+derived constant has the value it does, not describing the present — and if one
+quotes metrics, check them against `SYSTEM_LINE` and its neighbours rather than
+against the font it names.
 
 ## A CSS value carries its mechanism with it
 
@@ -299,10 +316,15 @@ CSS lets glyphs spill outside their line box, so the web app can set
 natural one cuts the tops and tails off, and it is worst exactly where it
 shows most — large, bold numbers.
 
-Funnel's own metrics, read from the files: ascent 1200, descent -300, gap 0,
-on a **1200** unit em — and identical across all seven cuts, Sans and Display,
-which is why one constant covers the lot. That is **1.25 em**: 102.5pt at the
-82pt the workout figures now use.
+SF Pro's own metrics, read from `/System/Library/Fonts`: ascent 1980, descent
+-432, gap 0, on a **2048** unit em — and identical between SF Pro and SF Pro
+Rounded, which is why one constant covers both. That is **1.1777 em**, which is
+`SYSTEM_LINE`: 96.6pt at the 82pt the workout figures use.
+
+(This read "ascent 1200, descent -300 on a 1200 unit em, 1.25 em, 102.5pt"
+until 2026-08-14. Those are Funnel's, left behind when the app moved to the
+system faces. Everything derived from them was computed from `SYSTEM_*` and
+followed on its own; only the explanation was stale.)
 
 So: state no `lineHeight` on display type and let the font decide, then
 recover whatever tightness the design wants with margins, which do not clip.
@@ -312,14 +334,14 @@ If a figure looks cut, measure the font rather than trying numbers — the
 head/hhea/OS-2 tables give the answer in one pass.
 
 The same tables answer the other half of it: **a gap in a design is not a gap
-in a style.** Funnel's ascent is exactly 1.0 em and its cap height 0.675em, so
-every line carries 0.325em of empty space above the capitals and 0.25em below
-the baseline. Two stacked figures are already **0.575em** apart before any gap
-is set — 47.2pt at 82pt type. A design asking for 20pt of visible separation
+in a style.** SF Pro's ascent is 0.9668 em and its cap height 0.705em, so every
+line carries 0.262em of empty space above the capitals and 0.211em below the
+baseline. Two stacked figures are already **0.473em** apart before any gap is
+set — 38.8pt at 82pt type. A design asking for 20pt of visible separation
 therefore wants a **negative** margin, not `gap: 20`.
 
 This is not theoretical: it is why `stats` on the completion screen carries a
-negative `marginTop`, and why the set sheet's gap is 47.2. Both are written as
+negative `marginTop`, and why the set sheet's gap is 38.8. Both are written as
 the subtraction with the arithmetic in a comment, so they follow if a size
 moves — which is exactly what saved them when the figure grew from 72 to 82
 and the typeface changed under them on the same day.
