@@ -1,0 +1,677 @@
+<title>Training Tracker — tokens & component specs</title>
+
+<style>
+  :root {
+    --ground: #fdfdfc;
+    --raised: #f7f7f6;
+    --sunk: #f0f0ee;
+    --line: #e3e3de;
+    --line-strong: #c9c9c2;
+    --ink: #191919;
+    --dim: #6f6f6a;
+    --accent: #a8dc12;
+    --shadow: rgba(25, 25, 25, 0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #121211; --raised: #1e1e1c; --sunk: #171715;
+      --line: #34342f; --line-strong: #4a4a43;
+      --ink: #f2f2ef; --dim: #8a8a83; --accent: #c6ff3d;
+      --shadow: rgba(0, 0, 0, 0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #121211; --raised: #1e1e1c; --sunk: #171715;
+    --line: #34342f; --line-strong: #4a4a43;
+    --ink: #f2f2ef; --dim: #8a8a83; --accent: #c6ff3d;
+    --shadow: rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 56px 24px 120px;
+          display: flex; flex-direction: column; gap: 64px; }
+
+  h1, h2, h3 { font-family: ui-rounded, system-ui, sans-serif; margin: 0; text-wrap: balance; }
+  h1 { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+  h2 { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+  h3 { font-size: 17px; font-weight: 700; }
+  p { margin: 0; max-width: 66ch; }
+
+  .lede { color: var(--dim); font-size: 16px; max-width: 62ch; }
+  header { display: flex; flex-direction: column; gap: 14px; }
+
+  .eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0.09em;
+             text-transform: uppercase; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+  section { display: flex; flex-direction: column; gap: 20px; }
+  .head { display: flex; flex-direction: column; gap: 8px; padding-bottom: 14px; border-bottom: 2px solid var(--ink); }
+  .sub { display: flex; flex-direction: column; gap: 12px; }
+
+  .note { background: var(--raised); border-left: 3px solid var(--accent);
+          padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; }
+
+  .scroll { overflow-x: auto; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th { text-align: left; font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+       text-transform: uppercase; color: var(--dim); padding: 0 12px 8px 0;
+       border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  td.num, th.num { font-variant-numeric: tabular-nums; }
+
+  code, .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace;
+                font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  code { background: var(--raised); padding: 1px 5px; border-radius: 3px; }
+  .alias { color: var(--dim); }
+
+  .chip { width: 34px; height: 24px; border-radius: 4px;
+          border: 1px solid var(--line-strong); flex: none; display: inline-block;
+          vertical-align: middle; }
+  .swatchrow { display: flex; align-items: center; gap: 10px; }
+
+  /* A ramp reads as a ramp when you see it end to end. */
+  .ramp { display: flex; border-radius: 8px; overflow: hidden; border: 1px solid var(--line-strong); }
+  .ramp > div { flex: 1; height: 52px; }
+
+  .rgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+  .routine { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .routine-head { padding: 12px 16px; font-family: ui-rounded, system-ui, sans-serif;
+                  font-weight: 700; font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .routine table { font-size: 13px; }
+  .routine td, .routine th { padding-left: 16px; }
+  .routine td:last-child, .routine th:last-child { padding-right: 16px; }
+
+  .spec { display: grid; grid-template-columns: minmax(140px, 200px) 1fr; gap: 4px 20px; align-items: baseline; }
+  .spec dt { color: var(--dim); font-size: 13px; }
+  .spec dd { margin: 0; font-size: 14px; }
+
+  .tierrow { display: grid; grid-template-columns: 44px 1fr; gap: 18px;
+             padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .tierrow:last-child { border-bottom: none; }
+  .rank { font-family: ui-rounded, system-ui, sans-serif; font-size: 26px; font-weight: 700;
+          color: var(--dim); font-variant-numeric: tabular-nums; line-height: 1; }
+
+  .pill { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 4px;
+          font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+          border: 1px solid var(--line-strong); color: var(--dim); white-space: nowrap; }
+  .pill.now { border-color: var(--ink); color: var(--ink); }
+
+  ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+  li { max-width: 64ch; }
+
+  @media (max-width: 620px) {
+    .wrap { padding: 36px 16px 80px; gap: 48px; }
+    h1 { font-size: 30px; }
+    .spec { grid-template-columns: 1fr; gap: 2px 0; }
+    .spec dd { margin-bottom: 10px; }
+  }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Training Tracker &middot; 14 August 2026</div>
+  <h1>Tokens &amp; component specs</h1>
+  <p class="lede">
+    Every value read out of <code>src/theme/index.js</code> and
+    <code>src/data/routineStyles.js</code> as they stand today — not from a
+    design file, and not from memory. Where the app and this page disagree, the
+    app is right and this is stale.
+  </p>
+</header>
+
+<!-- ─────────────────────────── the two layers ──────────────────────────── -->
+<section>
+  <div class="head">
+    <div class="eyebrow">01 — Architecture</div>
+    <h2>Two layers, two collections</h2>
+  </div>
+
+  <p>
+    <strong>Primitives</strong> are the raw palette. They are named for what
+    they <em>are</em> — <code>neutral/975</code>, <code>orange/500</code> — carry
+    no meaning, and have <strong>no modes</strong>. A primitive is the same
+    colour in light and dark; it is simply used in one or the other.
+  </p>
+  <p>
+    <strong>Semantic tokens</strong> are named for the job — <code>surface/page</code>,
+    <code>text/secondary</code> — and hold <strong>two modes</strong>, each one
+    <em>pointing at a primitive</em> rather than repeating a hex. That pointer is
+    the whole value of the split: change <code>neutral/975</code> once and every
+    dark surface built on it follows, in Figma and in code alike.
+  </p>
+  <p>
+    Components only ever consume semantic tokens. If a component references a
+    primitive directly, that is the bug — it means a colour was chosen for how it
+    looks rather than for what it does, and it will not follow a theme change.
+  </p>
+
+  <div class="note">
+    <strong>Multiple modes on one collection is a paid Figma feature.</strong>
+    On the free plan you get one. The workaround: build
+    <code>semantic/light</code> and <code>semantic/dark</code> as two
+    collections with identical variable names, both aliasing the same single
+    primitives collection. Nothing needs renaming if you upgrade later — you
+    merge the two into one collection with two modes.
+  </div>
+</section>
+
+<!-- ─────────────────────────── primitives ──────────────────────────────── -->
+<section>
+  <div class="head">
+    <div class="eyebrow">02 — Primitives</div>
+    <h2>The raw palette</h2>
+  </div>
+
+  <h3>Neutral</h3>
+  <p>
+    Warm, not grey — the whole ramp leans slightly yellow, which is why a
+    neutral or blue-grey substitution reads as a different product. Fifteen
+    steps, numbered by lightness.
+  </p>
+
+  <div class="ramp">
+    <div style="background:#FFFFFF"></div><div style="background:#FDFDFC"></div>
+    <div style="background:#F7F7F6"></div><div style="background:#F2F2EF"></div>
+    <div style="background:#E3E3DE"></div><div style="background:#D9D9D7"></div>
+    <div style="background:#8A8A83"></div><div style="background:#6F6F6A"></div>
+    <div style="background:#3A3A35"></div><div style="background:#34342F"></div>
+    <div style="background:#242421"></div><div style="background:#1E1E1C"></div>
+    <div style="background:#191919"></div><div style="background:#121211"></div>
+    <div style="background:#0A0A0A"></div>
+  </div>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Primitive</th><th>Hex</th><th class="num">L*</th><th>Consumed by</th></tr></thead>
+      <tbody>
+        <tr><td><code>neutral/0</code></td><td class="mono">#FFFFFF</td><td class="num">100.0</td><td>text/on-ink · line/glass-edge · glass/wash</td></tr>
+        <tr><td><code>neutral/25</code></td><td class="mono">#FDFDFC</td><td class="num">99.3</td><td>surface/page · surface/floating</td></tr>
+        <tr><td><code>neutral/50</code></td><td class="mono">#F7F7F6</td><td class="num">97.2</td><td>surface/raised · surface/card-translucent</td></tr>
+        <tr><td><code>neutral/100</code></td><td class="mono">#F2F2EF</td><td class="num">95.4</td><td>text/primary · line/glass-edge · control/highlight</td></tr>
+        <tr><td><code>neutral/200</code></td><td class="mono">#E3E3DE</td><td class="num">90.1</td><td>line/hairline</td></tr>
+        <tr><td><code>neutral/300</code></td><td class="mono">#D9D9D7</td><td class="num">86.6</td><td>control/track</td></tr>
+        <tr><td><code>neutral/500</code></td><td class="mono">#8A8A83</td><td class="num">57.3</td><td>text/secondary</td></tr>
+        <tr><td><code>neutral/600</code></td><td class="mono">#6F6F6A</td><td class="num">46.7</td><td>text/secondary</td></tr>
+        <tr><td><code>neutral/800</code></td><td class="mono">#3A3A35</td><td class="num">24.3</td><td>control/track · glass/wash-top</td></tr>
+        <tr><td><code>neutral/850</code></td><td class="mono">#34342F</td><td class="num">21.5</td><td>line/hairline</td></tr>
+        <tr><td><code>neutral/900</code></td><td class="mono">#242421</td><td class="num">14.1</td><td>glass/wash-bottom</td></tr>
+        <tr><td><code>neutral/925</code></td><td class="mono">#1E1E1C</td><td class="num">11.2</td><td>surface/raised · surface/card-translucent</td></tr>
+        <tr><td><code>neutral/950</code></td><td class="mono">#191919</td><td class="num">8.8</td><td>text/primary</td></tr>
+        <tr><td><code>neutral/975</code></td><td class="mono">#121211</td><td class="num">5.4</td><td>surface/page · surface/floating · text/on-ink</td></tr>
+        <tr><td><code>neutral/1000</code></td><td class="mono">#0A0A0A</td><td class="num">2.7</td><td>routine ink · brand/accent-text · control/highlight</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <strong>The gaps at 300→500 and 600→800 are real.</strong> There are no
+    mid-tone neutrals because nothing in the app needed one — every surface is
+    either near-white or near-black, and the two greys that exist are both text.
+    Do not fill the gaps to make the ramp look tidy; an unused step is a step
+    someone will eventually reach for by accident.
+  </div>
+
+  <h3>Hues</h3>
+  <p>
+    One family per routine, six steps each, and the steps mean the same thing in
+    every family: <strong>200/300</strong> the History cell, <strong>500/600</strong>
+    the card, <strong>700/800</strong> the rest sweep — light mode first, dark
+    second, in each pair.
+  </p>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Family</th><th>200</th><th>300</th><th>500</th><th>600</th><th>700</th><th>800</th></tr></thead>
+      <tbody>
+        <tr><td><code>yellow</code><br><span class="eyebrow">glutes</span></td>
+          <td><span class="chip" style="background:#FFE373"></span><br><span class="mono">#FFE373</span></td>
+          <td><span class="chip" style="background:#FFCE53"></span><br><span class="mono">#FFCE53</span></td>
+          <td><span class="chip" style="background:#FCD22E"></span><br><span class="mono">#FCD22E</span></td>
+          <td><span class="chip" style="background:#F5B000"></span><br><span class="mono">#F5B000</span></td>
+          <td><span class="chip" style="background:#EEB722"></span><br><span class="mono">#EEB722</span></td>
+          <td><span class="chip" style="background:#E79507"></span><br><span class="mono">#E79507</span></td></tr>
+        <tr><td><code>red</code><br><span class="eyebrow">full body</span></td>
+          <td><span class="chip" style="background:#FF7175"></span><br><span class="mono">#FF7175</span></td>
+          <td><span class="chip" style="background:#F26163"></span><br><span class="mono">#F26163</span></td>
+          <td><span class="chip" style="background:#EC1C22"></span><br><span class="mono">#EC1C22</span></td>
+          <td><span class="chip" style="background:#DD0004"></span><br><span class="mono">#DD0004</span></td>
+          <td><span class="chip" style="background:#C41419"></span><br><span class="mono">#C41419</span></td>
+          <td><span class="chip" style="background:#AD0003"></span><br><span class="mono">#AD0003</span></td></tr>
+        <tr><td><code>pink</code><br><span class="eyebrow">core</span></td>
+          <td><span class="chip" style="background:#FCDEE9"></span><br><span class="mono">#FCDEE9</span></td>
+          <td><span class="chip" style="background:#FFC3D9"></span><br><span class="mono">#FFC3D9</span></td>
+          <td><span class="chip" style="background:#FBCEDF"></span><br><span class="mono">#FBCEDF</span></td>
+          <td><span class="chip" style="background:#F3ABC5"></span><br><span class="mono">#F3ABC5</span></td>
+          <td><span class="chip" style="background:#FFBAD4"></span><br><span class="mono">#FFBAD4</span></td>
+          <td><span class="chip" style="background:#F48AAF"></span><br><span class="mono">#F48AAF</span></td></tr>
+        <tr><td><code>orange</code><br><span class="eyebrow">upper body</span></td>
+          <td><span class="chip" style="background:#FFBF83"></span><br><span class="mono">#FFBF83</span></td>
+          <td><span class="chip" style="background:#FFA65D"></span><br><span class="mono">#FFA65D</span></td>
+          <td><span class="chip" style="background:#F37500"></span><br><span class="mono">#F37500</span></td>
+          <td><span class="chip" style="background:#E46701"></span><br><span class="mono">#E46701</span></td>
+          <td><span class="chip" style="background:#C75000"></span><br><span class="mono">#C75000</span></td>
+          <td><span class="chip" style="background:#B54103"></span><br><span class="mono">#B54103</span></td></tr>
+        <tr><td><code>lime</code><br><span class="eyebrow">mobility</span></td>
+          <td><span class="chip" style="background:#EBF86D"></span><br><span class="mono">#EBF86D</span></td>
+          <td><span class="chip" style="background:#E0EE5A"></span><br><span class="mono">#E0EE5A</span></td>
+          <td><span class="chip" style="background:#D7ED00"></span><br><span class="mono">#D7ED00</span></td>
+          <td><span class="chip" style="background:#BFD200"></span><br><span class="mono">#BFD200</span></td>
+          <td><span class="chip" style="background:#C5D716"></span><br><span class="mono">#C5D716</span></td>
+          <td><span class="chip" style="background:#AEBF00"></span><br><span class="mono">#AEBF00</span></td></tr>
+        <tr><td><code>blue</code><br><span class="eyebrow">lower body</span></td>
+          <td><span class="chip" style="background:#87D7F6"></span><br><span class="mono">#87D7F6</span></td>
+          <td><span class="chip" style="background:#69C1EA"></span><br><span class="mono">#69C1EA</span></td>
+          <td><span class="chip" style="background:#00ADF0"></span><br><span class="mono">#00ADF0</span></td>
+          <td><span class="chip" style="background:#0081BC"></span><br><span class="mono">#0081BC</span></td>
+          <td><span class="chip" style="background:#0071A5"></span><br><span class="mono">#0071A5</span></td>
+          <td><span class="chip" style="background:#1C598F"></span><br><span class="mono">#1C598F</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <strong>The step numbers are role positions, not measured lightness.</strong>
+    They agree for red, orange and blue. They cross over for the other three:
+    <code>yellow/500</code> is lighter than <code>yellow/300</code>,
+    <code>pink/500</code> is lighter than <code>pink/300</code>, and
+    <code>lime/600</code> is darker than <code>lime/700</code>. That is the
+    designer's choice showing through, not a naming error — but it means you
+    cannot sort a ramp by its number and expect a gradient.
+  </div>
+
+  <h3>Two more</h3>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Primitive</th><th>Hex</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>red/400</code></td>
+            <td><span class="chip" style="background:#FF5257"></span> <span class="mono">#FF5257</span></td>
+            <td>Danger in dark. The light red lightened until white on it clears AA</td></tr>
+        <tr><td><code>pink/900</code></td>
+            <td><span class="chip" style="background:#EC4899"></span> <span class="mono">#EC4899</span></td>
+            <td>Core's button wash. The only wash tint stated by hand</td></tr>
+        <tr><td><code>lime/accent</code></td>
+            <td><span class="chip" style="background:#C6FF3D"></span> <span class="mono">#C6FF3D</span></td>
+            <td><strong>Not used by anything.</strong> See below</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <strong><code>lime/accent</code> is defined but never drawn.</strong> No
+    screen or component consumes <code>brand/accent</code>. It sits 15.8 ΔE from
+    Mobility's <code>lime/500</code> — distinct, but close enough that two limes
+    in one system is a question worth settling. Either give it a job or drop it;
+    a token nothing uses is one someone will use wrongly.
+  </div>
+</section>
+
+<!-- ─────────────────────────── semantic ────────────────────────────────── -->
+<section>
+  <div class="head">
+    <div class="eyebrow">03 — Semantic</div>
+    <h2>Core tokens</h2>
+  </div>
+
+  <p>
+    Two modes each, both pointing at a primitive. Where a value carries an
+    opacity, the alias is the primitive and the percentage is set on the layer.
+  </p>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td><code>surface/page</code></td>
+            <td><span class="chip" style="background:#FDFDFC"></span> <code class="alias">neutral/25</code></td>
+            <td><span class="chip" style="background:#121211"></span> <code class="alias">neutral/975</code></td>
+            <td>The page</td></tr>
+        <tr><td><code>surface/raised</code></td>
+            <td><span class="chip" style="background:#F7F7F6"></span> <code class="alias">neutral/50</code></td>
+            <td><span class="chip" style="background:#1E1E1C"></span> <code class="alias">neutral/925</code></td>
+            <td>Cards. <strong>Lighter</strong> than the page in dark</td></tr>
+        <tr><td><code>surface/card-translucent</code></td>
+            <td><code class="alias">neutral/50</code> @ 50%</td>
+            <td><code class="alias">neutral/925</code> @ 50%</td>
+            <td>A tint, not a panel</td></tr>
+        <tr><td><code>surface/floating</code></td>
+            <td><code class="alias">neutral/25</code> @ 72%</td>
+            <td><code class="alias">neutral/975</code> @ 66%</td>
+            <td>Header the page scrolls behind</td></tr>
+        <tr><td><code>text/primary</code></td>
+            <td><span class="chip" style="background:#191919"></span> <code class="alias">neutral/950</code></td>
+            <td><span class="chip" style="background:#F2F2EF"></span> <code class="alias">neutral/100</code></td>
+            <td>Type <em>and</em> filled buttons</td></tr>
+        <tr><td><code>text/secondary</code></td>
+            <td><span class="chip" style="background:#6F6F6A"></span> <code class="alias">neutral/600</code></td>
+            <td><span class="chip" style="background:#8A8A83"></span> <code class="alias">neutral/500</code></td>
+            <td>Held near 5:1, deliberately not brighter</td></tr>
+        <tr><td><code>text/on-ink</code></td>
+            <td><span class="chip" style="background:#FFFFFF"></span> <code class="alias">neutral/0</code></td>
+            <td><span class="chip" style="background:#121211"></span> <code class="alias">neutral/975</code></td>
+            <td>On a filled ink surface</td></tr>
+        <tr><td><code>line/hairline</code></td>
+            <td><span class="chip" style="background:#E3E3DE"></span> <code class="alias">neutral/200</code></td>
+            <td><span class="chip" style="background:#34342F"></span> <code class="alias">neutral/850</code></td>
+            <td>Separators only</td></tr>
+        <tr><td><code>line/glass-edge</code></td>
+            <td><code class="alias">neutral/0</code> @ 55%</td>
+            <td><code class="alias">neutral/100</code> @ 14%</td>
+            <td>Drawn over a blur, never a border</td></tr>
+        <tr><td><code>control/track</code></td>
+            <td><span class="chip" style="background:#D9D9D7"></span> <code class="alias">neutral/300</code></td>
+            <td><span class="chip" style="background:#3A3A35"></span> <code class="alias">neutral/800</code></td>
+            <td>Switch, unfilled</td></tr>
+        <tr><td><code>control/highlight</code></td>
+            <td><code class="alias">neutral/1000</code> @ 12%</td>
+            <td><code class="alias">neutral/100</code> @ 16%</td>
+            <td>Current tab. <strong>Inverts</strong></td></tr>
+        <tr><td><code>state/danger</code></td>
+            <td><span class="chip" style="background:#EC1C22"></span> <code class="alias">red/500</code></td>
+            <td><span class="chip" style="background:#FF5257"></span> <code class="alias">red/400</code></td>
+            <td>Destructive only</td></tr>
+        <tr><td><code>brand/accent</code></td>
+            <td colspan="2"><span class="chip" style="background:#C6FF3D"></span> <code class="alias">lime/accent</code> — same in both</td>
+            <td>Currently unused</td></tr>
+        <tr><td><code>brand/accent-text</code></td>
+            <td colspan="2"><span class="chip" style="background:#0A0A0A"></span> <code class="alias">neutral/1000</code> — same in both</td>
+            <td>On the accent</td></tr>
+        <tr><td><code>glass/wash-top</code></td>
+            <td><code class="alias">neutral/0</code> @ 60%</td>
+            <td><code class="alias">neutral/800</code> @ 62%</td>
+            <td rowspan="2">Two stops of one gradient, for the blur stand-in</td></tr>
+        <tr><td><code>glass/wash-bottom</code></td>
+            <td><code class="alias">neutral/0</code> @ 32%</td>
+            <td><code class="alias">neutral/900</code> @ 38%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <strong>Two of these are not text colours.</strong> <code>text/primary</code>
+    is also the <em>fill</em> of the primary button, the selected segmented cell
+    and the switch track, with <code>text/on-ink</code> on top. Repaint it and
+    those surfaces move too. And <code>text/on-ink</code> in dark is the same
+    primitive as <code>surface/page</code> — that is correct, not a mistake: a
+    filled surface in dark mode is light, so what sits on it is the page colour.
+  </div>
+</section>
+
+<!-- ─────────────────────────── routines ────────────────────────────────── -->
+<section>
+  <div class="head">
+    <div class="eyebrow">04 — Semantic</div>
+    <h2>Routine tokens</h2>
+  </div>
+
+  <p>
+    Five per routine. Three alias a primitive; two are derived and included so a
+    component can reference them, not so they can be adjusted. Listed in stack
+    order, top to bottom, with the resting tilt of each card.
+  </p>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Token</th><th>Light</th><th>Dark</th></tr></thead>
+      <tbody>
+        <tr><td colspan="3"><strong>1 &nbsp; Glutes</strong> &nbsp;<span class="eyebrow">tilt 3°</span></td></tr>
+        <tr><td><code>routine/glutes/history</code></td><td><span class="chip" style="background:#FFE373"></span> <code class="alias">yellow/200</code></td><td><span class="chip" style="background:#FFCE53"></span> <code class="alias">yellow/300</code></td></tr>
+        <tr><td><code>routine/glutes/base</code></td><td><span class="chip" style="background:#FCD22E"></span> <code class="alias">yellow/500</code></td><td><span class="chip" style="background:#F5B000"></span> <code class="alias">yellow/600</code></td></tr>
+        <tr><td><code>routine/glutes/sweep</code></td><td><span class="chip" style="background:#EEB722"></span> <code class="alias">yellow/700</code></td><td><span class="chip" style="background:#E79507"></span> <code class="alias">yellow/800</code></td></tr>
+        <tr><td><code>routine/glutes/ink</code></td><td><code class="alias">neutral/1000</code></td><td><code class="alias">neutral/1000</code></td></tr>
+        <tr><td><code>routine/glutes/wash</code></td><td><code class="alias">neutral/1000</code> @ 15%</td><td><code class="alias">neutral/1000</code> @ 16%</td></tr>
+
+        <tr><td colspan="3"><strong>2 &nbsp; Full body</strong> &nbsp;<span class="eyebrow">tilt −5°</span></td></tr>
+        <tr><td><code>routine/full-body/history</code></td><td><span class="chip" style="background:#FF7175"></span> <code class="alias">red/200</code></td><td><span class="chip" style="background:#F26163"></span> <code class="alias">red/300</code></td></tr>
+        <tr><td><code>routine/full-body/base</code></td><td><span class="chip" style="background:#EC1C22"></span> <code class="alias">red/500</code></td><td><span class="chip" style="background:#DD0004"></span> <code class="alias">red/600</code></td></tr>
+        <tr><td><code>routine/full-body/sweep</code></td><td><span class="chip" style="background:#C41419"></span> <code class="alias">red/700</code></td><td><span class="chip" style="background:#AD0003"></span> <code class="alias">red/800</code></td></tr>
+        <tr><td><code>routine/full-body/ink</code></td><td><code class="alias">neutral/0</code></td><td><code class="alias">neutral/0</code></td></tr>
+        <tr><td><code>routine/full-body/wash</code></td><td><code class="alias">red/700</code> @ 36%</td><td><code class="alias">red/800</code> @ 27%</td></tr>
+
+        <tr><td colspan="3"><strong>3 &nbsp; Core</strong> &nbsp;<span class="eyebrow">tilt −2°</span></td></tr>
+        <tr><td><code>routine/core/history</code></td><td><span class="chip" style="background:#FCDEE9"></span> <code class="alias">pink/200</code></td><td><span class="chip" style="background:#FFC3D9"></span> <code class="alias">pink/300</code></td></tr>
+        <tr><td><code>routine/core/base</code></td><td><span class="chip" style="background:#FBCEDF"></span> <code class="alias">pink/500</code></td><td><span class="chip" style="background:#F3ABC5"></span> <code class="alias">pink/600</code></td></tr>
+        <tr><td><code>routine/core/sweep</code></td><td><span class="chip" style="background:#FFBAD4"></span> <code class="alias">pink/700</code></td><td><span class="chip" style="background:#F48AAF"></span> <code class="alias">pink/800</code></td></tr>
+        <tr><td><code>routine/core/ink</code></td><td><code class="alias">neutral/1000</code></td><td><code class="alias">neutral/1000</code></td></tr>
+        <tr><td><code>routine/core/wash</code></td><td><code class="alias">pink/900</code> @ 27%</td><td><code class="alias">pink/900</code> @ 44%</td></tr>
+
+        <tr><td colspan="3"><strong>4 &nbsp; Upper body</strong> &nbsp;<span class="eyebrow">tilt 0°</span></td></tr>
+        <tr><td><code>routine/upper-body/history</code></td><td><span class="chip" style="background:#FFBF83"></span> <code class="alias">orange/200</code></td><td><span class="chip" style="background:#FFA65D"></span> <code class="alias">orange/300</code></td></tr>
+        <tr><td><code>routine/upper-body/base</code></td><td><span class="chip" style="background:#F37500"></span> <code class="alias">orange/500</code></td><td><span class="chip" style="background:#E46701"></span> <code class="alias">orange/600</code></td></tr>
+        <tr><td><code>routine/upper-body/sweep</code></td><td><span class="chip" style="background:#C75000"></span> <code class="alias">orange/700</code></td><td><span class="chip" style="background:#B54103"></span> <code class="alias">orange/800</code></td></tr>
+        <tr><td><code>routine/upper-body/ink</code></td><td><code class="alias">neutral/1000</code></td><td><code class="alias">neutral/1000</code></td></tr>
+        <tr><td><code>routine/upper-body/wash</code></td><td><code class="alias">neutral/1000</code> @ 17%</td><td><code class="alias">neutral/1000</code> @ 14%</td></tr>
+
+        <tr><td colspan="3"><strong>5 &nbsp; Mobility</strong> &nbsp;<span class="eyebrow">tilt 4°</span></td></tr>
+        <tr><td><code>routine/mobility/history</code></td><td><span class="chip" style="background:#EBF86D"></span> <code class="alias">lime/200</code></td><td><span class="chip" style="background:#E0EE5A"></span> <code class="alias">lime/300</code></td></tr>
+        <tr><td><code>routine/mobility/base</code></td><td><span class="chip" style="background:#D7ED00"></span> <code class="alias">lime/500</code></td><td><span class="chip" style="background:#BFD200"></span> <code class="alias">lime/600</code></td></tr>
+        <tr><td><code>routine/mobility/sweep</code></td><td><span class="chip" style="background:#C5D716"></span> <code class="alias">lime/700</code></td><td><span class="chip" style="background:#AEBF00"></span> <code class="alias">lime/800</code></td></tr>
+        <tr><td><code>routine/mobility/ink</code></td><td><code class="alias">neutral/1000</code></td><td><code class="alias">neutral/1000</code></td></tr>
+        <tr><td><code>routine/mobility/wash</code></td><td><code class="alias">neutral/1000</code> @ 18%</td><td><code class="alias">neutral/1000</code> @ 17%</td></tr>
+
+        <tr><td colspan="3"><strong>6 &nbsp; Lower body</strong> &nbsp;<span class="eyebrow">tilt −3°</span></td></tr>
+        <tr><td><code>routine/lower-body/history</code></td><td><span class="chip" style="background:#87D7F6"></span> <code class="alias">blue/200</code></td><td><span class="chip" style="background:#69C1EA"></span> <code class="alias">blue/300</code></td></tr>
+        <tr><td><code>routine/lower-body/base</code></td><td><span class="chip" style="background:#00ADF0"></span> <code class="alias">blue/500</code></td><td><span class="chip" style="background:#0081BC"></span> <code class="alias">blue/600</code></td></tr>
+        <tr><td><code>routine/lower-body/sweep</code></td><td><span class="chip" style="background:#0071A5"></span> <code class="alias">blue/700</code></td><td><span class="chip" style="background:#1C598F"></span> <code class="alias">blue/800</code></td></tr>
+        <tr><td><code>routine/lower-body/ink</code></td><td><code class="alias">neutral/1000</code></td><td><strong><code class="alias">neutral/0</code></strong></td></tr>
+        <tr><td><code>routine/lower-body/wash</code></td><td><code class="alias">neutral/1000</code> @ 21%</td><td><code class="alias">blue/800</code> @ 31%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <strong>Lower body's ink is the only one that differs between modes</strong> —
+    black in light, white in dark. Every other routine wears the same ink in
+    both. Easy to mistype as matching.
+  </div>
+</section>
+
+<!-- ─────────────────────────── type ────────────────────────────────────── -->
+<section>
+  <div class="head">
+    <div class="eyebrow">05 — Type</div>
+    <h2>Type scale</h2>
+  </div>
+
+  <p>
+    Two system faces, split by job: <strong>SF Pro Rounded</strong> for what is
+    looked at, <strong>SF Pro</strong> for what is read and operated. Nothing is
+    bundled. Tracking is written as a ratio of the size, so changing a size
+    carries its tracking with it. Case is part of the role — four roles
+    uppercase themselves and the copy stays in sentence case.
+  </p>
+
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Role</th><th class="num">Size</th><th class="num">Weight</th><th>Face</th><th class="num">Tracking</th><th>Case</th><th class="num">Max scale</th><th>Used for</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>caption</code></td><td class="num">12</td><td class="num">400</td><td>SF Pro</td><td class="num">0</td><td>—</td><td class="num">none</td><td>Notes, disclaimers</td></tr>
+        <tr><td><code>label</code></td><td class="num">12</td><td class="num">500</td><td>SF Pro</td><td class="num">+1%</td><td>UPPER</td><td class="num">1.5×</td><td>Small caps, tags</td></tr>
+        <tr><td><code>body</code></td><td class="num">16</td><td class="num">400</td><td>SF Pro</td><td class="num">0</td><td>—</td><td class="num">none</td><td>Prose</td></tr>
+        <tr><td><code>control</code></td><td class="num">16</td><td class="num">500</td><td>SF Pro</td><td class="num">0</td><td>—</td><td class="num">1.5×</td><td>Button labels</td></tr>
+        <tr><td><code>routineCardMeta</code></td><td class="num">16</td><td class="num">400</td><td>Rounded</td><td class="num">0</td><td>UPPER</td><td class="num">1.3×</td><td>“50 MIN”, “6 EXERCISES”</td></tr>
+        <tr><td><code>title</code></td><td class="num">20</td><td class="num">700</td><td>Rounded</td><td class="num">0</td><td>—</td><td class="num">1.4×</td><td>Section heads, cell names</td></tr>
+        <tr><td><code>heading</code></td><td class="num">30</td><td class="num">500</td><td>Rounded</td><td class="num">+1%</td><td>—</td><td class="num">1.3×</td><td>The exercise you are on</td></tr>
+        <tr><td><code>routineCard</code></td><td class="num">30</td><td class="num">400</td><td>Rounded</td><td class="num">0</td><td>UPPER</td><td class="num">1.3×</td><td>The card’s name</td></tr>
+        <tr><td><code>screenTitle</code></td><td class="num">32</td><td class="num">700</td><td>Rounded</td><td class="num">−1%</td><td>—</td><td class="num">1.3×</td><td>Page titles</td></tr>
+        <tr><td><code>figure</code></td><td class="num">64</td><td class="num">700</td><td>Rounded</td><td class="num">−3%</td><td>—</td><td class="num">1.2×</td><td>Stats counters (tabular)</td></tr>
+        <tr><td><code>hero</code></td><td class="num">82</td><td class="num">700</td><td>Rounded</td><td class="num">−1%</td><td>—</td><td class="num">1.2×</td><td>The figure being lifted</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    <strong>Max scale</strong> is how far each role follows the phone’s text-size
+    setting. Prose is uncapped because it is the reason the setting exists;
+    everything in a box the layout fixes is bounded. In Figma this is a note on
+    the style — no visual effect at 1×, but the difference between a layout that
+    survives accessibility sizes and one that clips.
+  </p>
+
+  <div class="note">
+    <strong>Never set a line height below the font’s own.</strong> SF Pro’s
+    natural line is 1.1777 em and React Native clips to the line box, so a
+    tighter value cuts the tops and tails off — worst exactly where it shows
+    most. Get tightness from margins instead. In Figma, leave line height on Auto
+    for display type and control the gap with spacing.
+  </div>
+</section>
+
+<!-- ─────────────────────────── scale ───────────────────────────────────── -->
+<section>
+  <div class="head">
+    <div class="eyebrow">06 — Scale</div>
+    <h2>Spacing, radius, dimension</h2>
+  </div>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Token</th><th class="num">Value</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><code>space/1 … 6</code></td><td class="num">4 · 8 · 16 · 24 · 32 · 48</td><td>Everything is on this scale</td></tr>
+        <tr><td><code>radius/chip</code></td><td class="num">4</td><td>Tags</td></tr>
+        <tr><td><code>radius/card</code></td><td class="num">12</td><td>Cards, panels, segmented cells</td></tr>
+        <tr><td><code>radius/pill</code></td><td class="num">999</td><td>Buttons, tab bar, chart columns</td></tr>
+        <tr><td><code>nav/height</code></td><td class="num">52</td><td>Floating tab bar</td></tr>
+        <tr><td><code>nav/float-gap</code></td><td class="num">8</td><td>Above the home indicator</td></tr>
+        <tr><td><code>nav/item</code></td><td class="num">64 × 44</td><td>Gap 4, bar padding 4</td></tr>
+        <tr><td><code>card/size</code></td><td class="num">280 × 360</td><td>Routine card</td></tr>
+        <tr><td><code>card/peek</code></td><td class="num">56</td><td>Vertical step between stacked cards</td></tr>
+        <tr><td><code>chart/column</code></td><td class="num">9 × 230</td><td>Pill, clipped</td></tr>
+        <tr><td><code>swipe/action</code></td><td class="num">60</td><td>Uncovered by a swipe</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ─────────────────────────── buttons ─────────────────────────────────── -->
+<section>
+  <div class="head">
+    <div class="eyebrow">07 — Components</div>
+    <h2>Buttons, and the hierarchy</h2>
+  </div>
+
+  <p>
+    Every button is a <strong>pill, 52 minimum height</strong>, with
+    <code>control</code> as its label. What separates the levels is the fill —
+    never the size, never the radius, never the type. One filled primary per
+    screen.
+  </p>
+
+  <div>
+    <div class="tierrow">
+      <div class="rank">1</div>
+      <div class="sub">
+        <h3>Primary — filled ink <span class="pill now">build first</span></h3>
+        <p>The one committing action on a screen. On neutral screens the fill is <code>text/primary</code> and the label <code>text/on-ink</code>; on a routine screen it inverts — fill is the routine’s <code>ink</code>, label is the routine’s <code>base</code>, so the button is the screen’s colour in negative.</p>
+        <dl class="spec">
+          <dt>Height</dt><dd>min 52, padding 8 vertical / 16 horizontal</dd>
+          <dt>Radius</dt><dd><code>radius/pill</code></dd>
+          <dt>Fill</dt><dd><code>text/primary</code> &nbsp;·&nbsp; routine <code>ink</code> on a workout screen</dd>
+          <dt>Label</dt><dd><code>control</code> in <code>text/on-ink</code> &nbsp;·&nbsp; routine <code>base</code></dd>
+          <dt>Variants</dt><dd>Default, pressed, disabled &nbsp;×&nbsp; Light, Dark</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="tierrow">
+      <div class="rank">2</div>
+      <div class="sub">
+        <h3>Secondary — translucent wash <span class="pill now">build first</span></h3>
+        <p>An alternative that belongs to the screen rather than sitting on top of it. Fill is the routine’s solved <code>wash</code> — a translucent film over the screen colour, not an opaque panel. Same geometry as primary.</p>
+        <dl class="spec">
+          <dt>Fill</dt><dd>routine <code>wash</code>, translucent over whatever is behind</dd>
+          <dt>Label</dt><dd><code>control</code> in the routine’s <code>ink</code></dd>
+          <dt>Careful</dt><dd>Do not flatten the wash to an opaque hex. It sits over a blur and its opacity is the point</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="tierrow">
+      <div class="rank">3</div>
+      <div class="sub">
+        <h3>Tertiary — bare label or icon</h3>
+        <p>No surface. Navigation, dismissal, “see all”: the close control, the back chevron, the next-exercise signpost. 44 × 44 hit area whatever the glyph measures.</p>
+      </div>
+    </div>
+
+    <div class="tierrow">
+      <div class="rank">4</div>
+      <div class="sub">
+        <h3>Destructive</h3>
+        <p>Only behind a swipe, and only with a confirmation after it. Fill <code>state/danger</code>, icon <code>text/on-ink</code>. Never a resting button on a screen.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <strong>The icon button is a separate component, not a small primary.</strong>
+    44 × 44, pill, and its surface is a blur rather than a fill — the restack
+    control on Home is the reference. Building it as a size variant of the
+    primary produces the wrong thing.
+  </div>
+</section>
+
+<!-- ─────────────────────────── build order ─────────────────────────────── -->
+<section>
+  <div class="head">
+    <div class="eyebrow">08 — Components</div>
+    <h2>What to build now</h2>
+  </div>
+
+  <p>Ordered by how much each unblocks. The first four are on every screen.</p>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Component</th><th>Spec</th><th>Variants</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Button</strong> <span class="pill now">first</span></td><td>min-h 52 · pill · pad 8/16 · <code>control</code></td><td>Level × state × mode</td></tr>
+        <tr><td><strong>Card / section</strong> <span class="pill now">first</span></td><td>radius 12 · pad 16 · <code>surface/raised</code> · no stroke</td><td>Mode. The fill alone separates it from the page</td></tr>
+        <tr><td><strong>Page title bar</strong> <span class="pill now">first</span></td><td><code>screenTitle</code> · pad-bottom 8 · frosts on scroll</td><td>At rest / scrolled × mode</td></tr>
+        <tr><td><strong>Tab bar</strong> <span class="pill now">first</span></td><td>h 52 · pill · pad 4 · items 64 × 44, gap 4</td><td>Three positions × mode</td></tr>
+        <tr><td><strong>Routine card</strong></td><td>280 × 360 · radius 12 · name at cap-top 19.75 · meta at bottom 20 · coloured glow</td><td>Six routines × mode. Tilt belongs to the stack slot</td></tr>
+        <tr><td><strong>Segmented control</strong></td><td>Equal cells · min-h 90 · radius 12 · gap 8</td><td>Unselected <code>text/on-ink</code> + <code>text/secondary</code>; selected <code>text/primary</code> + <code>text/on-ink</code></td></tr>
+        <tr><td><strong>Switch</strong></td><td>track 46 × 28, pad 3 · knob 22, travel 18</td><td>On = <code>text/primary</code>, off = <code>control/track</code></td></tr>
+        <tr><td><strong>List cell (History)</strong></td><td>pad 16 · head in routine <code>base</code> · body in <code>history</code></td><td>Collapsed / expanded · with / without tag · swiped</td></tr>
+        <tr><td><strong>Tag</strong></td><td>radius 4 · pad-x 9 · <code>label</code> · fill = routine <code>sweep</code></td><td>Six routines × mode</td></tr>
+        <tr><td><strong>Set dot</strong></td><td>48 × 48 · pill · stroke 2 · transparent fill</td><td>Empty / logged / pressed, in the routine’s ink</td></tr>
+        <tr><td><strong>Chart column</strong></td><td>9 × 230 · pill · clipped</td><td>Empty / segmented × mode</td></tr>
+        <tr><td><strong>Icon button</strong></td><td>44 × 44 · pill · blurred surface · 24 glyph</td><td>Rest / pressed × mode</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <strong>Primitives first, then semantic tokens, then components.</strong> In
+    that order. Build a component against a raw hex and you will rebuild it when
+    the token arrives.
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <div class="eyebrow">09</div>
+    <h2>Two things not to model</h2>
+  </div>
+  <ul>
+    <li><strong>The wash.</strong> Solved at runtime from the card, the sweep and the label’s contrast, and it differs per routine and per mode. The values here are for reference — it is not a colour to design.</li>
+    <li><strong>Card tilt.</strong> The angles — 3, −5, −2, 0, 4, −3 — belong to the position in the pile, not to the routine. Reorder the stack and the sequence stays put while the routines move through it.</li>
+  </ul>
+</section>
+
+</div>
