@@ -130,7 +130,14 @@ const ROUTINES = {
 // The cost, taken deliberately: upper body and lower body are nowhere near
 // each other. The pile is a set of colours you recognise, not a list you read
 // down — and the four-tab restructure gives the list a home of its own.
-export const CANONICAL_ORDER = ['glutes', 'full body', 'core', 'upper body', 'mobility', 'lower body']
+export const CANONICAL_ORDER = [
+  'glutes',
+  'full body',
+  'core',
+  'upper body',
+  'mobility',
+  'lower body',
+]
 
 // Sessions recorded before the routine was renamed still say 'stretching', and
 // history should not turn a different colour because a routine was renamed.
@@ -444,7 +451,12 @@ export function washFor(scheme, name, index) {
   // stops there rather than going to the full step.
   if (tones.wash === 'darken') {
     const bounded = solveWash(
-      ground, sweep, darker, WASH_STEP_ON_LIGHT, WASH_LIGHT_MIN_FROM_SWEEP, channelsOf(ink),
+      ground,
+      sweep,
+      darker,
+      WASH_STEP_ON_LIGHT,
+      WASH_LIGHT_MIN_FROM_SWEEP,
+      channelsOf(ink),
     )
     return asRgba(darker, bounded)
   }
@@ -460,5 +472,8 @@ export function washFor(scheme, name, index) {
   // numbers rather than listed here, and the pale three keep the darkening
   // film they were signed off with.
   const lighter = [1, 1, 1]
-  return asRgba(lighter, solveWash(ground, sweep, lighter, WASH_STEP_ON_LIGHT, WASH_LIGHT_MIN_FROM_SWEEP))
+  return asRgba(
+    lighter,
+    solveWash(ground, sweep, lighter, WASH_STEP_ON_LIGHT, WASH_LIGHT_MIN_FROM_SWEEP),
+  )
 }

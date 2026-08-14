@@ -1,12 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native'
+import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
@@ -40,7 +33,15 @@ import {
 } from '../src/components/HistoryIcons.jsx'
 import { Glass } from '../src/components/Glass.jsx'
 import { EXPAND_SPRING } from '../src/data/motion.js'
-import { CAP, RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, TYPE } from '../src/theme/index.js'
+import {
+  CAP,
+  RADIUS,
+  SPACE,
+  SYSTEM_ASCENT,
+  SYSTEM_CAP,
+  SYSTEM_DESCENT,
+  TYPE,
+} from '../src/theme/index.js'
 import { useRoutineColours, useTheme, useThemedStyles } from '../src/theme/ThemeProvider.jsx'
 
 const MONTH = new Intl.DateTimeFormat('en-GB', { month: 'long' })
@@ -225,7 +226,6 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete, remov
 
   const slide = useAnimatedStyle(() => ({ transform: [{ translateX: slid.value }] }))
 
-
   const shut = useCallback(() => {
     slid.value = withSpring(0, EXPAND_SPRING)
   }, [slid])
@@ -269,8 +269,6 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete, remov
     })
   }, [removing, shrink, measured, onRemoved])
 
-
-
   useEffect(() => {
     height.value = withSpring(open ? bodyHeight : 0, EXPAND_SPRING)
     // On the cell's own spring rather than a timing curve of its own. The
@@ -305,88 +303,85 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete, remov
   const show = built || open
   const body = show ? (
     <>
-          <View style={styles.summary}>
-            <View style={styles.summaryRow}>
-              <ClockIcon size={24} color={pale.ink} />
-              <Text {...CAP.label} style={[styles.summaryText, { color: pale.ink }]}>
-                {durationLabel(session) ?? '—'}
-              </Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <DumbbellIcon size={24} color={pale.ink} />
-              <Text {...CAP.label} style={[styles.summaryText, { color: pale.ink }]}>
-                {exercisesDone}/{exercises} exercises completed
-              </Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <RepeatIcon size={24} color={pale.ink} />
-              <Text {...CAP.label} style={[styles.summaryText, { color: pale.ink }]}>
-                {setsDone}/{sets} sets completed
-              </Text>
-            </View>
-            {/* Left out entirely for a workout recorded without a body
+      <View style={styles.summary}>
+        <View style={styles.summaryRow}>
+          <ClockIcon size={24} color={pale.ink} />
+          <Text {...CAP.label} style={[styles.summaryText, { color: pale.ink }]}>
+            {durationLabel(session) ?? '—'}
+          </Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <DumbbellIcon size={24} color={pale.ink} />
+          <Text {...CAP.label} style={[styles.summaryText, { color: pale.ink }]}>
+            {exercisesDone}/{exercises} exercises completed
+          </Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <RepeatIcon size={24} color={pale.ink} />
+          <Text {...CAP.label} style={[styles.summaryText, { color: pale.ink }]}>
+            {setsDone}/{sets} sets completed
+          </Text>
+        </View>
+        {/* Left out entirely for a workout recorded without a body
                 weight — there is nothing honest to put here. */}
-            {kcal !== null ? (
-              <View style={styles.summaryRow}>
-                <BoltIcon size={24} color={pale.ink} />
-                <Text {...CAP.label} style={[styles.summaryText, { color: pale.ink }]}>~{kcal} kcal*</Text>
-              </View>
-            ) : null}
+        {kcal !== null ? (
+          <View style={styles.summaryRow}>
+            <BoltIcon size={24} color={pale.ink} />
+            <Text {...CAP.label} style={[styles.summaryText, { color: pale.ink }]}>
+              ~{kcal} kcal*
+            </Text>
           </View>
+        ) : null}
+      </View>
 
-
-          <View style={styles.lifts}>
-            {session.exercises.map((exercise, i) => {
-              // Not the stored `skipped` flag: that records pressing Skip,
-              // which is true of an exercise you logged sets on before
-              // moving off it. What was done is what counts, so an exercise
-              // only reads as skipped when nothing was logged for it at all.
-              const untouched = !exercise.sets.some((set) => set.done)
-              return (
-                <View key={`${exercise.exerciseId}-${i}`} style={styles.lift}>
-                  <Text {...CAP.label}
+      <View style={styles.lifts}>
+        {session.exercises.map((exercise, i) => {
+          // Not the stored `skipped` flag: that records pressing Skip,
+          // which is true of an exercise you logged sets on before
+          // moving off it. What was done is what counts, so an exercise
+          // only reads as skipped when nothing was logged for it at all.
+          const untouched = !exercise.sets.some((set) => set.done)
+          return (
+            <View key={`${exercise.exerciseId}-${i}`} style={styles.lift}>
+              <Text
+                {...CAP.label}
+                style={[styles.liftName, { color: pale.ink }, untouched && styles.faded]}
+              >
+                {exercise.exerciseName}
+                {untouched ? '*' : ''}
+              </Text>
+              <View style={styles.liftSets}>
+                {setRuns(exercise).map((run, j) => (
+                  <Text
+                    {...CAP.label}
+                    key={j}
                     style={[
-                      styles.liftName,
+                      styles.liftRun,
                       { color: pale.ink },
-                      untouched && styles.faded,
+                      // Not both. A missed set inside a skipped exercise
+                      // was being faded twice over, which read as a
+                      // third state that does not exist.
+                      (untouched || !run.done) && styles.faded,
                     ]}
                   >
-                    {exercise.exerciseName}
-                    {untouched ? '*' : ''}
+                    {runLabel(run, exercise.tracksWeight)}
+                    {run.done ? '' : '*'}
                   </Text>
-                  <View style={styles.liftSets}>
-                    {setRuns(exercise).map((run, j) => (
-                      <Text {...CAP.label}
-                        key={j}
-                        style={[
-                          styles.liftRun,
-                          { color: pale.ink },
-                          // Not both. A missed set inside a skipped exercise
-                          // was being faded twice over, which read as a
-                          // third state that does not exist.
-                          (untouched || !run.done) && styles.faded,
-                        ]}
-                      >
-                        {runLabel(run, exercise.tracksWeight)}
-                        {run.done ? '' : '*'}
-                      </Text>
-                    ))}
-                  </View>
-                </View>
-              )
-            })}
-          </View>
+                ))}
+              </View>
+            </View>
+          )
+        })}
+      </View>
 
-          {anySkipped ? (
-            <Text style={[styles.footnote, { color: pale.ink }, styles.faded]}>*Skipped</Text>
-          ) : null}
-          {/* After the skipped note when both are here, so the marks are
+      {anySkipped ? (
+        <Text style={[styles.footnote, { color: pale.ink }, styles.faded]}>*Skipped</Text>
+      ) : null}
+      {/* After the skipped note when both are here, so the marks are
               explained in the order they appear above. */}
-          {kcal !== null ? (
-            <Text style={[styles.footnote, { color: pale.ink }, styles.faded]}>
-              {KCAL_DISCLAIMER}
-            </Text>
-          ) : null}
+      {kcal !== null ? (
+        <Text style={[styles.footnote, { color: pale.ink }, styles.faded]}>{KCAL_DISCLAIMER}</Text>
+      ) : null}
     </>
   ) : null
 
@@ -424,11 +419,7 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete, remov
             only place two surfaces meet. */}
         <Animated.View
           pointerEvents="none"
-          style={[
-            styles.silhouette,
-            { backgroundColor: styleFor(kind).background },
-            slide,
-          ]}
+          style={[styles.silhouette, { backgroundColor: styleFor(kind).background }, slide]}
         />
         <Pressable
           onPress={onDelete}
@@ -453,79 +444,86 @@ function WorkoutCell({ session, open, built, onToggle, onReveal, onDelete, remov
         <Animated.View
           style={[styles.slider, { backgroundColor: styleFor(kind).background }, slide]}
         >
-        <View style={styles.sliderClip}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-        onPress={() => {
-          // A cell that has been swiped aside puts itself back rather than
-          // opening — the same tap that would dismiss the action elsewhere.
-          if (slid.value !== 0) {
-            shut()
-            return
-          }
-          // Measured on the press, while the cell is still shut, so the
-          // numbers describe a settled layout rather than one already
-          // springing. Where it will end up is that plus the body, which has
-          // been measured out of the flow since before it was ever opened.
-          if (!open) {
-            root.current?.measureInWindow((x, y, w, h) => {
-              pending.current = [y, h + bodyHeight, bodyHeight]
-            })
-          }
-          onToggle()
-        }}
-        style={[styles.head, { backgroundColor: styleFor(kind).background }]}
-      >
-        <View style={styles.heading}>
-          {/* Sentence case whatever the routine is stored as, matching the
+          <View style={styles.sliderClip}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: open }}
+              onPress={() => {
+                // A cell that has been swiped aside puts itself back rather than
+                // opening — the same tap that would dismiss the action elsewhere.
+                if (slid.value !== 0) {
+                  shut()
+                  return
+                }
+                // Measured on the press, while the cell is still shut, so the
+                // numbers describe a settled layout rather than one already
+                // springing. Where it will end up is that plus the body, which has
+                // been measured out of the flow since before it was ever opened.
+                if (!open) {
+                  root.current?.measureInWindow((x, y, w, h) => {
+                    pending.current = [y, h + bodyHeight, bodyHeight]
+                  })
+                }
+                onToggle()
+              }}
+              style={[styles.head, { backgroundColor: styleFor(kind).background }]}
+            >
+              <View style={styles.heading}>
+                {/* Sentence case whatever the routine is stored as, matching the
               page titles — "Lower Body" reads as a label, "Lower body" as a
               thing you did. */}
-          <Text {...CAP.title} style={[styles.name, { color: ink }]}>{sentenceCase(session.routineName)}</Text>
-          <Text {...CAP.label} style={[styles.when, { color: ink }]}>
-            {fullDate(session.startedAt)}, {clockTime(session.startedAt)}
-          </Text>
-        </View>
+                <Text {...CAP.title} style={[styles.name, { color: ink }]}>
+                  {sentenceCase(session.routineName)}
+                </Text>
+                <Text {...CAP.label} style={[styles.when, { color: ink }]}>
+                  {fullDate(session.startedAt)}, {clockTime(session.startedAt)}
+                </Text>
+              </View>
 
-        {/* Only flagged when we actually know: sessions recorded before this
+              {/* Only flagged when we actually know: sessions recorded before this
             was tracked have no answer either way. */}
-        {session.endedEarly === true ? (
-          <View style={[styles.tag, { backgroundColor: restTintFor(kind) }]}>
-            <Text {...CAP.label} style={[styles.tagText, { color: inkOn(restTintFor(kind)) }]}>
-              Ended early
-            </Text>
-          </View>
-        ) : null}
+              {session.endedEarly === true ? (
+                <View style={[styles.tag, { backgroundColor: restTintFor(kind) }]}>
+                  <Text
+                    {...CAP.label}
+                    style={[styles.tagText, { color: inkOn(restTintFor(kind)) }]}
+                  >
+                    Ended early
+                  </Text>
+                </View>
+              ) : null}
 
-        <Animated.View style={[styles.chevron, chevron]}>
-          <ChevronIcon size={24} color={ink} />
-        </Animated.View>
-      </Pressable>
+              <Animated.View style={[styles.chevron, chevron]}>
+                <ChevronIcon size={24} color={ink} />
+              </Animated.View>
+            </Pressable>
 
-      {/* A wash of the routine's own colour rather than a fresh surface, with
+            {/* A wash of the routine's own colour rather than a fresh surface, with
           the colour itself as ink wherever it holds up against that wash. */}
-      <View>
-        {/* Measured here, out of the flow, rather than inside the wrapper.
+            <View>
+              {/* Measured here, out of the flow, rather than inside the wrapper.
             Measuring the copy inside is circular: it sits in a box whose
             height is the very thing being measured, and is clipped to it, so
             the first pass comes back short — and being kept, the cell opens
             short from then on. Settings' Reveal was fixed this way; this was
             missed. */}
-        <View
-          style={[styles.body, styles.measure]}
-          pointerEvents="none"
-          onLayout={(e) => {
-            const measured = e.nativeEvent.layout.height
-            setBodyHeight((current) => (Math.abs(current - measured) > 1 ? measured : current))
-          }}
-        >
-          {body}
-        </View>
-        <Animated.View style={[styles.reveal, { backgroundColor: pale.background }, reveal]}>
-          <View style={styles.body}>{body}</View>
-        </Animated.View>
-      </View>
-        </View>
+              <View
+                style={[styles.body, styles.measure]}
+                pointerEvents="none"
+                onLayout={(e) => {
+                  const measured = e.nativeEvent.layout.height
+                  setBodyHeight((current) =>
+                    Math.abs(current - measured) > 1 ? measured : current,
+                  )
+                }}
+              >
+                {body}
+              </View>
+              <Animated.View style={[styles.reveal, { backgroundColor: pale.background }, reveal]}>
+                <View style={styles.body}>{body}</View>
+              </Animated.View>
+            </View>
+          </View>
         </Animated.View>
       </GestureDetector>
     </Animated.View>
@@ -591,29 +589,32 @@ export default function History() {
   // padding — a cell tucked under the bar is as hidden as one off the bottom.
   const barClearance = insets.top + SPACE[2] + 32 + SPACE[2]
 
-  const revealInView = useCallback((top, finalHeight, grow) => {
-    const visibleTop = barClearance
-    const visibleBottom = windowHeight - insets.bottom - SPACE[4]
-    // How far past the bottom it would end up, and how much room there is
-    // above it before its own top disappears under the bar.
-    const below = top + finalHeight - visibleBottom
-    const above = top - visibleTop
+  const revealInView = useCallback(
+    (top, finalHeight, grow) => {
+      const visibleTop = barClearance
+      const visibleBottom = windowHeight - insets.bottom - SPACE[4]
+      // How far past the bottom it would end up, and how much room there is
+      // above it before its own top disappears under the bar.
+      const below = top + finalHeight - visibleBottom
+      const above = top - visibleTop
 
-    let delta = 0
-    // Taller than the screen once open is not a failure — `above` caps the
-    // move, so a long cell settles with its top under the bar and its own
-    // scrolling takes over from there.
-    if (below > 0) delta = Math.min(below, above)
-    else if (above < 0) delta = above
-    if (delta === 0) return
+      let delta = 0
+      // Taller than the screen once open is not a failure — `above` caps the
+      // move, so a long cell settles with its top under the bar and its own
+      // scrolling takes over from there.
+      if (below > 0) delta = Math.min(below, above)
+      else if (above < 0) delta = above
+      if (delta === 0) return
 
-    // The content is about to grow by `grow`, so the end of the list moves
-    // too. Without that the last cell in the list has nowhere to scroll to.
-    const most = Math.max(0, content.current + grow - viewport.current)
-    const dest = Math.min(most, Math.max(0, scrollY.current + delta))
-    glide.value = scrollY.current
-    glide.value = withSpring(dest, EXPAND_SPRING)
-  }, [glide, barClearance, windowHeight, insets.bottom])
+      // The content is about to grow by `grow`, so the end of the list moves
+      // too. Without that the last cell in the list has nowhere to scroll to.
+      const most = Math.max(0, content.current + grow - viewport.current)
+      const dest = Math.min(most, Math.max(0, scrollY.current + delta))
+      glide.value = scrollY.current
+      glide.value = withSpring(dest, EXPAND_SPRING)
+    },
+    [glide, barClearance, windowHeight, insets.bottom],
+  )
 
   useEffect(() => {
     compressed.value = withTiming(scrolled ? 1 : 0, { duration: 220 })
@@ -672,7 +673,10 @@ export default function History() {
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.barSlot, { paddingTop: insets.top + SPACE[2] }]} pointerEvents="box-none">
+      <View
+        style={[styles.barSlot, { paddingTop: insets.top + SPACE[2] }]}
+        pointerEvents="box-none"
+      >
         {/* Nothing behind it at rest, so it carries no surface — the material
             arrives only once a coloured cell is passing underneath and the
             title needs something to sit on. */}
@@ -695,7 +699,9 @@ export default function History() {
           >
             <BackIcon color={theme.text} />
           </Pressable>
-          <Text {...CAP.title} style={styles.title}>My workouts</Text>
+          <Text {...CAP.title} style={styles.title}>
+            My workouts
+          </Text>
           {/* Balances the back control, so the title sits centred on the
               screen rather than on the space left beside it. */}
           <View style={styles.back} />
@@ -739,10 +745,14 @@ export default function History() {
             needs keeping in view. */}
         {years.map(({ year, weeks }) => (
           <View key={year}>
-            <Text {...CAP.title} style={styles.year}>{year}</Text>
+            <Text {...CAP.title} style={styles.year}>
+              {year}
+            </Text>
             {weeks.map(({ weekStart, sessions: inWeek }) => (
               <View key={weekStart}>
-                <Text {...CAP.label} style={styles.weekLabel}>{weekLabel(weekStart)}</Text>
+                <Text {...CAP.label} style={styles.weekLabel}>
+                  {weekLabel(weekStart)}
+                </Text>
                 <View>
                   {inWeek.map((session) => (
                     <WorkoutCell
@@ -763,7 +773,6 @@ export default function History() {
           </View>
         ))}
       </Animated.ScrollView>
-
     </View>
   )
 }
@@ -772,171 +781,171 @@ export default function History() {
 // was so the chip stays the same height, and how unevenly that has to be
 // split for the capitals inside it to look centred.
 const TAG_PADDING = 12
-const TAG_CAP_OFFSET =
-  (SYSTEM_ASCENT - SYSTEM_CAP - SYSTEM_DESCENT) * TYPE.label.fontSize
+const TAG_CAP_OFFSET = (SYSTEM_ASCENT - SYSTEM_CAP - SYSTEM_DESCENT) * TYPE.label.fontSize
 
-const makeStyles = (t) => StyleSheet.create({
-  screen: { flex: 1, backgroundColor: t.bg },
-  barSlot: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    zIndex: 10,
-    paddingHorizontal: SPACE[3],
-    paddingBottom: SPACE[2],
-  },
-  barRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  barYear: { ...TYPE.body, color: t.text, textAlign: 'center', overflow: 'hidden' },
-  title: { ...TYPE.title, color: t.text },
-  year: { ...TYPE.title, color: t.text, marginTop: SPACE[4] },
-  weekLabel: {
-    ...TYPE.label,
-    color: t.textDim,
-    paddingTop: SPACE[3],
-    paddingBottom: SPACE[2],
-  },
-  // Deliberately not clipping. The card is meant to travel out of the cell and
-  // off the screen keeping its own rounded corners, the way the design draws it
-  // at x -36 — clipping here would cut it square against the cell's edge
-  // instead. What stops it is the scroll view, which is the screen.
-  cell: { marginBottom: SPACE[2] },
-  // Two views because the inner one clips its children to the rounded corners
-  // and the outer one is what the swipe moves.
-  slider: { borderRadius: RADIUS.card },
-  sliderClip: { borderRadius: RADIUS.card, overflow: 'hidden' },
-  head: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: SPACE[2],
-    padding: SPACE[3],
-  },
-  heading: { flex: 1, minWidth: 0, gap: SPACE[2] },
-  // The head is flex-start so the heading block starts at the top of the
-  // padding rather than floating in it. The two things beside it are single
-  // objects and centre against that block instead — which the tag already
-  // did with alignSelf, and the chevron did not, so they sat at different
-  // heights in the same row.
-  chevron: { alignSelf: 'center' },
-  name: { ...TYPE.title },
-  when: { ...TYPE.label },
-  // The routine's own colour with the light turned down — the same shade the
-  // rest sweep paints during a workout, so the app has one idea of "this
-  // colour, deeper" rather than two.
-  tag: {
-    alignSelf: 'center',
-    // Yields before the name does. Without this the tag held its full
-    // intrinsic width and squeezed `heading` down to a couple of characters —
-    // at large text sizes "Core" came out one letter per line. `heading` is
-    // flex: 1 with minWidth: 0, so it takes what is left once this has given
-    // way rather than the other way round.
-    flexShrink: 1,
-    marginRight: SPACE[2],
-    // What is being centred is the capitals, not the line box. Uppercase inks
-    // only the cap height, and a line box is not symmetrical around it: SF Pro
-    // leaves 0.262em above the capitals and 0.211em below the baseline, so
-    // centring the box leaves the letters sitting high.
+const makeStyles = (t) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: t.bg },
+    barSlot: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      zIndex: 10,
+      paddingHorizontal: SPACE[3],
+      paddingBottom: SPACE[2],
+    },
+    barRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    back: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+    barYear: { ...TYPE.body, color: t.text, textAlign: 'center', overflow: 'hidden' },
+    title: { ...TYPE.title, color: t.text },
+    year: { ...TYPE.title, color: t.text, marginTop: SPACE[4] },
+    weekLabel: {
+      ...TYPE.label,
+      color: t.textDim,
+      paddingTop: SPACE[3],
+      paddingBottom: SPACE[2],
+    },
+    // Deliberately not clipping. The card is meant to travel out of the cell and
+    // off the screen keeping its own rounded corners, the way the design draws it
+    // at x -36 — clipping here would cut it square against the cell's edge
+    // instead. What stops it is the scroll view, which is the screen.
+    cell: { marginBottom: SPACE[2] },
+    // Two views because the inner one clips its children to the rounded corners
+    // and the outer one is what the swipe moves.
+    slider: { borderRadius: RADIUS.card },
+    sliderClip: { borderRadius: RADIUS.card, overflow: 'hidden' },
+    head: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: SPACE[2],
+      padding: SPACE[3],
+    },
+    heading: { flex: 1, minWidth: 0, gap: SPACE[2] },
+    // The head is flex-start so the heading block starts at the top of the
+    // padding rather than floating in it. The two things beside it are single
+    // objects and centre against that block instead — which the tag already
+    // did with alignSelf, and the chevron did not, so they sat at different
+    // heights in the same row.
+    chevron: { alignSelf: 'center' },
+    name: { ...TYPE.title },
+    when: { ...TYPE.label },
+    // The routine's own colour with the light turned down — the same shade the
+    // rest sweep paints during a workout, so the app has one idea of "this
+    // colour, deeper" rather than two.
+    tag: {
+      alignSelf: 'center',
+      // Yields before the name does. Without this the tag held its full
+      // intrinsic width and squeezed `heading` down to a couple of characters —
+      // at large text sizes "Core" came out one letter per line. `heading` is
+      // flex: 1 with minWidth: 0, so it takes what is left once this has given
+      // way rather than the other way round.
+      flexShrink: 1,
+      marginRight: SPACE[2],
+      // What is being centred is the capitals, not the line box. Uppercase inks
+      // only the cap height, and a line box is not symmetrical around it: SF Pro
+      // leaves 0.262em above the capitals and 0.211em below the baseline, so
+      // centring the box leaves the letters sitting high.
+      //
+      // The old 7.5 / 4.5 was tuned by eye against Funnel and tilted the wrong
+      // way — 3pt more above where the font already gives more above. Derived now,
+      // so it follows the typeface rather than needing to be re-eyeballed.
+      paddingTop: (TAG_PADDING - TAG_CAP_OFFSET) / 2,
+      paddingBottom: (TAG_PADDING + TAG_CAP_OFFSET) / 2,
+      paddingHorizontal: 9,
+      borderRadius: RADIUS.chip,
+    },
+    tagText: { ...TYPE.label },
+    // Laid out for its height only: out of the flow so it adds none, and
+    // invisible so it shows none.
+    measure: { position: 'absolute', left: 0, right: 0, top: 0, opacity: 0, zIndex: -1 },
+    reveal: { overflow: 'hidden' },
+    body: { paddingTop: SPACE[4], paddingHorizontal: SPACE[3], paddingBottom: SPACE[3] },
+    summary: { gap: SPACE[1] },
+    summaryRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE[2] },
+    summaryText: { ...TYPE.label },
+    // Uncovered by the swipe. Its own red on every routine colour rather than
+    // joining the palette, because it is the one thing here that destroys
+    // something.
+    action: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: t.danger,
+      borderRadius: RADIUS.card,
+      // A row, so the target can stretch down the cell while sitting at its end.
+      // It was a column with `alignSelf: 'stretch'` on the child, which quietly
+      // cancels the parent's `alignItems: 'flex-end'` and puts the icon at the
+      // *left* of the cell — under the card, where nothing could ever see it.
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      alignItems: 'stretch',
+      // So the shading is cut off at the cell rather than trailing across the
+      // page while the card is home.
+      overflow: 'hidden',
+    },
+    silhouette: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: RADIUS.card,
+      shadowColor: '#6C0000',
+      shadowOpacity: 0.5,
+      shadowOffset: { width: 2, height: 0 },
+      shadowRadius: 5,
+    },
+    // The icon centres in the strip the swipe uncovers, not in the cell.
+    actionHit: {
+      width: ACTION_WIDTH,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    lifts: { marginTop: SPACE[3] },
+    // Name against the left edge, sets against the right, so a long name that
+    // wraps still reads across to its own figures.
+    lift: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: SPACE[3],
+      paddingVertical: SPACE[2],
+    },
+    liftName: { flexShrink: 1, ...TYPE.label },
+    // Groups run along the row and wrap onto further lines when a session had
+    // too many different sets to fit — right-aligned, so however many lines it
+    // takes the figures stay in one column.
+    liftSets: {
+      flexShrink: 0,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'flex-end',
+      maxWidth: '60%',
+      gap: SPACE[1],
+      columnGap: SPACE[2],
+    },
+    liftRun: {
+      ...TYPE.label,
+      // Mixed case on purpose — the x in "4x 8x45kg" is not a capital — and
+      // mixed case tracks in where capitals track out.
+      textTransform: 'none',
+      letterSpacing: TYPE.caption.letterSpacing,
+      textAlign: 'right',
+    },
+    // Sets that were never logged, and exercises passed over entirely: still
+    // shown, carrying what they were going to be, but stepped back so the row
+    // reads as something that did not happen.
+    // Skipped work, and the calorie disclaimer: still secondary, but readable.
     //
-    // The old 7.5 / 4.5 was tuned by eye against Funnel and tilted the wrong
-    // way — 3pt more above where the font already gives more above. Derived now,
-    // so it follows the typeface rather than needing to be re-eyeballed.
-    paddingTop: (TAG_PADDING - TAG_CAP_OFFSET) / 2,
-    paddingBottom: (TAG_PADDING + TAG_CAP_OFFSET) / 2,
-    paddingHorizontal: 9,
-    borderRadius: RADIUS.chip,
-  },
-  tagText: { ...TYPE.label },
-  // Laid out for its height only: out of the flow so it adds none, and
-  // invisible so it shows none.
-  measure: { position: 'absolute', left: 0, right: 0, top: 0, opacity: 0, zIndex: -1 },
-  reveal: { overflow: 'hidden' },
-  body: { paddingTop: SPACE[4], paddingHorizontal: SPACE[3], paddingBottom: SPACE[3] },
-  summary: { gap: SPACE[1] },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE[2] },
-  summaryText: { ...TYPE.label },
-  // Uncovered by the swipe. Its own red on every routine colour rather than
-  // joining the palette, because it is the one thing here that destroys
-  // something.
-  action: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: t.danger,
-    borderRadius: RADIUS.card,
-    // A row, so the target can stretch down the cell while sitting at its end.
-    // It was a column with `alignSelf: 'stretch'` on the child, which quietly
-    // cancels the parent's `alignItems: 'flex-end'` and puts the icon at the
-    // *left* of the cell — under the card, where nothing could ever see it.
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'stretch',
-    // So the shading is cut off at the cell rather than trailing across the
-    // page while the card is home.
-    overflow: 'hidden',
-  },
-  silhouette: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: RADIUS.card,
-    shadowColor: '#6C0000',
-    shadowOpacity: 0.5,
-    shadowOffset: { width: 2, height: 0 },
-    shadowRadius: 5,
-  },
-  // The icon centres in the strip the swipe uncovers, not in the cell.
-  actionHit: {
-    width: ACTION_WIDTH,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  lifts: { marginTop: SPACE[3] },
-  // Name against the left edge, sets against the right, so a long name that
-  // wraps still reads across to its own figures.
-  lift: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: SPACE[3],
-    paddingVertical: SPACE[2],
-  },
-  liftName: { flexShrink: 1, ...TYPE.label },
-  // Groups run along the row and wrap onto further lines when a session had
-  // too many different sets to fit — right-aligned, so however many lines it
-  // takes the figures stay in one column.
-  liftSets: {
-    flexShrink: 0,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
-    maxWidth: '60%',
-    gap: SPACE[1],
-    columnGap: SPACE[2],
-  },
-  liftRun: {
-    ...TYPE.label,
-    // Mixed case on purpose — the x in "4x 8x45kg" is not a capital — and
-    // mixed case tracks in where capitals track out.
-    textTransform: 'none',
-    letterSpacing: TYPE.caption.letterSpacing,
-    textAlign: 'right',
-  },
-  // Sets that were never logged, and exercises passed over entirely: still
-  // shown, carrying what they were going to be, but stepped back so the row
-  // reads as something that did not happen.
-  // Skipped work, and the calorie disclaimer: still secondary, but readable.
-  //
-  // 0.4 put this at a contrast of 1.7 to 2.7 against the cell — below any
-  // legibility bar, on text that says which sets you did not do, which is
-  // information rather than decoration. 0.76 is what the worst of the six
-  // needs to clear 3:1.
-  //
-  // Not 4.5, because that is unreachable here: the cell's ink now sits at
-  // exactly 4.5 at full strength, so any fading at all falls under it. The
-  // choice is 3:1 secondary text or no fading at all, and this stays legible
-  // while still reading as a lesser voice.
-  //
-  // Applied once per element, never nested — a missed set inside a skipped
-  // exercise used to take it twice and read as a third state.
-  faded: { opacity: 0.76 },
-  footnote: { ...TYPE.caption, marginTop: SPACE[3] },
-  empty: { ...TYPE.body, color: t.textDim, marginTop: SPACE[5] },
-})
+    // 0.4 put this at a contrast of 1.7 to 2.7 against the cell — below any
+    // legibility bar, on text that says which sets you did not do, which is
+    // information rather than decoration. 0.76 is what the worst of the six
+    // needs to clear 3:1.
+    //
+    // Not 4.5, because that is unreachable here: the cell's ink now sits at
+    // exactly 4.5 at full strength, so any fading at all falls under it. The
+    // choice is 3:1 secondary text or no fading at all, and this stays legible
+    // while still reading as a lesser voice.
+    //
+    // Applied once per element, never nested — a missed set inside a skipped
+    // exercise used to take it twice and read as a third state.
+    faded: { opacity: 0.76 },
+    footnote: { ...TYPE.caption, marginTop: SPACE[3] },
+    empty: { ...TYPE.body, color: t.textDim, marginTop: SPACE[5] },
+  })

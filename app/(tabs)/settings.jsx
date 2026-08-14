@@ -361,9 +361,7 @@ export default function Settings() {
   const mode = restModeById(settings.restMode)
 
   return (
-    <View
-      style={styles.screen}
-    >
+    <View style={styles.screen}>
       {/* Frosted while the page is lifted as well as while it is scrolled.
           Lifting moves content under the title without changing the scroll
           offset at all, so asking the scroller alone leaves the title bare
@@ -392,7 +390,9 @@ export default function Settings() {
         <View style={styles.section}>
           <View style={styles.card}>
             <View style={styles.row}>
-              <Text {...CAP.label} style={styles.label}>Appearance</Text>
+              <Text {...CAP.label} style={styles.label}>
+                Appearance
+              </Text>
             </View>
             <View style={styles.appearanceRow}>
               {APPEARANCES.map((option) => {
@@ -413,7 +413,10 @@ export default function Settings() {
                     }}
                     style={[styles.appearance, chosen && styles.appearanceChosen]}
                   >
-                    <Text {...CAP.title} style={[styles.appearanceLabel, chosen && styles.appearanceLabelChosen]}>
+                    <Text
+                      {...CAP.title}
+                      style={[styles.appearanceLabel, chosen && styles.appearanceLabelChosen]}
+                    >
                       {option.label}
                     </Text>
                   </Pressable>
@@ -430,7 +433,9 @@ export default function Settings() {
         <View style={styles.section}>
           <View style={styles.card}>
             <View style={styles.row}>
-              <Text {...CAP.label} style={styles.label}>Show rest time between sets</Text>
+              <Text {...CAP.label} style={styles.label}>
+                Show rest time between sets
+              </Text>
               <Switch
                 value={restOn}
                 // A light impact, the same one the restack button and logging
@@ -474,14 +479,19 @@ export default function Settings() {
                         }}
                         style={[styles.pace, chosen && styles.paceChosen]}
                       >
-                        <Text {...CAP.title} style={[styles.paceLabel, chosen && styles.paceLabelChosen]}>
+                        <Text
+                          {...CAP.title}
+                          style={[styles.paceLabel, chosen && styles.paceLabelChosen]}
+                        >
                           {option.seconds.heavy}s
                         </Text>
                       </Pressable>
                     )
                   })}
                 </View>
-                <Text {...CAP.label} style={styles.paceName}>{mode.label}</Text>
+                <Text {...CAP.label} style={styles.paceName}>
+                  {mode.label}
+                </Text>
                 <Text style={styles.paceDescription}>{mode.description}</Text>
                 {/* What the chosen pace means for each kind of work. Four
                     short facts, not a sentence — so they are laid out as
@@ -489,8 +499,12 @@ export default function Settings() {
                 <View style={styles.spread}>
                   {breakdown(mode).map((row) => (
                     <View key={row.of} style={styles.spreadRow}>
-                      <Text {...CAP.label} style={styles.spreadOf}>{row.of}</Text>
-                      <Text {...CAP.label} style={styles.spreadSeconds}>{row.seconds}sec</Text>
+                      <Text {...CAP.label} style={styles.spreadOf}>
+                        {row.of}
+                      </Text>
+                      <Text {...CAP.label} style={styles.spreadSeconds}>
+                        {row.seconds}sec
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -535,7 +549,9 @@ export default function Settings() {
             }}
             style={[styles.card, styles.weight, editing && styles.weightEditing]}
           >
-            <Text {...CAP.label} style={styles.label}>Body weight</Text>
+            <Text {...CAP.label} style={styles.label}>
+              Body weight
+            </Text>
             {/* The number on screen is text, not the field — the same
                 arrangement the workout screen uses for reps and weight. */}
             <View style={styles.weightValue}>
@@ -543,7 +559,12 @@ export default function Settings() {
                 {weightDraft === '' && !editing ? '0' : weightDraft}
               </Text>
               {editing ? <Caret /> : null}
-              <Text {...CAP.screenTitle} style={[styles.weightUnit, editing && styles.weightUnitDimmed]}>kg</Text>
+              <Text
+                {...CAP.screenTitle}
+                style={[styles.weightUnit, editing && styles.weightUnitDimmed]}
+              >
+                kg
+              </Text>
               {editing ? (
                 <TextInput
                   ref={field}
@@ -578,11 +599,12 @@ export default function Settings() {
                 than as one more tap on the page. */}
           <Animated.View style={saveBar} pointerEvents={editing ? 'auto' : 'none'}>
             <Pressable onPressIn={saveWeight} style={styles.save}>
-              <Text {...CAP.control} style={styles.saveLabel}>Save changes</Text>
+              <Text {...CAP.control} style={styles.saveLabel}>
+                Save changes
+              </Text>
             </Pressable>
           </Animated.View>
         </View>
-
       </Animated.ScrollView>
     </View>
   )
@@ -601,124 +623,125 @@ const CHOICE = {
   justifyContent: 'center',
 }
 
-const makeStyles = (t) => StyleSheet.create({
-  screen: { flex: 1, backgroundColor: t.bg },
-  section: { gap: SPACE[2] },
-  // No stroke: the fill is enough to separate it from the page, and an
-  // outline as well would make two statements about the same edge.
-  card: { padding: SPACE[3], borderRadius: RADIUS.card, backgroundColor: t.bgRaised },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACE[3],
-  },
-  label: { flex: 1, ...TYPE.label, color: t.text },
-  // Light rather than regular: this is the one thing on the page you read
-  // once and then stop seeing, so it steps back in weight as well as ink.
-  // These run to two and three lines, which is the one place this role needs a
-  // line height stated. 17 against the font's own 14.1 at this size — above
-  // it, so it cannot clip, and enough to stop the lines closing up. The
-  // comparison was written against Funnel's 15 and outlived it; the conclusion
-  // holds either way, but check SYSTEM_LINE rather than that number.
-  note: { ...TYPE.caption, lineHeight: 17, color: t.textDim },
-  reveal: { overflow: 'hidden' },
-  // Laid out, measured, and never seen or touched.
-  measure: { position: 'absolute', left: 0, right: 0, opacity: 0 },
+const makeStyles = (t) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: t.bg },
+    section: { gap: SPACE[2] },
+    // No stroke: the fill is enough to separate it from the page, and an
+    // outline as well would make two statements about the same edge.
+    card: { padding: SPACE[3], borderRadius: RADIUS.card, backgroundColor: t.bgRaised },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: SPACE[3],
+    },
+    label: { flex: 1, ...TYPE.label, color: t.text },
+    // Light rather than regular: this is the one thing on the page you read
+    // once and then stop seeing, so it steps back in weight as well as ink.
+    // These run to two and three lines, which is the one place this role needs a
+    // line height stated. 17 against the font's own 14.1 at this size — above
+    // it, so it cannot clip, and enough to stop the lines closing up. The
+    // comparison was written against Funnel's 15 and outlived it; the conclusion
+    // holds either way, but check SYSTEM_LINE rather than that number.
+    note: { ...TYPE.caption, lineHeight: 17, color: t.textDim },
+    reveal: { overflow: 'hidden' },
+    // Laid out, measured, and never seen or touched.
+    measure: { position: 'absolute', left: 0, right: 0, opacity: 0 },
 
-  track: {
-    width: 46,
-    height: 28,
-    padding: 3,
-    borderRadius: RADIUS.pill,
-    justifyContent: 'center',
-  },
-  knob: {
-    width: 22,
-    height: 22,
-    borderRadius: RADIUS.pill,
-    backgroundColor: t.onInk,
-    shadowColor: t.text,
-    shadowOpacity: 0.22,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-  },
+    track: {
+      width: 46,
+      height: 28,
+      padding: 3,
+      borderRadius: RADIUS.pill,
+      justifyContent: 'center',
+    },
+    knob: {
+      width: 22,
+      height: 22,
+      borderRadius: RADIUS.pill,
+      backgroundColor: t.onInk,
+      shadowColor: t.text,
+      shadowOpacity: 0.22,
+      shadowRadius: 3,
+      shadowOffset: { width: 0, height: 1 },
+    },
 
-  // The appearance row, in the same cell as the pace row below it. Its own
-  // names rather than a second use of `pace*`: two controls that happen to
-  // look alike today should not be one edit away from each other.
-  appearanceRow: { flexDirection: 'row', gap: SPACE[2], marginTop: SPACE[3] },
-  appearance: { ...CHOICE, backgroundColor: t.onInk },
-  appearanceChosen: { backgroundColor: t.text },
-  appearanceLabel: { ...TYPE.title, color: t.textDim },
-  appearanceLabelChosen: { color: t.onInk },
+    // The appearance row, in the same cell as the pace row below it. Its own
+    // names rather than a second use of `pace*`: two controls that happen to
+    // look alike today should not be one edit away from each other.
+    appearanceRow: { flexDirection: 'row', gap: SPACE[2], marginTop: SPACE[3] },
+    appearance: { ...CHOICE, backgroundColor: t.onInk },
+    appearanceChosen: { backgroundColor: t.text },
+    appearanceLabel: { ...TYPE.title, color: t.textDim },
+    appearanceLabelChosen: { color: t.onInk },
 
-  paces: { paddingTop: SPACE[3] },
-  paceRow: { flexDirection: 'row', gap: SPACE[2] },
-  pace: { ...CHOICE, backgroundColor: t.onInk },
-  paceChosen: { backgroundColor: t.text },
-  // Unchosen options step back rather than sitting at full strength — the row
-  // reads as one selection among four, not four equal buttons.
-  //
-  // sectionTitle rather than title, which is the same size and weight in plain
-  // SF Pro: these are figures being looked at inside a control, not a name
-  // being read down a list, so they take the rounded cut. Borrowed rather than
-  // given a role of its own — the spec is identical and a thirteenth role that
-  // duplicated an existing one is how the scale drifted last time.
-  paceLabel: { ...TYPE.title, color: t.textDim },
-  paceLabelChosen: { color: t.onInk },
-  paceName: { marginTop: SPACE[4], ...TYPE.label, color: t.text },
-  paceDescription: { marginTop: SPACE[2], ...TYPE.body, color: t.text },
-  spread: { marginTop: SPACE[4] },
-  spreadRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    paddingVertical: SPACE[2],
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: t.border,
-  },
-  spreadOf: { ...TYPE.label, color: t.textDim },
-  // The same treatment History gives a set's figures: label's size and weight,
-  // but mixed case and caption's tracking, because "120sec" is not an
-  // abbreviation in capitals — under `label` the s came out as "120S".
-  //
-  // Written out rather than shared with history.jsx's liftRun. Two sites is
-  // not yet a pattern, and the type scale is twelve roles by agreement; if a
-  // third place wants this, it earns a role rather than a third copy.
-  spreadSeconds: {
-    ...TYPE.label,
-    textTransform: 'none',
-    letterSpacing: TYPE.caption.letterSpacing,
-    color: t.text,
-  },
+    paces: { paddingTop: SPACE[3] },
+    paceRow: { flexDirection: 'row', gap: SPACE[2] },
+    pace: { ...CHOICE, backgroundColor: t.onInk },
+    paceChosen: { backgroundColor: t.text },
+    // Unchosen options step back rather than sitting at full strength — the row
+    // reads as one selection among four, not four equal buttons.
+    //
+    // sectionTitle rather than title, which is the same size and weight in plain
+    // SF Pro: these are figures being looked at inside a control, not a name
+    // being read down a list, so they take the rounded cut. Borrowed rather than
+    // given a role of its own — the spec is identical and a thirteenth role that
+    // duplicated an existing one is how the scale drifted last time.
+    paceLabel: { ...TYPE.title, color: t.textDim },
+    paceLabelChosen: { color: t.onInk },
+    paceName: { marginTop: SPACE[4], ...TYPE.label, color: t.text },
+    paceDescription: { marginTop: SPACE[2], ...TYPE.body, color: t.text },
+    spread: { marginTop: SPACE[4] },
+    spreadRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      paddingVertical: SPACE[2],
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: t.border,
+    },
+    spreadOf: { ...TYPE.label, color: t.textDim },
+    // The same treatment History gives a set's figures: label's size and weight,
+    // but mixed case and caption's tracking, because "120sec" is not an
+    // abbreviation in capitals — under `label` the s came out as "120S".
+    //
+    // Written out rather than shared with history.jsx's liftRun. Two sites is
+    // not yet a pattern, and the type scale is twelve roles by agreement; if a
+    // third place wants this, it earns a role rather than a third copy.
+    spreadSeconds: {
+      ...TYPE.label,
+      textTransform: 'none',
+      letterSpacing: TYPE.caption.letterSpacing,
+      color: t.text,
+    },
 
-  weight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  // Outlined while it is being typed in, so it is obvious which card the
-  // keypad belongs to.
-  weightEditing: { borderWidth: 1, borderColor: t.text },
-  weightValue: { flexDirection: 'row', alignItems: 'center' },
-  // No line height stated: the font's own is 1.25em and anything below it
-  // clips. See native/CLAUDE.md.
-  weightTyped: { ...TYPE.screenTitle, color: t.text },
-  // At rest the figure and its unit are one thing, in one ink. The unit only
-  // steps back while the number is being typed.
-  weightUnit: { ...TYPE.screenTitle, color: t.text },
-  weightUnitDimmed: { opacity: 0.45 },
-  caret: { width: 3, height: 24, marginLeft: 2, marginRight: 1, backgroundColor: t.text },
-  // Present, focusable and never seen. It holds what is typed and summons the
-  // keypad; everything visible is drawn.
-  parked: { position: 'absolute', left: 0, top: 0, width: 1, height: 1, opacity: 0, padding: 0 },
+    weight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    // Outlined while it is being typed in, so it is obvious which card the
+    // keypad belongs to.
+    weightEditing: { borderWidth: 1, borderColor: t.text },
+    weightValue: { flexDirection: 'row', alignItems: 'center' },
+    // No line height stated: the font's own is 1.25em and anything below it
+    // clips. See native/CLAUDE.md.
+    weightTyped: { ...TYPE.screenTitle, color: t.text },
+    // At rest the figure and its unit are one thing, in one ink. The unit only
+    // steps back while the number is being typed.
+    weightUnit: { ...TYPE.screenTitle, color: t.text },
+    weightUnitDimmed: { opacity: 0.45 },
+    caret: { width: 3, height: 24, marginLeft: 2, marginRight: 1, backgroundColor: t.text },
+    // Present, focusable and never seen. It holds what is typed and summons the
+    // keypad; everything visible is drawn.
+    parked: { position: 'absolute', left: 0, top: 0, width: 1, height: 1, opacity: 0, padding: 0 },
 
-  save: {
-    // Clear of the note above it, which the button was sitting on top of.
-    marginTop: SPACE[4],
-    minHeight: 52,
-    paddingVertical: SPACE[2],
-    borderRadius: RADIUS.pill,
-    backgroundColor: t.text,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveLabel: { ...TYPE.control, color: t.onInk },
-})
+    save: {
+      // Clear of the note above it, which the button was sitting on top of.
+      marginTop: SPACE[4],
+      minHeight: 52,
+      paddingVertical: SPACE[2],
+      borderRadius: RADIUS.pill,
+      backgroundColor: t.text,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    saveLabel: { ...TYPE.control, color: t.onInk },
+  })

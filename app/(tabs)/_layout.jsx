@@ -65,12 +65,7 @@ function TabBar({ state, navigation }) {
       <Glass
         intensity={60}
         style={[styles.bar, !LIQUID_GLASS && styles.barFallback]}
-        fallback={
-          <LinearGradient
-            colors={theme.glassWash}
-            style={StyleSheet.absoluteFill}
-          />
-        }
+        fallback={<LinearGradient colors={theme.glassWash} style={StyleSheet.absoluteFill} />}
       >
         {!LIQUID_GLASS && <View style={styles.barEdge} pointerEvents="none" />}
 
@@ -113,55 +108,56 @@ export default function TabsLayout() {
   )
 }
 
-const makeStyles = (t) => StyleSheet.create({
-  dock: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 2 },
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: BAR_PAD,
-    gap: ITEM_GAP,
-    height: NAV_HEIGHT,
-    borderRadius: RADIUS.pill,
-    overflow: 'hidden',
-  },
-  // Only for the blurred stand-in: the real material draws its own edge and
-  // casts its own shadow, and these on top of it read as a drawn outline.
-  barFallback: {
-    shadowColor: '#000',
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  // The edge, drawn rather than bordered. A borderWidth on the bar comes out
-  // of its 52: it left 42 of content for a 44 item, so the items overflowed by
-  // two and alignItems centred them a pixel up, while the pill — positioned
-  // against the box rather than against them — stayed where it was told. Laid
-  // over instead, it is the same hairline at no cost in height, so the item
-  // fits its box exactly and the pill and the icons agree by construction.
-  barEdge: {
-    ...StyleSheet.absoluteFillObject,
-    borderWidth: 1,
-    borderColor: t.glassEdge,
-    borderRadius: RADIUS.pill,
-  },
-  item: {
-    width: ITEM_WIDTH,
-    height: ITEM_HEIGHT,
-    borderRadius: RADIUS.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  highlight: {
-    position: 'absolute',
-    left: BAR_PAD,
-    top: BAR_PAD,
-    width: ITEM_WIDTH,
-    height: ITEM_HEIGHT,
-    borderRadius: RADIUS.pill,
-    // The value it landed on — a quarter lighter than the web's 0.16, since
-    // the material underneath is the system's now rather than a blurred
-    // gradient and the pill does not have to work as hard against it — is
-    // recorded on the palette, which is also where its dark counterpart is.
-    backgroundColor: t.highlight,
-  },
-})
+const makeStyles = (t) =>
+  StyleSheet.create({
+    dock: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 2 },
+    bar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: BAR_PAD,
+      gap: ITEM_GAP,
+      height: NAV_HEIGHT,
+      borderRadius: RADIUS.pill,
+      overflow: 'hidden',
+    },
+    // Only for the blurred stand-in: the real material draws its own edge and
+    // casts its own shadow, and these on top of it read as a drawn outline.
+    barFallback: {
+      shadowColor: '#000',
+      shadowOpacity: 0.07,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+    },
+    // The edge, drawn rather than bordered. A borderWidth on the bar comes out
+    // of its 52: it left 42 of content for a 44 item, so the items overflowed by
+    // two and alignItems centred them a pixel up, while the pill — positioned
+    // against the box rather than against them — stayed where it was told. Laid
+    // over instead, it is the same hairline at no cost in height, so the item
+    // fits its box exactly and the pill and the icons agree by construction.
+    barEdge: {
+      ...StyleSheet.absoluteFillObject,
+      borderWidth: 1,
+      borderColor: t.glassEdge,
+      borderRadius: RADIUS.pill,
+    },
+    item: {
+      width: ITEM_WIDTH,
+      height: ITEM_HEIGHT,
+      borderRadius: RADIUS.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    highlight: {
+      position: 'absolute',
+      left: BAR_PAD,
+      top: BAR_PAD,
+      width: ITEM_WIDTH,
+      height: ITEM_HEIGHT,
+      borderRadius: RADIUS.pill,
+      // The value it landed on — a quarter lighter than the web's 0.16, since
+      // the material underneath is the system's now rather than a blurred
+      // gradient and the pill does not have to work as hard against it — is
+      // recorded on the palette, which is also where its dark counterpart is.
+      backgroundColor: t.highlight,
+    },
+  })

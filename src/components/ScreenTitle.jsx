@@ -58,20 +58,23 @@ export function ScreenTitle({ title, scrolled, top }) {
             the whole surface here. */}
         <Glass intensity={70} style={StyleSheet.absoluteFill} />
       </Animated.View>
-      <Text {...CAP.screenTitle} style={styles.title}>{title}</Text>
+      <Text {...CAP.screenTitle} style={styles.title}>
+        {title}
+      </Text>
     </View>
   )
 }
 
-const makeStyles = (t) => StyleSheet.create({
-  bar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    zIndex: 10,
-    paddingHorizontal: SPACE[3],
-    paddingBottom: SPACE[2],
-  },
-  title: { ...TYPE.screenTitle, color: t.text },
-})
+const makeStyles = (t) =>
+  StyleSheet.create({
+    bar: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      zIndex: 10,
+      paddingHorizontal: SPACE[3],
+      paddingBottom: SPACE[2],
+    },
+    title: { ...TYPE.screenTitle, color: t.text },
+  })

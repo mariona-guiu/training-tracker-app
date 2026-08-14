@@ -36,17 +36,14 @@ function Piece({ index, width, height }) {
   const delay = WAVES[index % WAVES.length] + ((index * 37) % 400)
   const fall = 3200 + ((index * 91) % 1400)
   const sway = 14 + ((index * 5) % 20)
-  const spin = ((index % 2 ? 1 : -1) * (360 + ((index * 53) % 540)))
+  const spin = (index % 2 ? 1 : -1) * (360 + ((index * 53) % 540))
 
   const y = useSharedValue(-60)
   const x = useSharedValue(0)
   const turn = useSharedValue(0)
 
   useEffect(() => {
-    y.value = withDelay(
-      delay,
-      withTiming(height + 80, { duration: fall, easing: Easing.linear }),
-    )
+    y.value = withDelay(delay, withTiming(height + 80, { duration: fall, easing: Easing.linear }))
     turn.value = withDelay(delay, withTiming(spin, { duration: fall, easing: Easing.linear }))
     // Side to side as it comes down, so pieces flutter rather than drop
     // straight. Reversed on repeat, which is what makes it read as drift.
@@ -57,11 +54,7 @@ function Piece({ index, width, height }) {
   }, [y, x, turn, delay, fall, spin, sway, height])
 
   const style = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: y.value },
-      { translateX: x.value },
-      { rotate: `${turn.value}deg` },
-    ],
+    transform: [{ translateY: y.value }, { translateX: x.value }, { rotate: `${turn.value}deg` }],
   }))
 
   return (

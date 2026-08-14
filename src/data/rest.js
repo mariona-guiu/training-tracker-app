@@ -72,7 +72,10 @@ export const REST_MODES = [
 export const DEFAULT_REST_MODE = 'balanced'
 
 export function restModeById(id) {
-  return REST_MODES.find((mode) => mode.id === id) ?? REST_MODES.find((mode) => mode.id === DEFAULT_REST_MODE)
+  return (
+    REST_MODES.find((mode) => mode.id === id) ??
+    REST_MODES.find((mode) => mode.id === DEFAULT_REST_MODE)
+  )
 }
 
 // What kind of work this is. A stretch is a stretch wherever it appears — at
@@ -80,9 +83,7 @@ export function restModeById(id) {
 // exercise decides before the routine does. Without this, a cooldown inside a
 // lower body workout would rest for two minutes between holds.
 export function tierFor(type, exercise) {
-  return (
-    TIER_BY_PATTERN[exercise?.pattern] ?? TIER_BY_TYPE[type?.toLowerCase()] ?? DEFAULT_TIER
-  )
+  return TIER_BY_PATTERN[exercise?.pattern] ?? TIER_BY_TYPE[type?.toLowerCase()] ?? DEFAULT_TIER
 }
 
 export function restSecondsFor(type, modeId = DEFAULT_REST_MODE, exercise) {

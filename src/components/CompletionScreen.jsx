@@ -7,7 +7,17 @@ import { Confetti } from './Confetti.jsx'
 import { caloriesFor, KCAL_DISCLAIMER } from '../data/calories.js'
 import { useRoutineColours } from '../theme/ThemeProvider.jsx'
 import { WORKOUT_CONTENT_FADE } from '../data/motion.js'
-import { CAP, LIGHT, RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, SYSTEM_LINE, TYPE } from '../theme/index.js'
+import {
+  CAP,
+  LIGHT,
+  RADIUS,
+  SPACE,
+  SYSTEM_ASCENT,
+  SYSTEM_CAP,
+  SYSTEM_DESCENT,
+  SYSTEM_LINE,
+  TYPE,
+} from '../theme/index.js'
 
 // What a finished workout leaves you with.
 //
@@ -26,8 +36,7 @@ function formatDuration(ms) {
 const loggedSetCount = (session) =>
   session.exercises.reduce((n, ex) => n + ex.sets.filter((set) => set.done).length, 0)
 
-const targetSetCount = (session) =>
-  session.exercises.reduce((n, ex) => n + ex.targetSets, 0)
+const targetSetCount = (session) => session.exercises.reduce((n, ex) => n + ex.targetSets, 0)
 
 // An exercise counts as done the moment one set is logged — the same
 // threshold that decides whether the session is worth keeping at all.
@@ -56,15 +65,21 @@ export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }
           { paddingTop: insets.top + SPACE[3], paddingBottom: insets.bottom + SPACE[3] },
         ]}
       >
-        <Text {...CAP.label} style={[styles.routine, { color: ink }]}>{session.routineName} workout</Text>
+        <Text {...CAP.label} style={[styles.routine, { color: ink }]}>
+          {session.routineName} workout
+        </Text>
 
         <View style={styles.body}>
-          <Text {...CAP.heading} style={[styles.title, { color: ink }]}>Nice work!</Text>
+          <Text {...CAP.heading} style={[styles.title, { color: ink }]}>
+            Nice work!
+          </Text>
           <View style={styles.timeRow}>
             <Text {...CAP.hero} style={[styles.time, { color: ink }]}>
               {formatDuration(session.endedAt - session.startedAt)}
             </Text>
-            <Text {...CAP.label} style={[styles.caption, { color: ink }]}>Total time</Text>
+            <Text {...CAP.label} style={[styles.caption, { color: ink }]}>
+              Total time
+            </Text>
           </View>
           <Text {...CAP.screenTitle} style={[styles.stats, { color: ink }]}>
             {logged}/{targetSetCount(session)} sets{'\n'}
@@ -78,17 +93,21 @@ export function CompletionScreen({ session, colour, ink, onSeeHistory, onAgain }
         <View style={styles.actions}>
           {/* Filled with the ink colour, so its label has to be the routine's
               colour to stay readable. */}
-          <Pressable
-            onPress={onSeeHistory}
-            style={[styles.primary, { backgroundColor: ink }]}
-          >
-            <Text {...CAP.control} style={[styles.primaryLabel, { color: colour }]}>See completed workouts</Text>
+          <Pressable onPress={onSeeHistory} style={[styles.primary, { backgroundColor: ink }]}>
+            <Text {...CAP.control} style={[styles.primaryLabel, { color: colour }]}>
+              See completed workouts
+            </Text>
           </Pressable>
           <Pressable
             onPress={onAgain}
-            style={[styles.secondary, { backgroundColor: washFor(session.routineType ?? session.routineName) }]}
+            style={[
+              styles.secondary,
+              { backgroundColor: washFor(session.routineType ?? session.routineName) },
+            ]}
           >
-            <Text {...CAP.control} style={[styles.primaryLabel, { color: ink }]}>Do another workout</Text>
+            <Text {...CAP.control} style={[styles.primaryLabel, { color: ink }]}>
+              Do another workout
+            </Text>
           </Pressable>
           {kcal !== null ? (
             <Text style={[styles.note, { color: ink }]}>{KCAL_DISCLAIMER}</Text>

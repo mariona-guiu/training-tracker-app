@@ -1,10 +1,6 @@
 import { useEffect } from 'react'
 import { Keyboard, StyleSheet, View, useWindowDimensions } from 'react-native'
-import {
-  createNavigatorFactory,
-  TabRouter,
-  useNavigationBuilder,
-} from '@react-navigation/native'
+import { createNavigatorFactory, TabRouter, useNavigationBuilder } from '@react-navigation/native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
   runOnJS,
@@ -95,8 +91,7 @@ function SpringTabsNavigator({ children, screenOptions, tabBar, initialRouteName
       start.value = offset.value
       // Workouts is the only screen with something else wanting horizontal
       // drags, so it is the only one with an edge to respect.
-      allowed.value =
-        !keyboardUp.value && (live.value !== 0 || event.x >= width - EDGE_BAND)
+      allowed.value = !keyboardUp.value && (live.value !== 0 || event.x >= width - EDGE_BAND)
     })
     .onUpdate((event) => {
       if (!allowed.value) return

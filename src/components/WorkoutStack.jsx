@@ -79,7 +79,17 @@ function rubber(value, min, max, elastic) {
   return value
 }
 
-function StackCard({ routine, slotIndex, zIndex, isTop, canvas, resetAt, onLift, onDisturb, onStart }) {
+function StackCard({
+  routine,
+  slotIndex,
+  zIndex,
+  isTop,
+  canvas,
+  resetAt,
+  onLift,
+  onDisturb,
+  onStart,
+}) {
   const { inkFor, styleFor } = useRoutineColours()
   const kind = routine.type ?? routine.name
   const style = styleFor(kind, slotIndex)
@@ -170,10 +180,7 @@ function StackCard({ routine, slotIndex, zIndex, isTop, canvas, resetAt, onLift,
       // that is already running keeps its velocity, which is what makes this
       // continuous rather than a series of jumps.
       const proposed = startTurn.value + event.translationX * TILT_PER_PX
-      turn.value = withSpring(
-        Math.min(Math.max(proposed, -TILT_MAX), TILT_MAX),
-        TILT_SPRING,
-      )
+      turn.value = withSpring(Math.min(Math.max(proposed, -TILT_MAX), TILT_MAX), TILT_SPRING)
       if (!reported.value && (Math.abs(x.value) > DISTURBED || Math.abs(y.value) > DISTURBED)) {
         reported.value = true
         runOnJS(onDisturb)()
@@ -263,10 +270,14 @@ function StackCard({ routine, slotIndex, zIndex, isTop, canvas, resetAt, onLift,
           moved,
         ]}
       >
-        <Text {...CAP.routineCard} style={[styles.label, { color: ink }]}>{routine.name}</Text>
+        <Text {...CAP.routineCard} style={[styles.label, { color: ink }]}>
+          {routine.name}
+        </Text>
 
         <View style={styles.meta}>
-          <Text {...CAP.routineCardMeta} style={[styles.metaText, { color: ink }]}>{estimatedMinutes(routine)} min</Text>
+          <Text {...CAP.routineCardMeta} style={[styles.metaText, { color: ink }]}>
+            {estimatedMinutes(routine)} min
+          </Text>
           <Text {...CAP.routineCardMeta} style={[styles.metaText, { color: ink }]}>
             {routine.slots.length} exercises
           </Text>
@@ -289,7 +300,9 @@ export function WorkoutStack({ routines, resetAt, onDisturb, onStart }) {
   const [zOrder, setZOrder] = useState(() => stack.map((r) => r.id))
 
   const lift = useCallback((id) => {
-    setZOrder((prev) => (prev[prev.length - 1] === id ? prev : [...prev.filter((x) => x !== id), id]))
+    setZOrder((prev) =>
+      prev[prev.length - 1] === id ? prev : [...prev.filter((x) => x !== id), id],
+    )
   }, [])
 
   // Restacking puts the paint order back as well as the positions. Picking

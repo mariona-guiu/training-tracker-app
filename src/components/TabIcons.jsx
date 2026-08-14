@@ -36,8 +36,18 @@ export function WorkoutIcon({ active, color }) {
       <Rect x={13.6189} y={5.52948} transform="rotate(-30 13.6189 5.52948)" {...plate} />
       <Rect x={3.29} y={11.49} transform="rotate(-30 3.29 11.49)" {...plate} />
       <Path d="M7.98389 14.3187L16.0159 9.68136" stroke={color} strokeWidth={2} />
-      <Path d="M18.9587 4.66083L21.8353 9.64313" stroke={color} strokeWidth={2} strokeLinecap="round" />
-      <Path d="M2.16455 14.357L5.04109 19.3393" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path
+        d="M18.9587 4.66083L21.8353 9.64313"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M2.16455 14.357L5.04109 19.3393"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
     </Icon>
   )
 }

@@ -38,7 +38,9 @@ function lastLoggedSet(sessionsNewestFirst, exerciseId) {
 
 export async function startSession(routine) {
   const db = await getDB()
-  const previous = (await db.getAllAsync('SELECT * FROM sessions ORDER BY startedAt DESC')).map(toRow)
+  const previous = (await db.getAllAsync('SELECT * FROM sessions ORDER BY startedAt DESC')).map(
+    toRow,
+  )
   const library = (await db.getAllAsync('SELECT * FROM exercises')).map((row) => ({ ...row }))
 
   // The routine describes jobs; this is where they become exercises. What

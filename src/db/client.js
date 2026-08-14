@@ -153,4 +153,5 @@ export const fromFlag = (value) => value === 1
 // A flag that is allowed to be unknown. Sessions recorded before endedEarly
 // existed have no value for it, and the difference between "not ended early"
 // and "we don't know" is one History deliberately shows.
-export const fromNullableFlag = (value) => (value === null || value === undefined ? undefined : value === 1)
+export const fromNullableFlag = (value) =>
+  value === null || value === undefined ? undefined : value === 1

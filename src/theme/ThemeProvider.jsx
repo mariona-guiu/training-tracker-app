@@ -56,7 +56,9 @@ export function useTheme() {
 // The preference itself, for the one screen that sets it.
 export function useThemeMode() {
   const value = useContext(ThemeContext)
-  return value ? { mode: value.mode, setMode: value.setMode } : { mode: 'system', setMode: () => {} }
+  return value
+    ? { mode: value.mode, setMode: value.setMode }
+    : { mode: 'system', setMode: () => {} }
 }
 
 // How a screen holds its styles. `makeStyles` takes the palette and returns

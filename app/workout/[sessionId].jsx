@@ -96,7 +96,6 @@ function ExercisePanel({
   const logged = exercise.sets.filter((set) => set.done).length
   const allSetsLogged = logged >= exercise.targetSets
 
-
   // The big figure doubles as the edit control: tapping either the number or
   // the pencil turns it into a field, and the value only changes when the
   // tick is pressed.
@@ -106,7 +105,10 @@ function ExercisePanel({
     // which number the keypad is pointed at.
     const asleep = editing !== null && !active
     return (
-      <View style={[styles.value, stacked && styles.valueStacked, asleep && styles.dimmed]} key={field}>
+      <View
+        style={[styles.value, stacked && styles.valueStacked, asleep && styles.dimmed]}
+        key={field}
+      >
         {active ? (
           // The unit stays on screen and steps back rather than vanishing —
           // it is what the number being typed means, and losing it mid-edit
@@ -136,7 +138,9 @@ function ExercisePanel({
                 style={[styles.figure, styles.fieldInput]}
               />
             </View>
-            <Text {...CAP.hero} style={[styles.unit, styles.unitDimmed, { color: ink }]}>{unit}</Text>
+            <Text {...CAP.hero} style={[styles.unit, styles.unitDimmed, { color: ink }]}>
+              {unit}
+            </Text>
           </View>
         ) : (
           <Pressable
@@ -145,7 +149,9 @@ function ExercisePanel({
           >
             <Text {...CAP.hero} style={[styles.figure, { color: ink }]} numberOfLines={1}>
               {current ?? 0}
-              <Text {...CAP.hero} style={styles.unit}>{unit}</Text>
+              <Text {...CAP.hero} style={styles.unit}>
+                {unit}
+              </Text>
             </Text>
           </Pressable>
         )}
@@ -163,7 +169,9 @@ function ExercisePanel({
 
   return (
     <Animated.View style={[{ width }, styles.panel, style]} pointerEvents={live ? 'auto' : 'none'}>
-      <Text {...CAP.heading} style={[styles.name, { color: ink }]}>{exercise.exerciseName}</Text>
+      <Text {...CAP.heading} style={[styles.name, { color: ink }]}>
+        {exercise.exerciseName}
+      </Text>
 
       <View style={styles.values}>
         {exercise.tracksWeight
@@ -181,7 +189,10 @@ function ExercisePanel({
           (allSetsLogged ? 'All set!' : `Tap to log set ${logged + 1}/${exercise.targetSets}`)}
       </Text>
 
-      <View style={[styles.sets, editing && styles.muted]} pointerEvents={editing ? 'none' : 'auto'}>
+      <View
+        style={[styles.sets, editing && styles.muted]}
+        pointerEvents={editing ? 'none' : 'auto'}
+      >
         {exercise.sets.map((set, i) => (
           <Pressable
             key={i}
@@ -268,9 +279,7 @@ export default function WorkoutMode() {
 
   // Asked of the exercise rather than of the session, so a stretch at the end
   // of a lower body workout rests like a stretch and not like a squat.
-  const restSeconds = session
-    ? restSecondsFor(kind, settings?.restMode, exercise)
-    : 0
+  const restSeconds = session ? restSecondsFor(kind, settings?.restMode, exercise) : 0
 
   // Only the number on screen is kept in JavaScript, and only when the second
   // it shows actually changes. The colour itself is already moving on the UI
@@ -452,7 +461,11 @@ export default function WorkoutMode() {
 
   function unlogSet(setIndex) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-    update(replaceExercise({ sets: exercise.sets.map((set, j) => (j === setIndex ? { done: false } : set)) }))
+    update(
+      replaceExercise({
+        sets: exercise.sets.map((set, j) => (j === setIndex ? { done: false } : set)),
+      }),
+    )
   }
 
   function saveSetEdit(reps, weight) {
@@ -646,7 +659,9 @@ export default function WorkoutMode() {
       />
 
       <View style={[styles.head, { paddingTop: insets.top + SPACE[3], opacity: editing ? 0 : 1 }]}>
-        <Text {...CAP.label} style={[styles.routine, { color: ink }]}>{session.routineName} workout</Text>
+        <Text {...CAP.label} style={[styles.routine, { color: ink }]}>
+          {session.routineName} workout
+        </Text>
 
         {/* Everything up to where you've reached is marked, not only what
             was done — moving past an exercise with the arrows leaves it
@@ -737,10 +752,7 @@ export default function WorkoutMode() {
               onPress={() => slideTo(index + 1)}
               style={[styles.navLink, styles.navLinkRight]}
             >
-              <Text
-                style={[styles.navLabel, styles.navRight, { color: ink }]}
-                numberOfLines={2}
-              >
+              <Text style={[styles.navLabel, styles.navRight, { color: ink }]} numberOfLines={2}>
                 {session.exercises[index + 1].exerciseName}
               </Text>
               <View style={styles.navArrow}>
@@ -773,15 +785,12 @@ export default function WorkoutMode() {
             tint={inkIsLight ? 'dark' : 'light'}
             style={styles.primarySurface}
             fallback={
-              <View
-                style={[
-                  StyleSheet.absoluteFill,
-                  { backgroundColor: washFor(kind) },
-                ]}
-              />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: washFor(kind) }]} />
             }
           >
-            <Text {...CAP.control} style={[styles.primaryLabel, { color: ink }]}>{primaryLabel}</Text>
+            <Text {...CAP.control} style={[styles.primaryLabel, { color: ink }]}>
+              {primaryLabel}
+            </Text>
           </Glass>
         </Pressable>
       </View>
@@ -882,7 +891,13 @@ const styles = StyleSheet.create({
   setsLabel: { ...TYPE.label },
   sets: { flexDirection: 'row', gap: 15, marginTop: SPACE[2] },
   muted: { opacity: 0 },
-  dot: { width: 48, height: 48, borderRadius: RADIUS.pill, borderWidth: 2, backgroundColor: 'transparent' },
+  dot: {
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.pill,
+    borderWidth: 2,
+    backgroundColor: 'transparent',
+  },
   dotPressed: { transform: [{ scale: 0.94 }] },
 
   foot: { paddingHorizontal: SPACE[4], gap: SPACE[3] },

@@ -2,11 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native'
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated'
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import { Glass, LIQUID_GLASS } from '../../src/components/Glass.jsx'
 import * as Haptics from 'expo-haptics'
 
@@ -124,16 +120,13 @@ export default function Workouts() {
 
   return (
     <View style={styles.screen}>
-      <WorkoutStack
-        routines={routines}
-        resetAt={resetAt}
-        onDisturb={disturb}
-        onStart={start}
-      />
+      <WorkoutStack routines={routines} resetAt={resetAt} onDisturb={disturb} onStart={start} />
 
       {/* Above the cards, so they pass behind it. */}
       <View style={[styles.header, { top: headerTop }]} pointerEvents="box-none">
-        <Text {...CAP.screenTitle} style={styles.title}>Workouts</Text>
+        <Text {...CAP.screenTitle} style={styles.title}>
+          Workouts
+        </Text>
 
         {/* Only once the cards have been moved: it is a way back, so there is
             nothing for it to do until there is something to undo. Present
@@ -183,38 +176,39 @@ export default function Workouts() {
 // would bake in whichever palette was current when the module loaded. Defined
 // at module scope so its identity is stable and useThemedStyles rebuilds the
 // sheet only when the palette actually changes.
-const makeStyles = (t) => StyleSheet.create({
-  screen: { flex: 1, backgroundColor: t.bg },
-  header: {
-    position: 'absolute',
-    left: SPACE[3],
-    right: SPACE[3],
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    // Over the canvas, so a card dragged upward passes behind the title.
-    zIndex: 20,
-  },
-  title: { ...TYPE.screenTitle, color: t.text },
-  restack: {
-    width: 44,
-    height: 44,
-    borderRadius: RADIUS.pill,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  // Was a literal rgba(255,255,255,0.5), which in a dark scheme is a bright
-  // disc rather than a wash. surfaceCard is the same value in light — the
-  // raised colour at half strength — and inverts on its own.
-  restackWash: { ...StyleSheet.absoluteFillObject, backgroundColor: t.surfaceCard },
-  icons: { width: 24, height: 24 },
-  // Laid exactly over the resting one so the two crossfade in place.
-  //
-  // Invisible in its own right, not only by way of its animated style. The
-  // group fades in with a layout animation while these carry animated styles
-  // of their own, and the two do not necessarily land on the same first
-  // frame — so without this the pressed drawing painted at full strength for
-  // a frame as the button appeared, and both were briefly on screen at once.
-  iconOver: { ...StyleSheet.absoluteFillObject, opacity: 0 },
-})
+const makeStyles = (t) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: t.bg },
+    header: {
+      position: 'absolute',
+      left: SPACE[3],
+      right: SPACE[3],
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      // Over the canvas, so a card dragged upward passes behind the title.
+      zIndex: 20,
+    },
+    title: { ...TYPE.screenTitle, color: t.text },
+    restack: {
+      width: 44,
+      height: 44,
+      borderRadius: RADIUS.pill,
+      overflow: 'hidden',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    // Was a literal rgba(255,255,255,0.5), which in a dark scheme is a bright
+    // disc rather than a wash. surfaceCard is the same value in light — the
+    // raised colour at half strength — and inverts on its own.
+    restackWash: { ...StyleSheet.absoluteFillObject, backgroundColor: t.surfaceCard },
+    icons: { width: 24, height: 24 },
+    // Laid exactly over the resting one so the two crossfade in place.
+    //
+    // Invisible in its own right, not only by way of its animated style. The
+    // group fades in with a layout animation while these carry animated styles
+    // of their own, and the two do not necessarily land on the same first
+    // frame — so without this the pressed drawing painted at full strength for
+    // a frame as the button appeared, and both were briefly on screen at once.
+    iconOver: { ...StyleSheet.absoluteFillObject, opacity: 0 },
+  })

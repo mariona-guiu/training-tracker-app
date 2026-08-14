@@ -138,10 +138,7 @@ export function WeeklyChart({ weeks }) {
       // inside the card: a sliver at the edge flipping the heading would be
       // reacting to something not yet legible.
       const slack = 1
-      const first = Math.min(
-        Math.max(0, Math.ceil((at - slack) / columnWidth)),
-        weeks.length - 1,
-      )
+      const first = Math.min(Math.max(0, Math.ceil((at - slack) / columnWidth)), weeks.length - 1)
       const last = Math.max(
         first,
         Math.min(weeks.length - 1, Math.floor((at + cardWidth + slack) / columnWidth) - 1),
@@ -279,10 +276,22 @@ export function WeeklyChart({ weeks }) {
               { backgroundColor: styleFor(reading.routineType ?? reading.routineName).background },
             ]}
           >
-            <Text {...CAP.label} style={[styles.readoutText, { color: inkFor(reading.routineType ?? reading.routineName) }]}>
+            <Text
+              {...CAP.label}
+              style={[
+                styles.readoutText,
+                { color: inkFor(reading.routineType ?? reading.routineName) },
+              ]}
+            >
               {DAY(reading.startedAt)}
             </Text>
-            <Text {...CAP.label} style={[styles.readoutText, { color: inkFor(reading.routineType ?? reading.routineName) }]}>
+            <Text
+              {...CAP.label}
+              style={[
+                styles.readoutText,
+                { color: inkFor(reading.routineType ?? reading.routineName) },
+              ]}
+            >
               {reading.routineName}
             </Text>
           </Animated.View>
@@ -338,7 +347,9 @@ export function WeeklyChart({ weeks }) {
                   />
                 ))}
               </View>
-              <Text {...CAP.label} style={styles.label} numberOfLines={1}>{DAY(week.weekStart)}</Text>
+              <Text {...CAP.label} style={styles.label} numberOfLines={1}>
+                {DAY(week.weekStart)}
+              </Text>
             </View>
           ))}
         </ScrollView>
@@ -347,56 +358,57 @@ export function WeeklyChart({ weeks }) {
   )
 }
 
-const makeStyles = (t) => StyleSheet.create({
-  chart: {
-    backgroundColor: t.bgRaised,
-    borderRadius: RADIUS.card,
-    paddingTop: SPACE[3],
-    paddingHorizontal: 12,
-    paddingBottom: SPACE[4],
-  },
-  caption: { height: 50, justifyContent: 'flex-start' },
-  year: { ...TYPE.caption, color: t.text },
-  // Full width so a long routine name never truncates, and carrying that
-  // routine's colour — which is what ties it to the segment under the finger,
-  // since it is not sitting next to it.
-  readout: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 33,
-    paddingHorizontal: 12,
-    borderRadius: RADIUS.card,
-  },
-  // The last type in the app that sat outside the scale: 13pt Bold with its
-  // tracking written as a raw 0.52 rather than a ratio, so it would not have
-  // followed a size change. It is a small uppercase mark on a chart, which is
-  // what `label` is, and it gets a point smaller and a weight lighter for
-  // saying so.
-  readoutText: { ...TYPE.label },
-  week: { alignItems: 'center', gap: SPACE[2] },
-  // The empty column: a pale capsule the full height of the chart, so a week
-  // without training still reads as a week rather than as nothing.
-  track: {
-    justifyContent: 'flex-end',
-    width: TRACK_WIDTH,
-    height: TRACK_HEIGHT,
-    borderRadius: RADIUS.pill,
-    backgroundColor: t.bg,
-    overflow: 'hidden',
-  },
-  segment: { width: TRACK_WIDTH, borderRadius: RADIUS.pill },
-  segmentDimmed: { opacity: 0.3 },
-  // Fixed width and centred, so the date sits under the middle of its column
-  // whatever the column works out to on a given phone.
-  label: {
-    // Stretches to its column rather than being pinned to 29. The fixed width
-    // was there to centre the date under the middle of its column, which the
-    // column's own alignItems already does — and at large text sizes 29pt was
-    // narrower than the date, so it wrapped a digit at a time.
-    alignSelf: 'stretch',
-    textAlign: 'center',
-    ...TYPE.caption,
-    color: t.text,
-  },
-})
+const makeStyles = (t) =>
+  StyleSheet.create({
+    chart: {
+      backgroundColor: t.bgRaised,
+      borderRadius: RADIUS.card,
+      paddingTop: SPACE[3],
+      paddingHorizontal: 12,
+      paddingBottom: SPACE[4],
+    },
+    caption: { height: 50, justifyContent: 'flex-start' },
+    year: { ...TYPE.caption, color: t.text },
+    // Full width so a long routine name never truncates, and carrying that
+    // routine's colour — which is what ties it to the segment under the finger,
+    // since it is not sitting next to it.
+    readout: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      minHeight: 33,
+      paddingHorizontal: 12,
+      borderRadius: RADIUS.card,
+    },
+    // The last type in the app that sat outside the scale: 13pt Bold with its
+    // tracking written as a raw 0.52 rather than a ratio, so it would not have
+    // followed a size change. It is a small uppercase mark on a chart, which is
+    // what `label` is, and it gets a point smaller and a weight lighter for
+    // saying so.
+    readoutText: { ...TYPE.label },
+    week: { alignItems: 'center', gap: SPACE[2] },
+    // The empty column: a pale capsule the full height of the chart, so a week
+    // without training still reads as a week rather than as nothing.
+    track: {
+      justifyContent: 'flex-end',
+      width: TRACK_WIDTH,
+      height: TRACK_HEIGHT,
+      borderRadius: RADIUS.pill,
+      backgroundColor: t.bg,
+      overflow: 'hidden',
+    },
+    segment: { width: TRACK_WIDTH, borderRadius: RADIUS.pill },
+    segmentDimmed: { opacity: 0.3 },
+    // Fixed width and centred, so the date sits under the middle of its column
+    // whatever the column works out to on a given phone.
+    label: {
+      // Stretches to its column rather than being pinned to 29. The fixed width
+      // was there to centre the date under the middle of its column, which the
+      // column's own alignItems already does — and at large text sizes 29pt was
+      // narrower than the date, so it wrapped a digit at a time.
+      alignSelf: 'stretch',
+      textAlign: 'center',
+      ...TYPE.caption,
+      color: t.text,
+    },
+  })

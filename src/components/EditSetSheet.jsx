@@ -14,7 +14,15 @@ import Animated, {
 
 import { CloseIcon } from './WorkoutIcons.jsx'
 import { SHEET_SPRING } from '../data/motion.js'
-import { CAP, RADIUS, SPACE, SYSTEM_ASCENT, SYSTEM_CAP, SYSTEM_DESCENT, TYPE } from '../theme/index.js'
+import {
+  CAP,
+  RADIUS,
+  SPACE,
+  SYSTEM_ASCENT,
+  SYSTEM_CAP,
+  SYSTEM_DESCENT,
+  TYPE,
+} from '../theme/index.js'
 
 // Correcting a set already logged.
 //
@@ -75,11 +83,15 @@ function Figure({ value, unit, ink, active, asleep, stacked, onPress }) {
       accessibilityRole="button"
       accessibilityLabel={`Edit ${unit} for this set`}
     >
-      <Text {...CAP.hero} style={[styles.figure, { color: ink }]}>{value}</Text>
+      <Text {...CAP.hero} style={[styles.figure, { color: ink }]}>
+        {value}
+      </Text>
       {active ? <Caret ink={ink} /> : null}
       {/* The unit steps back only while its own value is being typed, so the
           resting panel reads as one solid figure. */}
-      <Text {...CAP.hero} style={[styles.unit, active && styles.unitDimmed, { color: ink }]}>{unit}</Text>
+      <Text {...CAP.hero} style={[styles.unit, active && styles.unitDimmed, { color: ink }]}>
+        {unit}
+      </Text>
     </Pressable>
   )
 }
@@ -220,14 +232,18 @@ export function EditSetSheet({ exercise, setIndex, colour, ink, onSave, onRemove
             onPress={() => leave(() => onSave(reps, weight))}
             style={[styles.save, { backgroundColor: ink }]}
           >
-            <Text {...CAP.control} style={[styles.saveLabel, { color: colour }]}>Save changes</Text>
+            <Text {...CAP.control} style={[styles.saveLabel, { color: colour }]}>
+              Save changes
+            </Text>
           </Pressable>
 
           {/* Offered for every set, not only the one at the end of the row.
               Tapping a circle already takes any set back, so the row can have
               a gap in it whatever this does. */}
           <Pressable onPress={() => leave(onRemove)} style={styles.remove}>
-            <Text {...CAP.control} style={[styles.removeLabel, { color: ink }]}>Remove set</Text>
+            <Text {...CAP.control} style={[styles.removeLabel, { color: ink }]}>
+              Remove set
+            </Text>
           </Pressable>
         </View>
 
@@ -293,8 +309,7 @@ const styles = StyleSheet.create({
   // grew from 72 to 82, and again here. The number went 39.5, then 47.2, then
   // 38.8, and this line never changed. See native/CLAUDE.md.
   stacked: {
-    marginTop:
-      STACK_VISIBLE - (SYSTEM_ASCENT - SYSTEM_CAP + SYSTEM_DESCENT) * TYPE.hero.fontSize,
+    marginTop: STACK_VISIBLE - (SYSTEM_ASCENT - SYSTEM_CAP + SYSTEM_DESCENT) * TYPE.hero.fontSize,
   },
   // While one value is being edited the other steps back, so it is obvious
   // which number the keypad is pointed at.

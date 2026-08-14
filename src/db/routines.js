@@ -27,7 +27,9 @@ const toRow = (row) => ({
 
 export async function seedRoutinesIfEmpty() {
   const db = await getDB()
-  const existing = await db.getAllAsync('SELECT * FROM routines WHERE isCustom = 0 AND key IS NOT NULL')
+  const existing = await db.getAllAsync(
+    'SELECT * FROM routines WHERE isCustom = 0 AND key IS NOT NULL',
+  )
   const byKey = new Map(existing.map((row) => [row.key, row]))
 
   await db.withTransactionAsync(async () => {
