@@ -107,6 +107,10 @@
           font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
           border: 1px solid var(--line-strong); color: var(--dim); white-space: nowrap; }
   .pill.now { border-color: var(--ink); color: var(--ink); }
+  /* Which scheme a primitive belongs to — the split is the point of the table. */
+  .pill.mode-l, .pill.mode-d { padding: 1px 7px; font-size: 10px; letter-spacing: 0.04em; }
+  .pill.mode-l { border-color: var(--line-strong); background: var(--raised); color: var(--ink); }
+  .pill.mode-d { border-color: var(--ink); background: var(--ink); color: var(--ground); }
 
   ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
   li { max-width: 64ch; }
@@ -178,40 +182,43 @@
   <h3>Neutral</h3>
   <p>
     Warm, not grey — the whole ramp leans slightly yellow, which is why a
-    neutral or blue-grey substitution reads as a different product. Fifteen
+    neutral or blue-grey substitution reads as a different product. Twelve
     steps, numbered by lightness.
+  </p>
+  <p>
+    <strong>Each scheme uses seven of them.</strong> Five belong to light, five
+    to dark, and two — the ink extremes — are shared, because a routine's text
+    is black or white regardless of which scheme the app is in. The
+    <span class="pill mode-l">L</span> and <span class="pill mode-d">D</span>
+    marks below say which is which, so you can build one scheme's variables
+    without wading through the other's.
   </p>
 
   <div class="ramp">
     <div style="background:#FFFFFF"></div><div style="background:#FDFDFC"></div>
     <div style="background:#F7F7F6"></div><div style="background:#F2F2EF"></div>
-    <div style="background:#E3E3DE"></div><div style="background:#D9D9D7"></div>
-    <div style="background:#8A8A83"></div><div style="background:#6F6F6A"></div>
-    <div style="background:#3A3A35"></div><div style="background:#34342F"></div>
-    <div style="background:#242421"></div><div style="background:#1E1E1C"></div>
-    <div style="background:#191919"></div><div style="background:#121211"></div>
-    <div style="background:#0A0A0A"></div>
+    <div style="background:#D9D9D7"></div><div style="background:#8A8A83"></div>
+    <div style="background:#6F6F6A"></div><div style="background:#3A3A35"></div>
+    <div style="background:#1E1E1C"></div><div style="background:#191919"></div>
+    <div style="background:#121211"></div><div style="background:#0A0A0A"></div>
   </div>
 
   <div class="scroll">
     <table>
-      <thead><tr><th>Primitive</th><th>Hex</th><th class="num">L*</th><th>Consumed by</th></tr></thead>
+      <thead><tr><th>Primitive</th><th>Hex</th><th class="num">L*</th><th>Mode</th><th>Consumed by</th></tr></thead>
       <tbody>
-        <tr><td><code>neutral/0</code></td><td class="mono">#FFFFFF</td><td class="num">100.0</td><td>text/on-ink · line/glass-edge · glass/wash</td></tr>
-        <tr><td><code>neutral/25</code></td><td class="mono">#FDFDFC</td><td class="num">99.3</td><td>surface/page · surface/floating</td></tr>
-        <tr><td><code>neutral/50</code></td><td class="mono">#F7F7F6</td><td class="num">97.2</td><td>surface/raised · surface/card-translucent</td></tr>
-        <tr><td><code>neutral/100</code></td><td class="mono">#F2F2EF</td><td class="num">95.4</td><td>text/primary · line/glass-edge · control/highlight</td></tr>
-        <tr><td><code>neutral/200</code></td><td class="mono">#E3E3DE</td><td class="num">90.1</td><td>line/hairline</td></tr>
-        <tr><td><code>neutral/300</code></td><td class="mono">#D9D9D7</td><td class="num">86.6</td><td>control/track</td></tr>
-        <tr><td><code>neutral/500</code></td><td class="mono">#8A8A83</td><td class="num">57.3</td><td>text/secondary</td></tr>
-        <tr><td><code>neutral/600</code></td><td class="mono">#6F6F6A</td><td class="num">46.7</td><td>text/secondary</td></tr>
-        <tr><td><code>neutral/800</code></td><td class="mono">#3A3A35</td><td class="num">24.3</td><td>control/track · glass/wash-top</td></tr>
-        <tr><td><code>neutral/850</code></td><td class="mono">#34342F</td><td class="num">21.5</td><td>line/hairline</td></tr>
-        <tr><td><code>neutral/900</code></td><td class="mono">#242421</td><td class="num">14.1</td><td>glass/wash-bottom</td></tr>
-        <tr><td><code>neutral/925</code></td><td class="mono">#1E1E1C</td><td class="num">11.2</td><td>surface/raised · surface/card-translucent</td></tr>
-        <tr><td><code>neutral/950</code></td><td class="mono">#191919</td><td class="num">8.8</td><td>text/primary</td></tr>
-        <tr><td><code>neutral/975</code></td><td class="mono">#121211</td><td class="num">5.4</td><td>surface/page · surface/floating · text/on-ink</td></tr>
-        <tr><td><code>neutral/1000</code></td><td class="mono">#0A0A0A</td><td class="num">2.7</td><td>routine ink · brand/accent-text · control/highlight</td></tr>
+        <tr><td><code>neutral/0</code></td><td><span class="chip" style="background:#FFFFFF"></span> <span class="mono">#FFFFFF</span></td><td class="num">100.0</td><td><span class="pill mode-l">L</span> <span class="pill mode-d">D</span></td><td>text/on-ink · glass edge and wash · routine ink (white)</td></tr>
+        <tr><td><code>neutral/25</code></td><td><span class="chip" style="background:#FDFDFC"></span> <span class="mono">#FDFDFC</span></td><td class="num">99.3</td><td><span class="pill mode-l">L</span></td><td>surface/page · surface/floating</td></tr>
+        <tr><td><code>neutral/50</code></td><td><span class="chip" style="background:#F7F7F6"></span> <span class="mono">#F7F7F6</span></td><td class="num">97.2</td><td><span class="pill mode-l">L</span></td><td>surface/raised · surface/card-translucent</td></tr>
+        <tr><td><code>neutral/100</code></td><td><span class="chip" style="background:#F2F2EF"></span> <span class="mono">#F2F2EF</span></td><td class="num">95.4</td><td><span class="pill mode-d">D</span></td><td>text/primary · line/glass-edge · control/highlight</td></tr>
+        <tr><td><code>neutral/300</code></td><td><span class="chip" style="background:#D9D9D7"></span> <span class="mono">#D9D9D7</span></td><td class="num">86.6</td><td><span class="pill mode-l">L</span></td><td>line/hairline · control/track</td></tr>
+        <tr><td><code>neutral/500</code></td><td><span class="chip" style="background:#8A8A83"></span> <span class="mono">#8A8A83</span></td><td class="num">57.3</td><td><span class="pill mode-d">D</span></td><td>text/secondary</td></tr>
+        <tr><td><code>neutral/600</code></td><td><span class="chip" style="background:#6F6F6A"></span> <span class="mono">#6F6F6A</span></td><td class="num">46.7</td><td><span class="pill mode-l">L</span></td><td>text/secondary</td></tr>
+        <tr><td><code>neutral/800</code></td><td><span class="chip" style="background:#3A3A35"></span> <span class="mono">#3A3A35</span></td><td class="num">24.3</td><td><span class="pill mode-d">D</span></td><td>line/hairline · control/track · glass/wash-top</td></tr>
+        <tr><td><code>neutral/925</code></td><td><span class="chip" style="background:#1E1E1C"></span> <span class="mono">#1E1E1C</span></td><td class="num">11.2</td><td><span class="pill mode-d">D</span></td><td>surface/raised · surface/card-translucent · glass/wash-bottom</td></tr>
+        <tr><td><code>neutral/950</code></td><td><span class="chip" style="background:#191919"></span> <span class="mono">#191919</span></td><td class="num">8.8</td><td><span class="pill mode-l">L</span></td><td>text/primary</td></tr>
+        <tr><td><code>neutral/975</code></td><td><span class="chip" style="background:#121211"></span> <span class="mono">#121211</span></td><td class="num">5.4</td><td><span class="pill mode-d">D</span></td><td>surface/page · surface/floating · text/on-ink</td></tr>
+        <tr><td><code>neutral/1000</code></td><td><span class="chip" style="background:#0A0A0A"></span> <span class="mono">#0A0A0A</span></td><td class="num">2.7</td><td><span class="pill mode-l">L</span> <span class="pill mode-d">D</span></td><td>brand/accent-text · control/highlight · routine ink (black)</td></tr>
       </tbody>
     </table>
   </div>
@@ -222,6 +229,17 @@
     either near-white or near-black, and the two greys that exist are both text.
     Do not fill the gaps to make the ramp look tidy; an unused step is a step
     someone will eventually reach for by accident.
+    <br><br>
+    This was fifteen steps until 14 August. Three pairs sat close enough that
+    nobody could name the difference and each was two decisions to keep in step
+    forever, so <code>line/hairline</code> and <code>control/track</code> became
+    one neutral in both schemes, and the dark gradient's bottom stop became the
+    raised surface. <strong>Two near-identical pairs were deliberately kept:</strong>
+    <code>neutral/0</code> with <code>neutral/25</code>, and
+    <code>neutral/975</code> with <code>neutral/1000</code>. They are the ink
+    extremes, and collapsing them drags two already-marginal contrast pairs the
+    wrong way — white on the danger fill from 4.42 to 4.34, black on the
+    full-body card from 4.48 to 4.24.
   </div>
 
   <h3>Hues</h3>
@@ -364,9 +382,9 @@
             <td><span class="chip" style="background:#121211"></span> <code class="alias">neutral/975</code></td>
             <td>On a filled ink surface</td></tr>
         <tr><td><code>line/hairline</code></td>
-            <td><span class="chip" style="background:#E3E3DE"></span> <code class="alias">neutral/200</code></td>
-            <td><span class="chip" style="background:#34342F"></span> <code class="alias">neutral/850</code></td>
-            <td>Separators only</td></tr>
+            <td><span class="chip" style="background:#D9D9D7"></span> <code class="alias">neutral/300</code></td>
+            <td><span class="chip" style="background:#3A3A35"></span> <code class="alias">neutral/800</code></td>
+            <td>Separators only. Same neutral as <code>control/track</code></td></tr>
         <tr><td><code>line/glass-edge</code></td>
             <td><code class="alias">neutral/0</code> @ 55%</td>
             <td><code class="alias">neutral/100</code> @ 14%</td>
@@ -374,7 +392,7 @@
         <tr><td><code>control/track</code></td>
             <td><span class="chip" style="background:#D9D9D7"></span> <code class="alias">neutral/300</code></td>
             <td><span class="chip" style="background:#3A3A35"></span> <code class="alias">neutral/800</code></td>
-            <td>Switch, unfilled</td></tr>
+            <td>Switch, unfilled. Same neutral as <code>line/hairline</code></td></tr>
         <tr><td><code>control/highlight</code></td>
             <td><code class="alias">neutral/1000</code> @ 12%</td>
             <td><code class="alias">neutral/100</code> @ 16%</td>
@@ -395,7 +413,7 @@
             <td rowspan="2">Two stops of one gradient, for the blur stand-in</td></tr>
         <tr><td><code>glass/wash-bottom</code></td>
             <td><code class="alias">neutral/0</code> @ 32%</td>
-            <td><code class="alias">neutral/900</code> @ 38%</td></tr>
+            <td><code class="alias">neutral/925</code> @ 38%</td></tr>
       </tbody>
     </table>
   </div>
