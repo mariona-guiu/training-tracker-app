@@ -166,9 +166,19 @@ export const SYSTEM_DESCENT = 0.2109
 // and its counters close up if it is tracked in, so `heading` takes +1% rather
 // than the 0 its neighbours use.
 //
-// Case is part of the role, not the copy. Four roles uppercase themselves —
-// routineCard, routineCardMeta and label — and the strings stay written as
-// sentences, so nothing has to be shouted in the source.
+// Case is part of the role, not the copy. Three roles carry
+// textTransform: 'uppercase' — routineCard, routineCardMeta and label — so they
+// render shouted while the *source strings* stay in sentence case. Settings
+// really does say "Show rest time between sets" and the role turns it into
+// "SHOW REST TIME BETWEEN SETS" on screen.
+//
+// Two reasons. Copy written as prose is easier to write, read and eventually
+// translate; and the same string can be reused somewhere unshouted without
+// being edited. In Figma this is All Caps on the style, with the text typed in
+// sentence case to match.
+//
+// (This said "four roles" and then listed three. The fourth is the one below,
+// excluded on purpose.)
 //
 // `control` is deliberately not one of them. Uppercase button labels tracked
 // out is Material's convention, not Apple's; iOS sets buttons in sentence case
