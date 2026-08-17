@@ -370,7 +370,6 @@
         <tr><td><code>surface/page</code></td><td><span class="chip" style="background:#fdfdfc"></span> <code class="alias">neutral/25</code></td><td><span class="chip" style="background:#121211"></span> <code class="alias">neutral/975</code></td><td>The page</td></tr>
         <tr><td><code>surface/raised</code></td><td><span class="chip" style="background:#f7f7f6"></span> <code class="alias">neutral/50</code></td><td><span class="chip" style="background:#1e1e1c"></span> <code class="alias">neutral/925</code></td><td>Cards. <strong>Lighter</strong> than the page in dark</td></tr>
         <tr><td><code>surface/card-translucent</code></td><td><span class="chip" style="background:#FDFDFC"><span class="chip" style="background:rgba(247,247,246,0.5);border:0;width:100%;height:100%;border-radius:3px"></span></span> <code class="alias">neutral/50</code> @ 50%</td><td><span class="chip" style="background:#121211"><span class="chip" style="background:rgba(30,30,28,0.5);border:0;width:100%;height:100%;border-radius:3px"></span></span> <code class="alias">neutral/925</code> @ 50%</td><td>A tint, not a panel. One use: the wash behind Home’s restack button</td></tr>
-        <tr><td><code>surface/floating</code></td><td><span class="chip" style="background:#FDFDFC"><span class="chip" style="background:rgba(253,253,252,0.72);border:0;width:100%;height:100%;border-radius:3px"></span></span> <code class="alias">neutral/25</code> @ 72%</td><td><span class="chip" style="background:#121211"><span class="chip" style="background:rgba(18,18,17,0.66);border:0;width:100%;height:100%;border-radius:3px"></span></span> <code class="alias">neutral/975</code> @ 66%</td><td><strong>Unused.</strong> See the note below</td></tr>
         <tr><td><code>text/primary</code></td><td><span class="chip" style="background:#191919"></span> <code class="alias">neutral/950</code></td><td><span class="chip" style="background:#f2f2ef"></span> <code class="alias">neutral/100</code></td><td>Type <em>and</em> filled buttons</td></tr>
         <tr><td><code>text/secondary</code></td><td><span class="chip" style="background:#6f6f6a"></span> <code class="alias">neutral/600</code></td><td><span class="chip" style="background:#8a8a83"></span> <code class="alias">neutral/500</code></td><td>Held near 5:1, deliberately not brighter</td></tr>
         <tr><td><code>text/on-ink</code></td><td><span class="chip" style="background:#ffffff"></span> <code class="alias">neutral/0</code></td><td><span class="chip" style="background:#121211"></span> <code class="alias">neutral/975</code></td><td>On a filled ink surface</td></tr>
@@ -393,12 +392,14 @@
     is a stroke <em>weight</em>, and naming a colour after one invites someone to
     look here for a thickness.
     <br><br>
-    <strong><code>surface/floating</code> is drawn by nothing.</strong> It came
-    across from the web app, where a translucent fill and a
-    <code>backdrop-filter</code> made a frosted header together. Here the blur
-    already frosts with a tint of its own, so laying this on top of it came out
-    very nearly solid — the blur is the whole surface, and the fill lost its job.
-    Do not build a variable for it.
+    <strong>There was a <code>surface/floating</code> here and it has gone.</strong>
+    It came from the web app, where a translucent fill and a
+    <code>backdrop-filter</code> made a frosted header between them. Here the blur
+    already frosts with a tint of its own, so laying the fill over it came out
+    very nearly solid — the blur is the whole surface, and the fill lost its job
+    without losing its token. Removed from the theme on 17 August, along with
+    <code>FONTS</code> and <code>WEIGHT</code>, which were exported and imported
+    by nothing.
     <br><br>
     <code>surface/card-translucent</code> is nearly in the same position: it has
     exactly one consumer, the wash behind the restack button on Home, which makes

@@ -32,9 +32,6 @@ export const LIGHT = {
   // puts red on red, and what separates them there is the shadow the cell
   // casts onto the action, not a difference in hue.
   danger: '#EC1C22',
-  // A header the page scrolls behind: the page's own colour, thinned, with
-  // the content underneath blurred through it.
-  surfaceFloating: 'rgba(253, 253, 252, 0.72)',
   // A card sitting on the page: the raised colour at half strength, so it
   // reads as a tint of the page rather than a panel laid over it.
   surfaceCard: 'rgba(247, 247, 246, 0.5)',
@@ -94,7 +91,6 @@ export const DARK = {
   text: '#f2f2ef',
   textDim: '#8a8a83',
   danger: '#ff5257',
-  surfaceFloating: 'rgba(18, 18, 17, 0.66)',
   surfaceCard: 'rgba(30, 30, 28, 0.5)',
   onInk: '#121211',
   controlTrack: '#3a3a35',
@@ -136,12 +132,12 @@ export const DARK = {
 // is why weights below are `fontWeight` rather than a family per cut. That was
 // the open question: a named family in React Native often ignores fontWeight
 // and hands back one cut for every weight asked of it.
-export const FONTS = {
+const FONTS = {
   text: 'System',
   rounded: 'ui-rounded',
 }
 
-export const WEIGHT = { regular: '400', medium: '500', bold: '700' }
+const WEIGHT = { regular: '400', medium: '500', bold: '700' }
 
 // SF Pro and SF Pro Rounded share these exactly — one em, one set of numbers,
 // read from /System/Library/Fonts. Which means a single constant covers both
@@ -319,6 +315,9 @@ export const TYPE = {
 // Never allowFontScaling={false} anywhere: that refuses the setting outright
 // rather than bounding it.
 export const CAP = {
+  // Empty on purpose rather than absent: body and caption are the text someone
+  // raised their text size in order to read, so they are never capped. They are
+  // listed so the map covers every role and nobody reads a gap as an oversight.
   body: {},
   caption: {},
   control: { maxFontSizeMultiplier: 1.5 },
