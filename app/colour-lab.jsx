@@ -232,7 +232,6 @@ export default function ColourLab() {
       labelOnButton: contrast(inkRgb, button),
       buttonFromCard: deltaE(button, baseRgb),
       buttonFromSweep: deltaE(buttonOnSweep, sweepRgb),
-      cardToSweep: deltaE(baseRgb, sweepRgb),
       buttonHex: rgbToHex(button),
     }
   }, [state, ink])
@@ -241,19 +240,28 @@ export default function ColourLab() {
   const [sh, ss, sl] = state.sweep
   const [wh, ws, wl] = state.wash
 
-  const Stat = ({ name, value, want, unit = ':1' }) => {
+  // A contrast ratio is held to WCAG AA and can fail. A perceptual distance
+  // cannot: those thresholds were fitted by eye to three or four routines that
+  // were misbehaving, so they say where the current solver aims, not what is
+  // correct. Showing them in red would make a guess look like a standard.
+  const Stat = ({ name, value, want }) => {
     const ok = value >= want
     return (
       <View style={s.stat}>
         <Text style={[s.statName, { color: T.textDim }]}>{name}</Text>
-        <Text style={[s.statValue, { color: ok ? T.text : '#FF3B30' }]}>
-          {value.toFixed(2)}
-          {unit}
-        </Text>
-        <Text style={[s.statWant, { color: T.textDim }]}>{ok ? 'ok' : 'want ' + want}</Text>
+        <Text style={[s.statValue, { color: ok ? T.text : '#FF3B30' }]}>{value.toFixed(2)}:1</Text>
+        <Text style={[s.statWant, { color: T.textDim }]}>{ok ? 'AA ok' : 'AA wants ' + want}</Text>
       </View>
     )
   }
+
+  const Distance = ({ name, value, aims }) => (
+    <View style={s.stat}>
+      <Text style={[s.statName, { color: T.textDim }]}>{name}</Text>
+      <Text style={[s.statValue, { color: T.text }]}>{value.toFixed(1)}</Text>
+      <Text style={[s.statWant, { color: T.textDim }]}>app aims {aims}</Text>
+    </View>
+  )
 
   return (
     <View style={[s.screen, { backgroundColor: T.bg }]}>
@@ -342,8 +350,8 @@ export default function ColourLab() {
         </View>
 
         <Text style={[s.tiny, { color: T.textDim }]}>
-          numbers exclude the blur — with glass on, the button reads lighter or darker than “label
-          on button” says
+          contrast is WCAG AA and can fail. the distances are perceptual, and the figure beside each
+          is only where the current solver aims — trust the preview. neither accounts for the blur.
         </Text>
         <View style={s.stats}>
           <Stat name="ink on card" value={measured.inkOnBase} want={4.5} />
@@ -351,9 +359,8 @@ export default function ColourLab() {
           <Stat name="label on button" value={measured.labelOnButton} want={4.5} />
         </View>
         <View style={s.stats}>
-          <Stat name="button ← card" value={measured.buttonFromCard} want={14} unit="" />
-          <Stat name="button ← sweep" value={measured.buttonFromSweep} want={7} unit="" />
-          <Stat name="card ← sweep" value={measured.cardToSweep} want={10} unit="" />
+          <Distance name="button ← card" value={measured.buttonFromCard} aims={14} />
+          <Distance name="button ← sweep" value={measured.buttonFromSweep} aims={7} />
         </View>
       </View>
 
