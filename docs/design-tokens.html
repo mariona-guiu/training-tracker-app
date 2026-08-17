@@ -326,7 +326,9 @@
     <br><br>
     <strong>The 900/950 steps are only ever drawn with an opacity</strong>, given
     in the Role column and again on the semantic token. A wash at full strength
-    is not a colour the app ever paints.
+    is not a colour the app ever paints — and it is never painted directly on the
+    routine colour either. See the note under Routine tokens: there is a blurred,
+    tinted surface between the two.
   </div>
 
   <h3>One more</h3>
@@ -436,6 +438,34 @@
       </tbody>
     </table>
   </div>
+  <div class="note">
+    <strong>The wash is not the button.</strong> On screen the button is three
+    layers, and a mock built from the wash alone will not match:
+    <br><br>
+    <code>routine colour</code> — or the sweep, once it has passed under —
+    then a <strong>blurred, tinted surface</strong>, then the wash, then the
+    label. The middle layer is missing from any drawing that treats
+    <code>wash</code> as a fill, and on a flat ground it does most of the visible
+    work: a blur has nothing to blur when what is under it is solid, but its tint
+    still lays a film over everything.
+    <br><br>
+    <strong>The tint follows the routine's ink, not the scheme.</strong> A
+    white-inked routine gets a <em>dark</em> glass, a black-inked one gets a
+    <em>light</em> glass — the frost reinforces the ground rather than inverting
+    it. Tinting a pale routine dark is what once made this read as a grey slab
+    laid on top.
+    <br><br>
+    To approximate it in Figma: a background-blur effect on the button, plus a
+    black fill beneath the wash for white-inked routines and a white one for
+    black-inked routines. There is no exact opacity to give you —
+    <code>intensity={40}</code> maps onto a native iOS material composited by the
+    system on its own curve, so set it by eye against a screenshot.
+    <br><br>
+    The same is true of the <strong>tab bar</strong> and the <strong>page
+    titles</strong>. Both are the same blurred surface, so any mock of those has
+    the same missing layer.
+  </div>
+
   <div class="note">
     <strong>Lower body's ink is the only one that differs between modes</strong> —
     black in light, white in dark. Every other routine wears the same ink in
