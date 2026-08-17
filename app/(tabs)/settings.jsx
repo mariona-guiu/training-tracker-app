@@ -25,6 +25,8 @@ import Animated, {
 } from 'react-native-reanimated'
 
 import { REVEAL_SPRING } from '../../src/data/motion.js'
+import { useRouter } from 'expo-router'
+
 import { getSettings, saveSettings } from '../../src/db/settings.js'
 import { REST_MODES, restModeById } from '../../src/data/rest.js'
 import { KCAL_NOTE } from '../../src/data/calories.js'
@@ -228,6 +230,7 @@ export default function Settings() {
   const screen = useWindowDimensions()
   const styles = useThemedStyles(makeStyles)
   const { mode: appearance, setMode: setAppearance } = useThemeMode()
+  const router = useRouter()
   const title = useTitleMetrics()
 
   useEffect(() => {
@@ -605,6 +608,12 @@ export default function Settings() {
             </Pressable>
           </Animated.View>
         </View>
+
+        {/* TEMPORARY — opens the colour lab. Delete this block and
+            app/colour-lab.jsx once the routine colours are settled. */}
+        <Pressable onPress={() => router.push('/colour-lab')} style={styles.section}>
+          <Text style={styles.note}>Colour lab (temporary)</Text>
+        </Pressable>
       </Animated.ScrollView>
     </View>
   )

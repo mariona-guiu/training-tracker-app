@@ -11,12 +11,6 @@
 // via styleFor() in data/routineStyles.js — a routine's colour is its
 // identity, shared by its card, its workout screen and its days on Stats.
 
-// The accent is identity rather than scheme: the same lime in both, because it
-// is the app's colour and not a shade of its background. It already carries
-// 16.76:1 against its own text, which is why it needs no dark variant.
-const ACCENT = '#c6ff3d'
-const ACCENT_TEXT = '#0a0a0a'
-
 export const LIGHT = {
   bg: '#fdfdfc',
   // Taken from the Stats design, and the same card colour Settings already
@@ -33,8 +27,6 @@ export const LIGHT = {
   // once here, which is the whole point of it being a token.
   text: '#191919',
   textDim: '#6f6f6a',
-  accent: ACCENT,
-  accentText: ACCENT_TEXT,
   // From the swipe design. It is the same red as the full-body routine, which
   // is a collision on purpose rather than an accident: swiping that one cell
   // puts red on red, and what separates them there is the shadow the cell
@@ -101,8 +93,6 @@ export const DARK = {
   border: '#3a3a35',
   text: '#f2f2ef',
   textDim: '#8a8a83',
-  accent: ACCENT,
-  accentText: ACCENT_TEXT,
   danger: '#ff5257',
   surfaceFloating: 'rgba(18, 18, 17, 0.66)',
   surfaceCard: 'rgba(30, 30, 28, 0.5)',
