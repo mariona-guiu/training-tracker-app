@@ -244,14 +244,10 @@ export default function ColourLab() {
 
   return (
     <View style={[s.screen, { backgroundColor: T.bg }]}>
-      <ScrollView
-        contentContainerStyle={{
-          paddingTop: insets.top + SPACE[2],
-          paddingBottom: insets.bottom + SPACE[6],
-          paddingHorizontal: SPACE[3],
-          gap: SPACE[3],
-        }}
-      >
+      {/* Pinned. Everything you need to see *while* dragging a slider lives
+          here — the whole point of the lab is watching the preview change, and
+          it cannot do that from off the top of the screen. */}
+      <View style={[s.sticky, { paddingTop: insets.top + SPACE[2], borderBottomColor: T.border }]}>
         <View style={s.topRow}>
           <Pressable onPress={() => router.back()} hitSlop={12}>
             <Text style={[s.back, { color: T.text }]}>Back</Text>
@@ -307,7 +303,6 @@ export default function ColourLab() {
         <View style={[s.preview, { backgroundColor: baseHex }]}>
           <View style={[s.sweepBand, { backgroundColor: sweepHex }]} />
           <Text style={[s.previewLabel, { color: ink }]}>{routine} workout</Text>
-          <Text style={[s.previewName, { color: ink }]}>Hip Thrust</Text>
           <Text style={[s.previewFigure, { color: ink }]}>12reps</Text>
           <View style={[s.previewButton, { backgroundColor: washHex, opacity: state.alpha }]} />
           <View style={s.previewButtonLabel}>
@@ -325,7 +320,16 @@ export default function ColourLab() {
           <Stat name="button ← sweep" value={measured.buttonFromSweep} want={7} unit="" />
           <Stat name="card ← sweep" value={measured.cardToSweep} want={10} unit="" />
         </View>
+      </View>
 
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: SPACE[3],
+          paddingBottom: insets.bottom + SPACE[6],
+          paddingHorizontal: SPACE[3],
+          gap: SPACE[3],
+        }}
+      >
         {/* ── card ── */}
         <Text style={[s.group, { color: T.text }]}>Card &nbsp;{baseHex}</Text>
         <Slider
@@ -496,6 +500,12 @@ export default function ColourLab() {
 
 const s = StyleSheet.create({
   screen: { flex: 1 },
+  sticky: {
+    paddingHorizontal: SPACE[3],
+    paddingBottom: SPACE[2],
+    gap: SPACE[2],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   back: { ...TYPE.control },
   temporary: { ...TYPE.label },
@@ -509,11 +519,11 @@ const s = StyleSheet.create({
   },
   chipText: { ...TYPE.caption },
 
-  preview: { height: 300, borderRadius: RADIUS.card, overflow: 'hidden', padding: SPACE[3] },
-  sweepBand: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 },
+  preview: { height: 168, borderRadius: RADIUS.card, overflow: 'hidden', padding: SPACE[3] },
+  sweepBand: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 84 },
   previewLabel: { ...TYPE.label },
   previewName: { ...TYPE.title, marginTop: SPACE[4] },
-  previewFigure: { ...TYPE.figure },
+  previewFigure: { ...TYPE.heading, marginTop: SPACE[1] },
   previewButton: {
     position: 'absolute',
     left: SPACE[3],
