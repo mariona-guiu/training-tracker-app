@@ -303,7 +303,8 @@ export default function ColourLab() {
         <View style={[s.preview, { backgroundColor: baseHex }]}>
           <View style={[s.sweepBand, { backgroundColor: sweepHex }]} />
           <Text style={[s.previewLabel, { color: ink }]}>{routine} workout</Text>
-          <Text style={[s.previewFigure, { color: ink }]}>12reps</Text>
+          {/* Spans the boundary, so the ink is judged on both grounds too. */}
+          <Text style={[s.previewFigure, { color: ink }]}>12reps &middot; 30kg</Text>
           <View style={[s.previewButton, { backgroundColor: washHex, opacity: state.alpha }]} />
           <View style={s.previewButtonLabel}>
             <Text style={[s.previewButtonText, { color: ink }]}>Skip</Text>
@@ -520,7 +521,12 @@ const s = StyleSheet.create({
   chipText: { ...TYPE.caption },
 
   preview: { height: 168, borderRadius: RADIUS.card, overflow: 'hidden', padding: SPACE[3] },
-  sweepBand: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 84 },
+  // Vertical, and covering a little under half. Two reasons: it is what the
+  // rest countdown actually does — it sweeps in from the left edge rather than
+  // rising from the bottom — and it puts the button across the boundary, so the
+  // same button is on the sweep and off it at once. Judging those separately
+  // was the thing that kept sending the wash the wrong way.
+  sweepBand: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '46%' },
   previewLabel: { ...TYPE.label },
   previewName: { ...TYPE.title, marginTop: SPACE[4] },
   previewFigure: { ...TYPE.heading, marginTop: SPACE[1] },
