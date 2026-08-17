@@ -33,7 +33,9 @@
     "lint": "oxlint",
     "format": "prettier --write \"{app,src}/**/*.{js,jsx}\"",
     "format:check": "prettier --check \"{app,src}/**/*.{js,jsx}\"",
-    "audit": "node scripts/audit-contrast.mjs"
+    "audit": "node scripts/audit-contrast.mjs",
+    "tokens": "node scripts/generate-tokens.mjs",
+    "doctor": "node scripts/doctor.mjs"
   },
   "private": true,
   "overrides": {

@@ -66,11 +66,14 @@ flag have no `endedEarly` — treat it as unknown rather than assuming either wa
 ```bash
 npm start        # Metro; open it in Expo Go on the phone
 npm run lint     # oxlint; must report nothing
+npm run audit    # contrast, every pair the app can render
+npm run tokens   # rewrite docs/design-tokens.html from the theme
+npm run doctor   # is anything in the docs no longer true?
 npm run ios      # simulator, if Xcode is installed
 npx expo export --platform ios --output-dir /tmp/x   # does it still bundle?
 ```
 
-There is no test suite here yet, so those two are the whole of the automated
+There is no test suite here yet, so those are the whole of the automated
 check and they cover different things.
 
 `npx expo export` catches bad *module* paths, missing packages and anything
@@ -83,6 +86,25 @@ through and crashes on the device. `WORKOUT_REVEAL_FADE` did exactly that.
 every `setTimeout` and `require` is a false positive. Run both.
 
 Neither sees layout, motion or touch behaviour. Those still need the phone.
+
+## The docs are checked, not trusted
+
+`docs/design-tokens.html` is where the Figma variables get built from, so a
+stale colour on it is worse than no colour at all. Every value on that page
+sits between sentinels and is written by `npm run tokens` from
+`src/theme/index.js` and `src/data/routineStyles.js`. **Do not hand-edit
+anything between `<!-- generated:x -->` and `<!-- /generated:x -->`** — the next
+run overwrites it. The prose around them is written by hand and stays that way.
+
+`npm run doctor` checks four things that have exactly one right answer: paths
+named in this file and the README resolve, `CONSTANT_CASE` names in backticks
+exist in the source, every exported token is used somewhere, and the tokens page
+matches what the generator produces. It reports nothing else on purpose — a
+check that flags things which might be fine teaches you to skim past it.
+
+It cannot check prose. Seven comments in this repo were wrong on one day, each
+accurate when written; the code moved and the sentence did not. Those still
+need reading.
 
 Neither sees stray text either. JSX strips whitespace at line boundaries but
 keeps it *within* a line, so `) : null}    </>` on one line leaves four spaces
