@@ -271,6 +271,10 @@ export default function ColourLab() {
       inkOnBase: contrast(inkRgb, baseRgb),
       inkOnSweep: contrast(inkRgb, sweepRgb),
       labelOnButton: contrast(inkRgb, button),
+      // The same label once the countdown has passed under it. Missing until
+      // now, and it is the reading that would have caught upper body dark
+      // falling to 2.50:1 while the card figure still looked survivable.
+      labelMidSweep: contrast(inkRgb, buttonOnSweep),
       buttonFromCard: deltaE(button, baseRgb),
       buttonFromSweep: deltaE(buttonOnSweep, sweepRgb),
       buttonHex: rgbToHex(button),
@@ -392,13 +396,17 @@ export default function ColourLab() {
         </View>
 
         <Text style={[s.tiny, { color: T.textDim }]}>
-          contrast is WCAG AA and can fail. the distances are perceptual, and the figure beside each
-          is only where the current solver aims — trust the preview. neither accounts for the blur.
+          contrast is WCAG AA and can fail — “mid-sweep” is the button once the countdown is under
+          it, which is the one that catches you out. the distances are perceptual and their figures
+          are only where the old solver aimed. none of it accounts for the blur.
         </Text>
         <View style={s.stats}>
           <Stat name="ink on card" value={measured.inkOnBase} want={4.5} />
           <Stat name="ink on sweep" value={measured.inkOnSweep} want={4.5} />
           <Stat name="label on button" value={measured.labelOnButton} want={4.5} />
+        </View>
+        <View style={s.stats}>
+          <Stat name="label mid-sweep" value={measured.labelMidSweep} want={4.5} />
         </View>
         <View style={s.stats}>
           <Distance name="button ← card" value={measured.buttonFromCard} aims={14} />
