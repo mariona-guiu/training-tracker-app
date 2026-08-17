@@ -73,7 +73,7 @@ const ROUTINES = {
       sweep: '#0096DB',
       card: '#87D7F6',
       ink: '#0a0a0a',
-      wash: 'rgba(11, 62, 117, 0.31)',
+      wash: 'rgba(15, 64, 117, 0.27)',
     },
     dark: { base: '#0081BC', sweep: '#0067A3', card: '#69C1EA', wash: 'rgba(20, 102, 173, 0.31)' },
   },
