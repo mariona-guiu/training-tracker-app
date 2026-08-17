@@ -555,9 +555,22 @@
   <p>
     Two system faces, split by job: <strong>SF Pro Rounded</strong> for what is
     looked at, <strong>SF Pro</strong> for what is read and operated. Nothing is
-    bundled. Tracking is written as a ratio of the size, so changing a size
-    carries its tracking with it. Case is part of the role — four roles
-    uppercase themselves and the copy stays in sentence case.
+    bundled.
+  </p>
+  <p>
+    <strong>Only five roles carry any tracking</strong>, and the sign follows the
+    <em>weight</em> rather than the size: the two mediums open by 1%, the three
+    bolds tighten. <code>heading</code> at 30pt opens while
+    <code>screenTitle</code> at 32pt tightens, so size predicts nothing. Where it
+    is non-zero it is written as a ratio of the size, which is why the page title
+    going 40 to 32 needed no second edit.
+  </p>
+  <p>
+    <strong>Three roles uppercase themselves</strong> — <code>label</code>,
+    <code>routineCard</code>, <code>routineCardMeta</code>. They render shouted
+    while the copy stays written in sentence case, so in Figma set All Caps on
+    the style and type the text normally. <code>control</code> is deliberately
+    not one: uppercase buttons are Material's convention, not Apple's.
   </p>
 
   <div class="scroll">
@@ -566,17 +579,17 @@
         <tr><th>Role</th><th class="num">Size</th><th class="num">Weight</th><th>Face</th><th class="num">Tracking</th><th>Case</th><th class="num">Max scale</th><th>Used for</th></tr>
       </thead>
       <tbody>
-        <tr><td><code>caption</code></td><td class="num">12</td><td class="num">400</td><td>SF Pro</td><td class="num">0</td><td>—</td><td class="num">none</td><td>Notes, disclaimers</td></tr>
-        <tr><td><code>label</code></td><td class="num">12</td><td class="num">500</td><td>SF Pro</td><td class="num">+1%</td><td>UPPER</td><td class="num">1.5×</td><td>Small caps, tags</td></tr>
-        <tr><td><code>body</code></td><td class="num">16</td><td class="num">400</td><td>SF Pro</td><td class="num">0</td><td>—</td><td class="num">none</td><td>Prose</td></tr>
-        <tr><td><code>control</code></td><td class="num">16</td><td class="num">500</td><td>SF Pro</td><td class="num">0</td><td>—</td><td class="num">1.5×</td><td>Button labels</td></tr>
+        <tr><td><code>caption</code></td><td class="num">12</td><td class="num">400</td><td>SF Pro</td><td class="num">0</td><td>—</td><td class="num">none</td><td>Notes and disclaimers — read once, then stopped being seen</td></tr>
+        <tr><td><code>label</code></td><td class="num">12</td><td class="num">500</td><td>SF Pro</td><td class="num">+1%</td><td>UPPER</td><td class="num">1.5×</td><td>The app’s voice. Renders shouted; the copy is written in sentence case</td></tr>
+        <tr><td><code>body</code></td><td class="num">16</td><td class="num">400</td><td>SF Pro</td><td class="num">0</td><td>—</td><td class="num">none</td><td>Prose. The one role written to be read at length, and uncapped for it</td></tr>
+        <tr><td><code>control</code></td><td class="num">16</td><td class="num">500</td><td>SF Pro</td><td class="num">0</td><td>—</td><td class="num">1.5×</td><td>Button labels, and only those. Sentence case on purpose — see below</td></tr>
         <tr><td><code>routineCardMeta</code></td><td class="num">16</td><td class="num">400</td><td>Rounded</td><td class="num">0</td><td>UPPER</td><td class="num">1.3×</td><td>“50 MIN”, “6 EXERCISES”</td></tr>
-        <tr><td><code>title</code></td><td class="num">20</td><td class="num">700</td><td>Rounded</td><td class="num">0</td><td>—</td><td class="num">1.4×</td><td>Section heads, cell names</td></tr>
-        <tr><td><code>heading</code></td><td class="num">30</td><td class="num">500</td><td>Rounded</td><td class="num">+1%</td><td>—</td><td class="num">1.3×</td><td>The exercise you are on</td></tr>
+        <tr><td><code>title</code></td><td class="num">20</td><td class="num">700</td><td>Rounded</td><td class="num">0</td><td>—</td><td class="num">1.4×</td><td>Section heads, History cell names and years, both segmented controls. Bold in all six</td></tr>
+        <tr><td><code>heading</code></td><td class="num">30</td><td class="num">500</td><td>Rounded</td><td class="num">+1%</td><td>—</td><td class="num">1.3×</td><td>The exercise you are on, and “Nice work!” when a workout ends</td></tr>
         <tr><td><code>routineCard</code></td><td class="num">30</td><td class="num">400</td><td>Rounded</td><td class="num">0</td><td>UPPER</td><td class="num">1.3×</td><td>The card’s name</td></tr>
         <tr><td><code>screenTitle</code></td><td class="num">32</td><td class="num">700</td><td>Rounded</td><td class="num">−1%</td><td>—</td><td class="num">1.3×</td><td>Page titles</td></tr>
-        <tr><td><code>figure</code></td><td class="num">64</td><td class="num">700</td><td>Rounded</td><td class="num">−3%</td><td>—</td><td class="num">1.2×</td><td>Stats counters (tabular)</td></tr>
-        <tr><td><code>hero</code></td><td class="num">82</td><td class="num">700</td><td>Rounded</td><td class="num">−1%</td><td>—</td><td class="num">1.2×</td><td>The figure being lifted</td></tr>
+        <tr><td><code>figure</code></td><td class="num">64</td><td class="num">700</td><td>Rounded</td><td class="num">−3%</td><td>—</td><td class="num">1.2×</td><td>The Stats counters. Tabular, so a column of them lines up</td></tr>
+        <tr><td><code>hero</code></td><td class="num">82</td><td class="num">700</td><td>Rounded</td><td class="num">−1%</td><td>—</td><td class="num">1.2×</td><td>The figure being lifted, and the finished time. <strong>Proportional</strong>, not tabular</td></tr>
       </tbody>
     </table>
   </div>

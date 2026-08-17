@@ -154,37 +154,43 @@ export const SYSTEM_ASCENT = 0.9668
 export const SYSTEM_CAP = 0.705
 export const SYSTEM_DESCENT = 0.2109
 
-// The type scale. Eleven roles, each named for the job so a screen picks a
-// role instead of a number.
+// The type scale. Eleven roles, each named for the job so a screen picks a role
+// instead of a number.
 //
-// Tracking is written as `size * ratio`, never as a bare value, so changing a
-// size cannot silently change how tight the text reads — the page title going
-// 40 to 32 carried its own tracking with it and needed no second edit.
+// **Tracking is per role, and only five roles have any.** Where it is non-zero
+// it is written as `size * ratio` rather than a bare number, so changing a size
+// carries its tracking with it — the page title going 40 to 32 needed no second
+// edit. The other six sit at a plain 0.
 //
-// The signs run the other way from most scales: large rounded type *tightens*
-// (-1% to -3%) and small type opens (+1%). SF Pro Rounded is already narrow-set
-// and its counters close up if it is tracked in, so `heading` takes +1% rather
-// than the 0 its neighbours use.
+// The sign follows the **weight**, not the size:
+//
+//     label        12pt  medium  +1%
+//     heading      30pt  medium  +1%
+//     screenTitle  32pt  bold    -1%
+//     figure       64pt  bold    -3%
+//     hero         82pt  bold    -1%
+//
+// Medium opens, bold tightens. This used to be written as "large type tightens
+// and small type opens", which the scale contradicts: heading at 30 opens while
+// screenTitle at 32 tightens. Size was never the thing predicting it.
 //
 // Case is part of the role, not the copy. Three roles carry
 // textTransform: 'uppercase' — routineCard, routineCardMeta and label — so they
 // render shouted while the *source strings* stay in sentence case. Settings
-// really does say "Show rest time between sets" and the role turns it into
+// really does contain "Show rest time between sets" and the role turns it into
 // "SHOW REST TIME BETWEEN SETS" on screen.
 //
-// Two reasons. Copy written as prose is easier to write, read and eventually
-// translate; and the same string can be reused somewhere unshouted without
-// being edited. In Figma this is All Caps on the style, with the text typed in
-// sentence case to match.
+// Two reasons for that. Copy written as prose is easier to write, read and
+// eventually translate; and the same string can be reused somewhere unshouted
+// without being edited. In Figma it is All Caps on the style, with the text
+// typed in sentence case to match.
 //
-// (This said "four roles" and then listed three. The fourth is the one below,
-// excluded on purpose.)
-//
-// `control` is deliberately not one of them. Uppercase button labels tracked
-// out is Material's convention, not Apple's; iOS sets buttons in sentence case
-// and lets SF Pro's own optical tracking do the spacing. Since the whole point
-// of this typeface is feeling native, the buttons speak rather than shout.
+// `control` is deliberately not a fourth. Uppercase button labels tracked out
+// is Material's convention, not Apple's; iOS sets buttons in sentence case and
+// lets SF Pro's own optical tracking do the spacing. Since the whole point of
+// this typeface is feeling native, the buttons speak rather than shout.
 export const TYPE = {
+  // Notes and disclaimers: the thing read once and then stopped being seen.
   caption: {
     fontFamily: FONTS.text,
     fontWeight: WEIGHT.regular,
@@ -200,12 +206,14 @@ export const TYPE = {
     textTransform: 'uppercase',
     fontVariant: ['tabular-nums'],
   },
+  // Prose. The one role written to be read at length, and uncapped for it.
   body: {
     fontFamily: FONTS.text,
     fontWeight: WEIGHT.regular,
     fontSize: 16,
     letterSpacing: 0,
   },
+  // Button labels, and only button labels. See the note on case above.
   control: {
     fontFamily: FONTS.text,
     fontWeight: WEIGHT.medium,
@@ -245,7 +253,10 @@ export const TYPE = {
     fontSize: 20,
     letterSpacing: 0,
   },
-  // The exercise being done, and the figures a finished workout comes to.
+  // Two things, both of them the largest words on their screen: the exercise
+  // you are on, and the greeting when a workout ends. Not the figures a
+  // workout comes to — those are `hero` for the time and `screenTitle` for the
+  // tallies, which this used to claim and never did.
   heading: {
     fontFamily: FONTS.rounded,
     fontWeight: WEIGHT.medium,
@@ -273,6 +284,9 @@ export const TYPE = {
     fontSize: 32,
     letterSpacing: 32 * -0.01,
   },
+  // The Stats counters. Tabular, unlike `hero` — a column of numbers that
+  // should line up with each other, and small enough that the padding tabular
+  // adds does not read as a gap. See the note on `hero`.
   figure: {
     fontFamily: FONTS.rounded,
     fontWeight: WEIGHT.bold,
@@ -317,9 +331,9 @@ export const TYPE = {
 // whose width is fixed by the layout around it. Past about 1.5 they wrap into
 // two lines and the control stops looking like a control.
 //
-// **1.4x / 1.3x: title, screenTitle, heading, routineCard.** Names and
-// headings. They start large, so a smaller multiplier still adds real size,
-// and they sit in cells and bars that cannot reflow far.
+// **1.4x: title. 1.3x: screenTitle, heading, routineCard, routineCardMeta.**
+// Names and headings. They start large, so a smaller multiplier still adds
+// real size, and they sit in cells and bars that cannot reflow far.
 //
 // **1.2x: figure and hero.** `hero` is 82pt already. At 3.12x it is 256pt on a
 // 390pt screen, which is not a layout problem to solve but a number nobody
