@@ -207,9 +207,8 @@ const makeStyles = (t) =>
       gap: SPACE[2],
     },
     // Sentence case: this reads as a section of the page, not a label on it.
-    // `title` sets the size and tracking; the weight is the screen's choice.
-    // 20 carries two jobs in this app — a section heading in bold here, an
-    // object's own name in medium on a history cell — and that is a real
-    // difference rather than a drift, so the role does not fix the weight.
+    // The weight comes from the role and is bold everywhere — this said the
+    // weight was the screen's choice and that a history cell used medium,
+    // which no screen has ever done. Corrected 2026-08-17.
     sectionTitle: { ...TYPE.title, color: t.text },
   })

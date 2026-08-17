@@ -214,8 +214,11 @@ export const TYPE = {
     fontVariant: ['tabular-nums'],
   },
   // Everything named at 20: the heading over a section, the header of a pushed
-  // view, a year in History, a routine's name in a cell, and the figures in the
-  // rest-pace control.
+  // view, a year in History, a routine's name in a cell, and the figures in
+  // both segmented controls on Settings — the rest pace and the appearance.
+  //
+  // Bold in all six. The weight belongs to the role, not to the screen; nothing
+  // overrides it and nothing should without a reason worth writing down.
   //
   // This was two roles for a day — a plain `title` for names read down a column
   // and a rounded `sectionTitle` for headings — on the theory that being read
