@@ -47,6 +47,11 @@ one file, the traps that cost a day each, and the rules that exist because
 something broke. It is written for whoever works on this next, including an
 assistant, and it is the most useful file in the repo.
 
+## Licence
+
+MIT — see `LICENSE`. Use it, copy it, take it apart. The reasoning in
+`CLAUDE.md` is probably worth more than the code.
+
 ## A note on the history
 
 This began as a port of a web PWA of the same app. That version is retired and
