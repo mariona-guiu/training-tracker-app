@@ -200,6 +200,10 @@ export default function ColourLab() {
   // that off is how you see what the blur is contributing rather than
   // guessing which of the two you are looking at.
   const [glass, setGlass] = useState(true)
+  // Confirming stores a *copy* of the values, not a flag. Carrying on turning
+  // sliders afterwards is then visible as a divergence rather than silently
+  // rewriting what you had already decided.
+  const [confirmed, setConfirmed] = useState({})
 
   const T = scheme === 'light' ? LIGHT : DARK
   const ink = inkFor(scheme, routine)
@@ -208,6 +212,15 @@ export default function ColourLab() {
   const shipped = useMemo(() => seed(routine, scheme), [routine, scheme])
   const state = edits[slot] ?? shipped
   const edited = Boolean(edits[slot])
+  const locked = confirmed[slot]
+  const moved = locked && JSON.stringify(locked) !== JSON.stringify(state)
+  const status = moved
+    ? 'confirmed, then changed'
+    : locked
+      ? 'confirmed'
+      : edited
+        ? 'edited'
+        : 'as shipped'
 
   const setState = (fn) => setEdits((all) => ({ ...all, [slot]: fn(all[slot] ?? shipped) }))
   // Called as a drag starts and before any shortcut, so there is exactly one
@@ -322,6 +335,7 @@ export default function ColourLab() {
               ]}
             >
               <Text style={[s.chipText, { color: r === routine ? inkFor(scheme, r) : T.textDim }]}>
+                {confirmed[r + ':' + scheme] ? '✓ ' : ''}
                 {r}
               </Text>
             </Pressable>
@@ -575,10 +589,12 @@ export default function ColourLab() {
         {Object.keys(edits).length ? (
           <View style={[s.output, { borderColor: T.border }]}>
             <Text style={[s.outputLine, { color: T.text }]}>
-              changed so far &middot; {Object.keys(edits).length}
+              confirmed {Object.keys(confirmed).length} of 12 &middot; touched{' '}
+              {Object.keys(edits).length}
             </Text>
             {Object.entries(edits).map(([k, v]) => (
-              <Text key={k} style={[s.outputLine, { color: T.textDim }]}>
+              <Text key={k} style={[s.outputLine, { color: confirmed[k] ? T.text : T.textDim }]}>
+                {confirmed[k] ? '✓ ' : '· '}
                 {k} {hslHex(...v.base)} {hslHex(...v.sweep)} {hslHex(...v.wash)}@
                 {Math.round(v.alpha * 100)}%
               </Text>
@@ -589,7 +605,7 @@ export default function ColourLab() {
         {/* Read these off and type them into routineStyles.js. */}
         <View style={[s.output, { borderColor: T.border }]}>
           <Text style={[s.outputLine, { color: T.text }]}>
-            {routine} &middot; {scheme} &middot; {edited ? 'edited' : 'as shipped'}
+            {routine} &middot; {scheme} &middot; {status}
           </Text>
           <Text style={[s.outputLine, { color: T.textDim }]}>base &nbsp;{baseHex}</Text>
           <Text style={[s.outputLine, { color: T.textDim }]}>sweep {sweepHex}</Text>
@@ -601,6 +617,23 @@ export default function ColourLab() {
             , {state.alpha.toFixed(2)})
           </Text>
         </View>
+
+        <Pressable
+          onPress={() => setConfirmed((c) => ({ ...c, [slot]: state }))}
+          style={[
+            s.reset,
+            { borderColor: T.border },
+            locked && !moved && { backgroundColor: T.text, borderColor: 'transparent' },
+          ]}
+        >
+          <Text style={[s.chipText, { color: locked && !moved ? T.onInk : T.text }]}>
+            {moved
+              ? 'confirm this instead'
+              : locked
+                ? 'confirmed ✓'
+                : 'confirm ' + routine + ' ' + scheme}
+          </Text>
+        </Pressable>
 
         <View style={s.chips}>
           <Pressable
