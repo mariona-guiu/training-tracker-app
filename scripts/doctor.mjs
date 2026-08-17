@@ -14,7 +14,11 @@
 //   1. Paths named in CLAUDE.md and the README resolve to a file.
 //   2. CONSTANT_CASE names in backticks exist somewhere in the source.
 //   3. Everything the theme exports is consumed by something.
-//   4. docs/design-tokens.html matches what the generator would produce.
+//   4. No credential, personal address or LAN address is in any commit.
+//   5. docs/design-tokens.html matches what the generator would produce.
+//
+// Check 4 is the one with teeth now that this repo is public: it reads all of
+// history, because that is what a public repo actually serves.
 //
 // What it deliberately does not check: prose. "The frost reinforces the ground"
 // is either true or not and no script can tell. Those still need reading.
@@ -104,7 +108,101 @@ for (const name of theme.match(/^export const ([A-Z][A-Z0-9_]+) =/gm)?.map((l) =
   if (!new RegExp(`\\b${name}\\b`).test(outside)) fail('src/theme/index.js', `${name} is exported and nothing imports it`)
 }
 
-// ── 4. the tokens page matches the theme ──────────────────────────────────
+// ── 4. nothing secret is in any commit ────────────────────────────────────
+//
+// This repository is public, and a public repository serves **every commit**.
+// Something committed by mistake and deleted the next day is still there and
+// still readable — which is why the two private predecessors of this repo can
+// never be opened up, a licensed typeface sitting in their history. So this
+// scans all of history rather than the working tree. It costs about a tenth of
+// a second at this size.
+//
+// Every pattern is a documented key format, matched literally. No entropy
+// heuristics, and no keyword matching on "password" or "token": those produce
+// false positives, and a check that cries wolf is one you learn to ignore.
+// A hit here is therefore never a maybe — treat it as a live credential,
+// rotate it, and assume it is already public.
+//
+// This file is excluded from its own scan, since it necessarily contains the
+// shapes it looks for.
+
+const SECRETS = [
+  ['AWS access key ID', /\bAKIA[0-9A-Z]{16}\b/],
+  ['GitHub token', /\bgh[pousr]_[A-Za-z0-9]{30,}\b/],
+  ['GitHub fine-grained token', /\bgithub_pat_[A-Za-z0-9_]{50,}\b/],
+  ['API secret key', /\bsk-[A-Za-z0-9_-]{32,}\b/],
+  ['Google API key', /\bAIza[0-9A-Za-z_-]{35}\b/],
+  ['Slack token', /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/],
+  ['private key block', /-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----/],
+  // A personal address, as opposed to the no-reply one every commit here is
+  // authored with. Matched by provider, so this file need not contain anyone's
+  // actual address — it is published, and that is the whole point.
+  ['personal email address', /[A-Za-z0-9._%+-]+@(?:gmail|googlemail|icloud|hotmail|outlook|yahoo)\.[a-z.]{2,}/],
+  // Neither of these is a credential, but both are private by accident, and
+  // neither works for anyone else who clones this.
+  ['a LAN address', /\b(?:192\.168\.\d{1,3}|10\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3})\.\d{1,3}\b/],
+  ['a hardcoded localhost URL', /\bhttps?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/],
+]
+
+const SELF = 'scripts/doctor.mjs'
+const revs = execFileSync('git', ['rev-list', '--all'], { cwd: root, encoding: 'utf8' })
+  .split('\n')
+  .filter(Boolean)
+
+// `-P` (PCRE), not `-E`. POSIX ERE has no `\b`, no `\d` and no `(?:…)`, and the
+// two failure modes are different kinds of nasty: `(?:…)` is a hard error, while
+// **`\b` silently matches nothing at all** — `\btraining-tracker` finds zero
+// files in a repo where `training-tracker` finds four. The first version of this
+// check used `-E` and reported a clean repo while finding nothing it looked for.
+const grepHistory = (source) => {
+  try {
+    // `-e` is not optional: the private-key pattern begins with `-----BEGIN`,
+    // and git reads a leading dash as an option. Without it that one pattern
+    // aborts the entire scan.
+    return execFileSync('git', ['grep', '-I', '-l', '-P', '-e', source, ...revs], {
+      cwd: root,
+      encoding: 'utf8',
+      maxBuffer: 64 << 20,
+    })
+      .split('\n')
+      .filter((line) => line && !line.endsWith(':' + SELF))
+  } catch (err) {
+    // Exit 1 is git grep's "found nothing" and is the only acceptable failure.
+    // Anything else — a bad pattern, no PCRE support, a buffer overrun — must be
+    // loud. Swallowing it is how a broken scan passes for a clean repo, which is
+    // strictly worse than having no scan at all.
+    if (err.status === 1) return []
+    throw new Error(
+      `git grep failed (exit ${err.status}) on /${source}/\n` +
+        `    ${String(err.stderr || err.message).trim()}`,
+    )
+  }
+}
+
+// One combined pass first. On a clean repo — the normal case — this is the only
+// scan that runs, and it is a single git invocation.
+if (grepHistory(SECRETS.map(([, re]) => re.source).join('|')).length > 0) {
+  // Something matched, so now pay for the per-pattern pass to say what, and where.
+  for (const [label, re] of SECRETS) {
+    const hits = grepHistory(re.source)
+    if (hits.length === 0) continue
+    const atHead = hits.filter((h) => h.startsWith(revs[0] + ':'))
+    const where = atHead.length
+      ? atHead.map((h) => h.slice(h.indexOf(':') + 1)).join(', ')
+      : `only in ${hits.length} older commit${hits.length === 1 ? '' : 's'} — a new commit will not remove it, this needs a history rewrite`
+    fail('git history', `${label} — ${where}`)
+  }
+}
+
+// The other way a secret reaches a public repo. .gitignore covered `.env*.local`
+// but not a plain `.env` when this was written.
+for (const f of tracked) {
+  if (/(^|\/)\.env(\.|$)/.test(f) || /\.(pem|p12|keystore|jks)$/.test(f)) {
+    fail(f, 'is tracked, and files of this kind carry credentials')
+  }
+}
+
+// ── 5. the tokens page matches the theme ──────────────────────────────────
 
 try {
   execFileSync('node', [join(here, 'generate-tokens.mjs'), '--check'], { stdio: 'pipe' })
