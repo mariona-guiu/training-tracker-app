@@ -32,7 +32,8 @@
     "web": "expo start --web",
     "lint": "oxlint",
     "format": "prettier --write \"{app,src}/**/*.{js,jsx}\"",
-    "format:check": "prettier --check \"{app,src}/**/*.{js,jsx}\""
+    "format:check": "prettier --check \"{app,src}/**/*.{js,jsx}\"",
+    "audit": "node scripts/audit-contrast.mjs"
   },
   "private": true,
   "overrides": {
