@@ -136,39 +136,50 @@
   </p>
 </header>
 
-<!-- ─────────────────────────── the two layers ──────────────────────────── -->
+<!-- ─────────────────────────── the layers ──────────────────────────────── -->
 <section>
   <div class="head">
     <div class="eyebrow">01 — Architecture</div>
-    <h2>Two layers, two collections</h2>
+    <h2>Three layers, three collections</h2>
   </div>
 
   <p>
-    <strong>Primitives</strong> are the raw palette. They are named for what
-    they <em>are</em> — <code>neutral/975</code>, <code>orange/500</code> — carry
-    no meaning, and have <strong>no modes</strong>. A primitive is the same
-    colour in light and dark; it is simply used in one or the other.
+    <strong>Primitives</strong> are the raw palette, named for what they
+    <em>are</em> — <code>neutral/975</code>, <code>orange/500</code>. No meaning,
+    and <strong>no modes</strong>: a primitive is the same colour in light and
+    dark, it is simply used in one or the other.
   </p>
   <p>
-    <strong>Semantic tokens</strong> are named for the job — <code>surface/page</code>,
-    <code>text/secondary</code> — and hold <strong>two modes</strong>, each one
-    <em>pointing at a primitive</em> rather than repeating a hex. That pointer is
-    the whole value of the split: change <code>neutral/975</code> once and every
-    dark surface built on it follows, in Figma and in code alike.
+    <strong>Semantic</strong> tokens are named for the job —
+    <code>surface/page</code>, <code>text/secondary</code> — and hold
+    <strong>two modes</strong>, each <em>pointing at a primitive</em> rather than
+    repeating a hex. That pointer is the value of the split: change
+    <code>neutral/975</code> once and every dark surface built on it follows, in
+    Figma and in code alike.
   </p>
   <p>
-    Components only ever consume semantic tokens. If a component references a
-    primitive directly, that is the bug — it means a colour was chosen for how it
-    looks rather than for what it does, and it will not follow a theme change.
+    <strong>Component</strong> tokens belong to one thing and nothing else — the
+    switch's track, the tab bar's indicator. They exist so a value used in
+    exactly one place cannot be mistaken for a system-wide decision. There are
+    only five, and each is named for the component that owns it.
+  </p>
+  <p>
+    A component may consume semantic tokens and its own component tokens. It
+    must never reference a primitive directly: that means a colour was chosen for
+    how it looks rather than what it does, and it will not follow a theme change.
   </p>
 
   <div class="note">
     <strong>Multiple modes on one collection is a paid Figma feature.</strong>
-    On the free plan you get one. The workaround: build
-    <code>semantic/light</code> and <code>semantic/dark</code> as two
-    collections with identical variable names, both aliasing the same single
-    primitives collection. Nothing needs renaming if you upgrade later — you
-    merge the two into one collection with two modes.
+    On the free plan you get one. The workaround: build the moded collections
+    twice — <code>semantic/light</code> and <code>semantic/dark</code> — with
+    identical variable names, both aliasing the single primitives collection.
+    Nothing needs renaming if you upgrade; you merge the pair into one collection
+    with two modes.
+    <br><br>
+    <strong>Figma sorts alphabetically within a group.</strong> The routine list
+    further down is in stack order, which the panel will not preserve — do not
+    try to make it, and do not number the names to force it.
   </div>
 </section>
 
@@ -356,33 +367,77 @@
     <table>
       <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th>Role</th></tr></thead>
       <tbody>
-        <tr><td><code>surface/page</code></td><td><code class="alias">neutral/25</code></td><td><code class="alias">neutral/975</code></td><td>The page</td></tr>
-        <tr><td><code>surface/raised</code></td><td><code class="alias">neutral/50</code></td><td><code class="alias">neutral/925</code></td><td>Cards. <strong>Lighter</strong> than the page in dark</td></tr>
-        <tr><td><code>surface/card-translucent</code></td><td><code class="alias">neutral/50</code> @ 50%</td><td><code class="alias">neutral/925</code> @ 50%</td><td>A tint, not a panel</td></tr>
-        <tr><td><code>surface/floating</code></td><td><code class="alias">neutral/25</code> @ 72%</td><td><code class="alias">neutral/975</code> @ 66%</td><td>Header the page scrolls behind</td></tr>
-        <tr><td><code>text/primary</code></td><td><code class="alias">neutral/950</code></td><td><code class="alias">neutral/100</code></td><td>Type <em>and</em> filled buttons</td></tr>
-        <tr><td><code>text/secondary</code></td><td><code class="alias">neutral/600</code></td><td><code class="alias">neutral/500</code></td><td>Held near 5:1, deliberately not brighter</td></tr>
-        <tr><td><code>text/on-ink</code></td><td><code class="alias">neutral/0</code></td><td><code class="alias">neutral/975</code></td><td>On a filled ink surface</td></tr>
-        <tr><td><code>line/hairline</code></td><td><code class="alias">neutral/300</code></td><td><code class="alias">neutral/800</code></td><td>Separators. Same neutral as <code>control/track</code></td></tr>
-        <tr><td><code>line/glass-edge</code></td><td><code class="alias">neutral/0</code> @ 55%</td><td><code class="alias">neutral/100</code> @ 14%</td><td>Drawn over a blur, never a border</td></tr>
-        <tr><td><code>control/track</code></td><td><code class="alias">neutral/300</code></td><td><code class="alias">neutral/800</code></td><td>Switch, unfilled. Same neutral as <code>line/hairline</code></td></tr>
-        <tr><td><code>control/highlight</code></td><td><code class="alias">neutral/1000</code> @ 12%</td><td><code class="alias">neutral/100</code> @ 16%</td><td>Current tab. <strong>Inverts</strong></td></tr>
-        <tr><td><code>state/danger</code></td><td><code class="alias">red/500</code></td><td><code class="alias">red/400</code></td><td>Destructive only</td></tr>
-        <tr><td><code>glass/wash-top</code></td><td><code class="alias">neutral/0</code> @ 60%</td><td><code class="alias">neutral/800</code> @ 62%</td><td rowspan="2">Two stops of one gradient, for the blur stand-in</td></tr>
-        <tr><td><code>glass/wash-bottom</code></td><td><code class="alias">neutral/0</code> @ 32%</td><td><code class="alias">neutral/925</code> @ 38%</td></tr>
+        <tr><td><code>surface/page</code></td><td><span class="chip" style="background:#fdfdfc"></span> <code class="alias">neutral/25</code></td><td><span class="chip" style="background:#121211"></span> <code class="alias">neutral/975</code></td><td>The page</td></tr>
+        <tr><td><code>surface/raised</code></td><td><span class="chip" style="background:#f7f7f6"></span> <code class="alias">neutral/50</code></td><td><span class="chip" style="background:#1e1e1c"></span> <code class="alias">neutral/925</code></td><td>Cards. <strong>Lighter</strong> than the page in dark</td></tr>
+        <tr><td><code>surface/card-translucent</code></td><td><span class="chip" style="background:#000"></span> <code class="alias">neutral/50</code> @ 50%</td><td><span class="chip" style="background:#000"></span> <code class="alias">neutral/925</code> @ 50%</td><td>A tint, not a panel</td></tr>
+        <tr><td><code>surface/floating</code></td><td><span class="chip" style="background:#000"></span> <code class="alias">neutral/25</code> @ 72%</td><td><span class="chip" style="background:#000"></span> <code class="alias">neutral/975</code> @ 66%</td><td>Header the page scrolls behind</td></tr>
+        <tr><td><code>text/primary</code></td><td><span class="chip" style="background:#191919"></span> <code class="alias">neutral/950</code></td><td><span class="chip" style="background:#f2f2ef"></span> <code class="alias">neutral/100</code></td><td>Type <em>and</em> filled buttons</td></tr>
+        <tr><td><code>text/secondary</code></td><td><span class="chip" style="background:#6f6f6a"></span> <code class="alias">neutral/600</code></td><td><span class="chip" style="background:#8a8a83"></span> <code class="alias">neutral/500</code></td><td>Held near 5:1, deliberately not brighter</td></tr>
+        <tr><td><code>text/on-ink</code></td><td><span class="chip" style="background:#ffffff"></span> <code class="alias">neutral/0</code></td><td><span class="chip" style="background:#121211"></span> <code class="alias">neutral/975</code></td><td>On a filled ink surface</td></tr>
+        <tr><td><code>border/default</code></td><td><span class="chip" style="background:#d9d9d7"></span> <code class="alias">neutral/300</code></td><td><span class="chip" style="background:#3a3a35"></span> <code class="alias">neutral/800</code></td><td>Separators</td></tr>
+        <tr><td><code>state/danger</code></td><td><span class="chip" style="background:#EC1C22"></span> <code class="alias">red/500</code></td><td><span class="chip" style="background:#ff5257"></span> <code class="alias">red/400</code></td><td>Destructive only</td></tr>
       </tbody>
     </table>
   </div>
   <div class="note">
-    <strong>Two of these are not text colours.</strong> <code>text/primary</code>
-    is also the <em>fill</em> of the primary button, the selected segmented cell
-    and the switch track, with <code>text/on-ink</code> on top. And
-    <code>text/on-ink</code> in dark is the same primitive as
-    <code>surface/page</code> — correct, not a mistake: a filled surface in dark
-    is light, so what sits on it is the page colour.
+    <strong><code>text/primary</code> is not only a text colour.</strong> It is
+    also the <em>fill</em> of the primary button, the selected segmented cell and
+    the switch when it is on, with <code>text/on-ink</code> on top. Repaint it and
+    those surfaces move too.
+    <br><br>
+    <strong><code>text/on-ink</code> in dark is the same primitive as
+    <code>surface/page</code>.</strong> Correct, not a slip: a filled surface in
+    dark mode is light, so what sits on it is the page colour.
+    <br><br>
+    <code>border/default</code> was called <code>line/hairline</code>. A hairline
+    is a stroke <em>weight</em>, and naming a colour after one invites someone to
+    look here for a thickness.
   </div>
 </section>
 
+<!-- ─────────────────────────── component ───────────────────────────────── -->
+<section>
+  <div class="head">
+    <div class="eyebrow">03b — Component</div>
+    <h2>Component tokens</h2>
+  </div>
+  <p>
+    Five values, each belonging to exactly one component. They were in the
+    semantic layer, which implied a system-wide decision where there was only a
+    local one — <code>control/track</code> reads as though any control might use
+    it, and only the switch ever does.
+  </p>
+  <p>
+    These alias <strong>primitives</strong> rather than semantic tokens, because
+    no semantic role fits: an unfilled switch track is not a border, even where
+    the two share a value today. Coupling them would mean repainting one
+    repaints the other by accident.
+  </p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th>Was</th></tr></thead>
+      <tbody>
+        <tr><td><code>component/switch/track</code></td><td><span class="chip" style="background:#d9d9d7"></span> <code class="alias">neutral/300</code></td><td><span class="chip" style="background:#3a3a35"></span> <code class="alias">neutral/800</code></td><td><code>control/track</code></td></tr>
+        <tr><td><code>component/tab-bar/indicator</code></td><td><code class="alias">neutral/1000</code> @ 12%</td><td><code class="alias">neutral/100</code> @ 16%</td><td><code>control/highlight</code></td></tr>
+        <tr><td><code>component/tab-bar/edge</code></td><td><code class="alias">neutral/0</code> @ 55%</td><td><code class="alias">neutral/100</code> @ 14%</td><td><code>line/glass-edge</code></td></tr>
+        <tr><td><code>component/tab-bar/wash-start</code></td><td><code class="alias">neutral/0</code> @ 60%</td><td><code class="alias">neutral/800</code> @ 62%</td><td rowspan="2"><code>glass/wash-top</code> and <code>-bottom</code></td></tr>
+        <tr><td><code>component/tab-bar/wash-end</code></td><td><code class="alias">neutral/0</code> @ 32%</td><td><code class="alias">neutral/925</code> @ 38%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <strong>These belong to the tab bar, not to “glass”.</strong> They were named
+    as though they described any frosted surface. They do not: the page titles
+    and the restack button use the same blurred component without them. Only the
+    tab bar draws its own edge and its own lit gradient, and only because it has
+    to imply a material the phone will not give it until there is a development
+    build.
+    <br><br>
+    The pill marking the current tab is the one to watch when repainting: light
+    mode marks the current tab by <em>darkening</em> it, which on a dark bar would
+    mark it by making it disappear. It inverts rather than shifting.
+  </div>
+</section>
 <!-- ─────────────────────────── routines ────────────────────────────────── -->
 <section>
   <div class="head">
