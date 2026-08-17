@@ -40,17 +40,22 @@ const ROUTINES = {
     // text is allowed, on the 82pt figure.
     light: {
       base: '#F37500',
-      sweep: '#DB6414',
+      sweep: '#E46C1B',
       card: '#FFBF83',
       ink: '#0a0a0a',
-      wash: 'rgba(141, 68, 12, 0.43)',
+      wash: 'rgba(162, 65, 17, 0.46)',
     },
+    // The one base that moved during tuning: #E46701 to #EB7100, a shade
+    // brighter, which is what gave the button somewhere to sit without its
+    // label going under. Mid-sweep that label still reads 4.25:1 against AA's
+    // 4.5 — accepted deliberately rather than chased, because recovering the
+    // last 0.25 meant moving the sweep and the card as well.
     dark: {
-      base: '#E46701',
-      sweep: '#B54103',
+      base: '#EB7100',
+      sweep: '#DF6316',
       card: '#FFA65D',
       ink: '#0a0a0a',
-      wash: 'rgba(95, 25, 12, 0.41)',
+      wash: 'rgba(135, 47, 13, 0.33)',
     },
   },
   'lower body': {
