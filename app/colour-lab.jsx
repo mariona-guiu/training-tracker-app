@@ -14,6 +14,7 @@ import {
   inkFor,
 } from '../src/data/routineStyles.js'
 import { DARK, LIGHT, RADIUS, SPACE, TYPE } from '../src/theme/index.js'
+import { Glass } from '../src/components/Glass.jsx'
 
 // TEMPORARY — the colour lab.
 //
@@ -186,6 +187,10 @@ export default function ColourLab() {
   const [routine, setRoutine] = useState('core')
   const [scheme, setScheme] = useState('light')
   const [state, setState] = useState(() => seed('core', 'light'))
+  // The real button is a blur with the wash inside it. Being able to switch
+  // that off is how you see what the blur is contributing rather than
+  // guessing which of the two you are looking at.
+  const [glass, setGlass] = useState(true)
 
   const T = scheme === 'light' ? LIGHT : DARK
   const ink = inkFor(scheme, routine)
@@ -203,6 +208,14 @@ export default function ColourLab() {
   const baseHex = hslHex(...state.base)
   const sweepHex = hslHex(...state.sweep)
   const washHex = hslHex(...state.wash)
+  const washRgba =
+    'rgba(' +
+    hslToRgb(...state.wash)
+      .map((c) => Math.round(c * 255))
+      .join(', ') +
+    ', ' +
+    state.alpha.toFixed(2) +
+    ')'
 
   const measured = useMemo(() => {
     const baseRgb = hslToRgb(...state.base)
@@ -305,12 +318,33 @@ export default function ColourLab() {
           <Text style={[s.previewLabel, { color: ink }]}>{routine} workout</Text>
           {/* Spans the boundary, so the ink is judged on both grounds too. */}
           <Text style={[s.previewFigure, { color: ink }]}>12reps &middot; 30kg</Text>
-          <View style={[s.previewButton, { backgroundColor: washHex, opacity: state.alpha }]} />
-          <View style={s.previewButtonLabel}>
-            <Text style={[s.previewButtonText, { color: ink }]}>Skip</Text>
+          {/* Composed exactly as the workout screen composes it: a Glass at
+              intensity 40, tinted to reinforce the ground rather than invert
+              it, with the wash rendered inside as its fallback layer. A flat
+              wash over a flat colour was missing the tint the blur adds, which
+              is most of what the button actually looks like. */}
+          <View style={s.previewButton}>
+            {glass ? (
+              <Glass
+                intensity={40}
+                tint={ink === '#ffffff' ? 'dark' : 'light'}
+                style={s.previewButtonSurface}
+                fallback={<View style={[StyleSheet.absoluteFill, { backgroundColor: washRgba }]} />}
+              >
+                <Text style={[s.previewButtonText, { color: ink }]}>Skip</Text>
+              </Glass>
+            ) : (
+              <View style={[s.previewButtonSurface, { backgroundColor: washRgba }]}>
+                <Text style={[s.previewButtonText, { color: ink }]}>Skip</Text>
+              </View>
+            )}
           </View>
         </View>
 
+        <Text style={[s.tiny, { color: T.textDim }]}>
+          numbers exclude the blur — with glass on, the button reads lighter or darker than “label
+          on button” says
+        </Text>
         <View style={s.stats}>
           <Stat name="ink on card" value={measured.inkOnBase} want={4.5} />
           <Stat name="ink on sweep" value={measured.inkOnSweep} want={4.5} />
@@ -470,6 +504,18 @@ export default function ColourLab() {
           >
             <Text style={[s.chipText, { color: T.textDim }]}>neutral</Text>
           </Pressable>
+          <Pressable
+            onPress={() => setGlass((g) => !g)}
+            style={[
+              s.chip,
+              { borderColor: T.border },
+              glass && { backgroundColor: T.text, borderColor: 'transparent' },
+            ]}
+          >
+            <Text style={[s.chipText, { color: glass ? T.onInk : T.textDim }]}>
+              glass {glass ? 'on' : 'off'}
+            </Text>
+          </Pressable>
         </View>
 
         {/* Read these off and type them into routineStyles.js. */}
@@ -538,14 +584,10 @@ const s = StyleSheet.create({
     height: 52,
     borderRadius: RADIUS.pill,
   },
-  // The label sits outside the faded layer, because opacity on a parent would
-  // fade the text with it and that is not what the app does.
-  previewButtonLabel: {
-    position: 'absolute',
-    left: SPACE[3],
-    right: SPACE[3],
-    bottom: SPACE[3],
-    height: 52,
+  previewButtonSurface: {
+    flex: 1,
+    borderRadius: RADIUS.pill,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
