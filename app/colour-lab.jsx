@@ -121,7 +121,7 @@ function deltaE(a, b) {
 // does not have. Gesture-handler is already here, and the track is drawn with
 // a gradient so the slider shows what it controls rather than a bare line.
 
-function Slider({ label, value, min, max, step = 1, onChange, stops, readout, ink }) {
+function Slider({ label, value, min, max, step = 1, onChange, onCommit, stops, readout, ink }) {
   const [width, setWidth] = useState(0)
   const fraction = (value - min) / (max - min)
 
@@ -133,7 +133,10 @@ function Slider({ label, value, min, max, step = 1, onChange, stops, readout, in
 
   const pan = Gesture.Pan()
     .minDistance(0)
-    .onBegin((e) => runOnJS(set)(e.x))
+    .onBegin((e) => {
+      if (onCommit) runOnJS(onCommit)()
+      runOnJS(set)(e.x)
+    })
     .onUpdate((e) => runOnJS(set)(e.x))
 
   return (
@@ -186,7 +189,13 @@ export default function ColourLab() {
   const insets = useSafeAreaInsets()
   const [routine, setRoutine] = useState('core')
   const [scheme, setScheme] = useState('light')
-  const [state, setState] = useState(() => seed('core', 'light'))
+  // Every routine and scheme you have touched, kept for as long as the screen
+  // lives. Switching away and back used to throw the work away, which made
+  // comparing two routines impossible — the comparison is the point.
+  const [edits, setEdits] = useState({})
+  // One entry per gesture, not per frame: pushed when a drag begins, so undo
+  // steps back a whole adjustment rather than a pixel of one.
+  const [history, setHistory] = useState([])
   // The real button is a blur with the wash inside it. Being able to switch
   // that off is how you see what the blur is contributing rather than
   // guessing which of the two you are looking at.
@@ -195,10 +204,29 @@ export default function ColourLab() {
   const T = scheme === 'light' ? LIGHT : DARK
   const ink = inkFor(scheme, routine)
 
+  const slot = routine + ':' + scheme
+  const shipped = useMemo(() => seed(routine, scheme), [routine, scheme])
+  const state = edits[slot] ?? shipped
+  const edited = Boolean(edits[slot])
+
+  const setState = (fn) => setEdits((all) => ({ ...all, [slot]: fn(all[slot] ?? shipped) }))
+  // Called as a drag starts and before any shortcut, so there is exactly one
+  // undo step per thing you did.
+  const snapshot = () => setHistory((h) => [...h.slice(-49), { slot, value: state }])
+  const undo = () =>
+    setHistory((h) => {
+      const last = h[h.length - 1]
+      if (last) {
+        setEdits((all) => ({ ...all, [last.slot]: last.value }))
+        setRoutine(last.slot.split(':')[0])
+        setScheme(last.slot.split(':')[1])
+      }
+      return h.slice(0, -1)
+    })
+
   const reload = (r, sc) => {
     setRoutine(r)
     setScheme(sc)
-    setState(seed(r, sc))
   }
 
   const set = (key) => (v) => setState((c) => ({ ...c, [key]: v }))
@@ -375,6 +403,7 @@ export default function ColourLab() {
         {/* ── card ── */}
         <Text style={[s.group, { color: T.text }]}>Card &nbsp;{baseHex}</Text>
         <Slider
+          onCommit={snapshot}
           label="hue"
           value={h}
           min={0}
@@ -385,6 +414,7 @@ export default function ColourLab() {
           stops={HUE_STOPS}
         />
         <Slider
+          onCommit={snapshot}
           label="saturation"
           value={sat}
           min={0}
@@ -396,6 +426,7 @@ export default function ColourLab() {
           stops={[hslHex(h, 0, li), hslHex(h, 1, li)]}
         />
         <Slider
+          onCommit={snapshot}
           label="lightness"
           value={li}
           min={0}
@@ -410,6 +441,7 @@ export default function ColourLab() {
         {/* ── sweep ── */}
         <Text style={[s.group, { color: T.text }]}>Sweep &nbsp;{sweepHex}</Text>
         <Slider
+          onCommit={snapshot}
           label="hue"
           value={sh}
           min={0}
@@ -420,6 +452,7 @@ export default function ColourLab() {
           stops={HUE_STOPS}
         />
         <Slider
+          onCommit={snapshot}
           label="saturation"
           value={ss}
           min={0}
@@ -431,6 +464,7 @@ export default function ColourLab() {
           stops={[hslHex(sh, 0, sl), hslHex(sh, 1, sl)]}
         />
         <Slider
+          onCommit={snapshot}
           label="lightness"
           value={sl}
           min={0}
@@ -442,7 +476,10 @@ export default function ColourLab() {
           stops={['#000000', hslHex(sh, ss, 0.5), '#FFFFFF']}
         />
         <Pressable
-          onPress={() => setState((c) => ({ ...c, sweep: [c.base[0], c.base[1], c.base[2]] }))}
+          onPress={() => {
+            snapshot()
+            setState((c) => ({ ...c, sweep: [c.base[0], c.base[1], c.base[2]] }))
+          }}
         >
           <Text style={[s.tiny, { color: T.textDim }]}>↺ match the card's hue exactly</Text>
         </Pressable>
@@ -452,6 +489,7 @@ export default function ColourLab() {
           Wash &nbsp;{washHex} @ {Math.round(state.alpha * 100)}% &nbsp;→&nbsp; {measured.buttonHex}
         </Text>
         <Slider
+          onCommit={snapshot}
           label="hue"
           value={wh}
           min={0}
@@ -462,6 +500,7 @@ export default function ColourLab() {
           stops={HUE_STOPS}
         />
         <Slider
+          onCommit={snapshot}
           label="saturation"
           value={ws}
           min={0}
@@ -473,6 +512,7 @@ export default function ColourLab() {
           stops={[hslHex(wh, 0, wl), hslHex(wh, 1, wl)]}
         />
         <Slider
+          onCommit={snapshot}
           label="lightness"
           value={wl}
           min={0}
@@ -484,6 +524,7 @@ export default function ColourLab() {
           stops={['#000000', hslHex(wh, ws, 0.5), '#FFFFFF']}
         />
         <Slider
+          onCommit={snapshot}
           label="opacity"
           value={state.alpha}
           min={0}
@@ -498,15 +539,19 @@ export default function ColourLab() {
         {/* The question this lab exists to answer, as two buttons. */}
         <View style={s.chips}>
           <Pressable
-            onPress={() =>
+            onPress={() => {
+              snapshot()
               setState((c) => ({ ...c, wash: [c.base[0], c.base[1], c.base[2] * 0.55] }))
-            }
+            }}
             style={[s.chip, { borderColor: T.border }]}
           >
             <Text style={[s.chipText, { color: T.textDim }]}>wash from the routine's hue</Text>
           </Pressable>
           <Pressable
-            onPress={() => setState((c) => ({ ...c, wash: [0, 0, 0.04] }))}
+            onPress={() => {
+              snapshot()
+              setState((c) => ({ ...c, wash: [0, 0, 0.04] }))
+            }}
             style={[s.chip, { borderColor: T.border }]}
           >
             <Text style={[s.chipText, { color: T.textDim }]}>neutral</Text>
@@ -525,10 +570,26 @@ export default function ColourLab() {
           </Pressable>
         </View>
 
+        {/* Everything changed so far, not only what is on screen — this is the
+            block to hand over once the colours are settled. */}
+        {Object.keys(edits).length ? (
+          <View style={[s.output, { borderColor: T.border }]}>
+            <Text style={[s.outputLine, { color: T.text }]}>
+              changed so far &middot; {Object.keys(edits).length}
+            </Text>
+            {Object.entries(edits).map(([k, v]) => (
+              <Text key={k} style={[s.outputLine, { color: T.textDim }]}>
+                {k} {hslHex(...v.base)} {hslHex(...v.sweep)} {hslHex(...v.wash)}@
+                {Math.round(v.alpha * 100)}%
+              </Text>
+            ))}
+          </View>
+        ) : null}
+
         {/* Read these off and type them into routineStyles.js. */}
         <View style={[s.output, { borderColor: T.border }]}>
           <Text style={[s.outputLine, { color: T.text }]}>
-            {routine} &middot; {scheme}
+            {routine} &middot; {scheme} &middot; {edited ? 'edited' : 'as shipped'}
           </Text>
           <Text style={[s.outputLine, { color: T.textDim }]}>base &nbsp;{baseHex}</Text>
           <Text style={[s.outputLine, { color: T.textDim }]}>sweep {sweepHex}</Text>
@@ -541,12 +602,33 @@ export default function ColourLab() {
           </Text>
         </View>
 
-        <Pressable
-          onPress={() => reload(routine, scheme)}
-          style={[s.reset, { borderColor: T.border }]}
-        >
-          <Text style={[s.chipText, { color: T.textDim }]}>reset to what the app ships</Text>
-        </Pressable>
+        <View style={s.chips}>
+          <Pressable
+            onPress={undo}
+            disabled={!history.length}
+            style={[
+              s.reset,
+              { borderColor: T.border, flex: 1, opacity: history.length ? 1 : 0.35 },
+            ]}
+          >
+            <Text style={[s.chipText, { color: T.text }]}>
+              undo{history.length ? ' (' + history.length + ')' : ''}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              snapshot()
+              setEdits((all) => {
+                const next = { ...all }
+                delete next[slot]
+                return next
+              })
+            }}
+            style={[s.reset, { borderColor: T.border, flex: 1 }]}
+          >
+            <Text style={[s.chipText, { color: T.textDim }]}>reset this one</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   )
