@@ -411,25 +411,51 @@
   .btn:active, .btn.pressed { opacity: .82; transform: scale(.98); }
   .btn.quiet { background: var(--s-raised); color: var(--s-ink); }
 
-  /* the pill slides, it does not reappear */
+  /* The pill and the reveals are driven by a spring in JS, so nothing here
+     transitions them — a CSS transition on top would fight the integrator. */
   .tabpill {
     position: absolute; left: 4px; top: 4px; width: 64px; height: 44px;
     border-radius: 999px; background: var(--s-highlight);
-    transition: transform .32s cubic-bezier(.22,1,.36,1);
+    will-change: transform;
   }
-  @media (prefers-reduced-motion: reduce) { .tabpill { transition: none; } }
   .tabitem { background: none; border: 0; cursor: pointer; position: relative; z-index: 1; }
 
-  /* the cell opens and shuts */
-  .hhead { width: 100%; border: 0; cursor: pointer; text-align: left; font: inherit; }
-  .hreveal { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .34s cubic-bezier(.22,1,.36,1); }
-  .hcell.open .hreveal { grid-template-rows: 1fr; }
-  .hreveal > * { overflow: hidden; min-height: 0; }
-  .hchev { transition: transform .3s cubic-bezier(.22,1,.36,1); }
-  .hcell.open .hchev { transform: rotate(180deg); }
-  @media (prefers-reduced-motion: reduce) {
-    .hreveal, .hchev { transition: none; }
+  /* the cell, and the settings card, open and shut on their own springs */
+  .hhead { width: 100%; border: 0; cursor: pointer; text-align: left; font: inherit; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .hreveal, .sreveal { height: 0; overflow: hidden; will-change: height; }
+  .hchev { will-change: transform; }
+
+  /* The stage keeps its size while the component inside it changes, so the page
+     does not reflow around a component being opened. */
+  .stage.holds { min-height: 520px; align-content: flex-start; }
+
+  .settingsblock { width: 100%; max-width: 420px; }
+  .snote.outside { margin: 8px 0 0; padding: 0 16px; }
+  .sinner { padding-top: 16px; }
+  .pacename {
+    margin: 24px 0 0; font-size: 12px; font-weight: 500;
+    letter-spacing: 0.12px; text-transform: uppercase; color: var(--s-ink);
   }
+  .pacedesc { margin: 8px 0 0; font-size: 16px; color: var(--s-ink); max-width: none; }
+  .spread { margin-top: 24px; }
+  .weightcard { display: block; width: 100%; border: 0; text-align: left; font: inherit; cursor: pointer; }
+  .weightcard .caret { display: none; }
+  .weightcard.editing { outline: 1px solid var(--s-ink); outline-offset: -1px; }
+  .weightcard.editing .caret { display: inline-block; animation: blink 1.06s steps(1) infinite; }
+  .weightcard.editing .wunit { opacity: .45; }
+  @keyframes blink { 0%, 50% { opacity: 1 } 50.01%, 100% { opacity: 0 } }
+
+  /* workout buttons */
+  .btn.workout { background: var(--s-wash, rgba(0,0,0,.1)); color: var(--s-btnink, var(--s-ink)); }
+  .signposts { display: flex; justify-content: space-between; gap: 16px; margin-top: 16px; }
+  .signpost {
+    display: flex; align-items: center; gap: 8px; background: none; border: 0;
+    cursor: pointer; font: inherit; font-size: 14px; line-height: 21.6px; max-width: 46%;
+    text-align: left; padding: 0;
+  }
+  .signpost.right { text-align: right; }
+  .signpost svg { width: 24px; height: 24px; display: block; }
+  .sparrow { flex: none; }
 
   .track, .choice, .tabitem, .rcard { cursor: pointer; }
   .choice { border: 0; font: inherit; }
@@ -1243,7 +1269,7 @@
     </div>
     <span class="hint">Tap the cell to open and shut it.</span>
   </div>
-  <div class="stage col spec" data-spec="light">
+  <div class="stage col spec holds" data-spec="light">
     <div class="hcell open" data-cell="full body">
       <button class="hhead" data-part="head" data-cellhead style="background:#EC1C22;color:#ffffff">
         <span class="hheading">
@@ -1279,20 +1305,46 @@
     here: the cell's ink sits at exactly 4.5 at full strength.</p>
 
   <h3>Buttons</h3>
-  <p>One shape: minimum height 52, fully rounded, 16px of horizontal padding, set in
-    <code>control</code> at 16px medium and sentence case. They are
-    <b>full width and stacked</b> with 8px between them, not laid side by side.</p>
-  <p>There is no "primary" colour token, because on the completion screen the routine
-    supplies both: the primary fills with the routine's <em>ink</em> and takes its colour as
-    the label, and the secondary fills with the <em>button wash</em> — the same translucent
-    token in the colour library — and takes ink as the label. Press one to see its pressed
-    state.</p>
+  <p>One shape: height 52, fully rounded, set in <code>control</code> at
+    16px medium and sentence case. There is no "primary" colour token —
+    the routine supplies it. Press any of them; the workout button takes
+    <code>scale(0.99)</code>, which is the app's own pressed state.</p>
   <div class="switcher">
     <div class="seg" role="group" aria-label="Routine">
       <button class="on" data-routine="glutes">glutes</button><button class="" data-routine="full body">full body</button><button class="" data-routine="core">core</button><button class="" data-routine="upper body">upper body</button><button class="" data-routine="mobility">mobility</button><button class="" data-routine="lower body">lower body</button>
     </div>
   </div>
-  <div class="stage col spec center btnstage" data-spec="light" data-btnstage>
+
+  <h4>In a workout</h4>
+  <p>The primary sits on a blurred surface at a tenth of the ink, so it reads as a panel of
+    the screen rather than a shape drawn on it. Its label depends on where you are:
+    <b>Skip</b> until the sets are logged, <b>Next exercise</b> once they are, and
+    <b>Finish workout</b> on the last one.</p>
+  <div class="stage col center spec btnstage" data-spec="light" data-btnstage>
+    <div class="actions">
+      <button class="btn workout" data-btn="workout">Skip</button>
+      <div class="signposts">
+        <button class="signpost" data-btn="prev">
+          <span class="sparrow"><svg viewBox="0 0 24 24"><path d="M15.6508 19.7592C15.2315 20.1186 14.6011 20.0701 14.2416 19.6508L8.24163 12.6508C7.92064 12.2763 7.92064 11.7245 8.24163 11.35L14.2416 4.35003C14.6011 3.93071 15.2315 3.88221 15.6508 4.24163C16.0701 4.60105 16.1186 5.23149 15.7592 5.65081L10.3168 12.0004L15.7592 18.35C16.1186 18.7694 16.0701 19.3998 15.6508 19.7592Z" fill="currentColor"/></svg></span>
+          <span class="splabel">Barbell row</span>
+        </button>
+        <button class="signpost right" data-btn="next">
+          <span class="splabel">Overhead press</span>
+          <span class="sparrow"><svg viewBox="0 0 24 24"><path d="M8.34919 4.24079C8.76851 3.88137 9.39895 3.92986 9.75837 4.34919L15.7584 11.3492C16.0794 11.7237 16.0794 12.2755 15.7584 12.65L9.75837 19.65C9.39895 20.0693 8.76851 20.1178 8.34919 19.7584C7.92986 19.3989 7.88137 18.7685 8.24079 18.3492L13.6832 11.9996L8.24079 5.64997C7.88137 5.23064 7.92986 4.60021 8.34919 4.24079Z" fill="currentColor"/></svg></span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <p class="hint">The signposts are the tertiary: an arrow beside the exercise you would move
+    to. The arrow is its own element rather than a character in the name, so a name that
+    wraps keeps the arrow centred against the whole block.</p>
+
+  <h4>When a workout ends</h4>
+  <p>Full width and stacked with 8px between them. The primary fills with the
+    routine's <em>ink</em> and takes its colour as the label; the secondary fills with the
+    <em>button wash</em> — the same translucent token in the colour library — and takes ink
+    as the label.</p>
+  <div class="stage col center spec btnstage" data-spec="light" data-btnstage2>
     <div class="actions">
       <button class="btn" data-btn="primary">See completed workouts</button>
       <button class="btn" data-btn="secondary">Do another workout</button>
@@ -1315,54 +1367,54 @@
 
   <h3>Settings row</h3>
   <p>A card at radius 12 on the raised surface, 16px padding. The label is
-    <code>label</code>; the note under it is <code>caption</code> with its line height stated
-    at 17, the one place that role needs one. The switch track is 46 × 28 with a 22 × 22 knob.</p>
+    <code>label</code>; the note below is <code>caption</code> with its line height stated at
+    17, the one place that role needs one. The switch track is 46 × 28 with a 22 × 22 knob.</p>
+  <p><b>The switch reveals the rest of the card.</b> Turn it on: the pace control, the name
+    and description of that pace, and the per-routine spread unfold on
+    <code>REVEAL_SPRING</code>. That is the whole point of the row, and it starts off.</p>
   <div class="stage col spec" data-spec="light">
-    <div class="scard">
-      <div class="srow"><span class="slabel">Show rest time between sets</span><span class="track on"><i></i></span></div>
-      <p class="snote">When you turn Rest Time on, after logging a set you will see a countdown for your rest time between sets.</p>
-    </div>
-    <div class="scard">
-      <div class="srow"><span class="slabel">Show rest time between sets</span><span class="track"><i></i></span></div>
+    <div class="settingsblock">
+      <div class="scard">
+        <div class="srow"><span class="slabel">Show rest time between sets</span><button class="track" data-reveal-toggle aria-label="Show rest time between sets"><i></i></button></div>
+        <div class="sreveal" data-reveal>
+          <div class="sinner">
+            <div class="choices" data-paces>
+              <button class="choice chosen" data-pace="0">20s</button>
+              <button class="choice" data-pace="1">60s</button>
+              <button class="choice" data-pace="2">120s</button>
+              <button class="choice" data-pace="3">180s</button>
+            </div>
+            <p class="pacename">Circuit</p>
+            <p class="pacedesc" data-pacedesc>Barely any rest. One set straight into the next. Suits lighter weights, bodyweight rounds and easy holds, where the point is to keep going rather than to push each set.</p>
+            <div class="spread">
+              <div class="spreadrow"><span class="spreadof">Lower body</span><span class="spreadsec">20s</span></div>
+              <div class="spreadrow"><span class="spreadof">Upper body</span><span class="spreadsec">20s</span></div>
+              <div class="spreadrow"><span class="spreadof">Core</span><span class="spreadsec">20s</span></div>
+              <div class="spreadrow"><span class="spreadof">Mobility</span><span class="spreadsec">30s</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="snote outside">When you turn Rest Time on, after logging a set you will see a countdown for your rest time between sets.</p>
     </div>
   </div>
 
-  <h3>Segmented control</h3>
+  <h3>Appearance</h3>
   <p>Each option is a flexible cell at least 90 tall, radius 12, set in
     <code>title</code>. The chosen one fills with ink and its label flips to
     <code>onInk</code>; the rest step back to <code>textDim</code>, so the row reads as one
-    selection among several rather than several equal buttons.</p>
+    selection among three rather than three equal buttons.</p>
   <div class="stage col spec" data-spec="light">
-    <div class="scard">
-      <div class="srow"><span class="slabel">Show rest time between sets</span><span class="track on"><i></i></span></div>
-      <div class="choices">
-        <span class="choice chosen">20s</span>
-        <span class="choice">60s</span>
-        <span class="choice">120s</span>
-        <span class="choice">180s</span>
+    <div class="settingsblock">
+      <div class="scard">
+        <span class="slabel">Appearance</span>
+        <div class="choices low">
+          <button class="choice chosen">System</button>
+          <button class="choice">Light</button>
+          <button class="choice">Dark</button>
+        </div>
       </div>
-    </div>
-    <div class="scard">
-      <span class="slabel">Appearance</span>
-      <div class="choices low">
-        <span class="choice">System</span>
-        <span class="choice chosen">Light</span>
-        <span class="choice">Dark</span>
-      </div>
-      <p class="snote">System follows your phone, switching with it when it changes.</p>
-    </div>
-  </div>
-
-  <h3>Rest spread</h3>
-  <p>Hairline-separated rows: the routine in <code>label</code> stepped back, its seconds in
-    the same size and weight but mixed case with <code>caption</code>'s tracking — under
-    <code>label</code> alone, "120s" came out as "120S".</p>
-  <div class="stage col spec" data-spec="light">
-    <div class="scard">
-      <div class="spreadrow"><span class="spreadof">Lower body</span><span class="spreadsec">20s</span></div>
-      <div class="spreadrow"><span class="spreadof">Upper body</span><span class="spreadsec">20s</span></div>
-      <div class="spreadrow"><span class="spreadof">Core</span><span class="spreadsec">20s</span></div>
-      <div class="spreadrow"><span class="spreadof">Mobility</span><span class="spreadsec">30s</span></div>
+      <p class="snote outside">System follows your phone, switching with it when it changes.</p>
     </div>
   </div>
 
@@ -1373,13 +1425,16 @@
     back to 0.45, and a drawn caret stands in for the cursor — the real field is parked
     off-screen, focusable and never seen.</p>
   <div class="stage col spec" data-spec="light">
-    <div class="scard">
-      <div class="weightrow"><span class="slabel">Body weight</span><span class="weightval">96<span class="wunit">kg</span></span></div>
-    </div>
-    <div class="scard editing">
-      <div class="weightrow"><span class="slabel">Body weight</span><span class="weightval">96<i class="caret"></i><span class="wunit dim">kg</span></span></div>
+    <div class="settingsblock">
+      <button class="scard weightcard" data-weight>
+        <div class="weightrow"><span class="slabel">Body weight</span><span class="weightval"><span data-wnum>96</span><i class="caret"></i><span class="wunit">kg</span></span></div>
+      </button>
+      <p class="snote outside">Optional, and only used to estimate the calories a workout burns. It isn't tracked over time and never leaves this device.</p>
     </div>
   </div>
+  <p class="hint">Tap it to start editing. The card outlines itself so it is obvious which one
+    the keypad belongs to, the unit steps back to 0.45, and a drawn caret stands in for the
+    cursor — the real field is parked off-screen, focusable and never seen.</p>
 
   <h3>Icons</h3>
   <p>17 icons, drawn rather than shipped as images so the ink is a prop. The
@@ -1530,26 +1585,67 @@
         c.style.color = r.ink
       }
       const chosenRoutine = document.querySelector('[data-routine].on')?.dataset.routine
-      if (chosenRoutine) setTimeout(() => paintButtons(chosenRoutine), 0)
-      for (const cell of document.querySelectorAll('[data-cell]')) {
-        const r = ROUTINE[cell.dataset.cell][mode]
-        const head = cell.querySelector('[data-part="head"]')
-        if (head) { head.style.background = r.base; head.style.color = r.ink }
-        const tag = cell.querySelector('[data-part="tag"]')
-        if (tag) { tag.style.background = r.tint; tag.style.color = r.tintInk }
-        const body = cell.querySelector('[data-part="body"]')
-        if (body) { body.style.background = r.pale; body.style.color = r.paleInk }
-      }
+      const chosenCell = document.querySelector('[data-cellroutine].on')?.dataset.cellroutine
+      setTimeout(() => {
+        if (chosenRoutine) paintButtons(chosenRoutine)
+        if (chosenCell) paintCells(chosenCell)
+      }, 0)
     })
   }
 
-  // The token swatches have their own switch, since they are lists rather than specimens.
-  for (const b of document.querySelectorAll('[data-pal]')) {
-    b.addEventListener('click', () => {
-      for (const o of document.querySelectorAll('[data-pal]')) o.classList.toggle('on', o === b)
-      for (const g of document.querySelectorAll('[data-pal-target]')) {
-        g.hidden = g.dataset.palTarget !== b.dataset.pal
+  // ── the app's spring, ported ───────────────────────────────────────────
+  //
+  // Reanimated integrates a damped harmonic oscillator from stiffness, damping
+  // and mass. A CSS cubic-bezier cannot reproduce one — it has no velocity and
+  // no overshoot — so rather than approximate it, the same equation runs here
+  // with the same constants, read out of src/data/motion.js at build time.
+  const SPRINGS = {"WORKOUT_SPRING":{"stiffness":300,"damping":26,"mass":0.8},"PUSH_SPRING":{"stiffness":200,"damping":30,"mass":1},"CAROUSEL_SPRING":{"stiffness":320,"damping":34,"mass":0.9},"SHEET_SPRING":{"stiffness":190,"damping":26,"mass":1},"TAB_SPRING":{"stiffness":320,"damping":22,"mass":0.8},"EXPAND_SPRING":{"stiffness":120,"damping":20,"mass":1},"REVEAL_SPRING":{"stiffness":210,"damping":26,"mass":1},"GLIDE_SPRING":{"stiffness":70,"damping":22,"mass":1},"TILT_SPRING":{"stiffness":300,"damping":28,"mass":0.5}}
+
+  function springTo(cfg, from, to, apply, done) {
+    const { stiffness: k, damping: c, mass: m } = cfg
+    let x = from
+    let v = 0
+    let last = performance.now()
+    let raf = 0
+    function frame(now) {
+      const dt = Math.min((now - last) / 1000, 0.064)
+      last = now
+      // Fixed sub-steps, so the result does not depend on the frame rate.
+      const steps = Math.max(1, Math.ceil(dt * 240))
+      const h = dt / steps
+      for (let i = 0; i < steps; i++) {
+        v += ((-k * (x - to) - c * v) / m) * h
+        x += v * h
       }
+      apply(x)
+      // Reanimated's own resting thresholds.
+      if (Math.abs(to - x) < 0.01 && Math.abs(v) < 2) {
+        apply(to)
+        done?.()
+        return
+      }
+      raf = requestAnimationFrame(frame)
+    }
+    raf = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(raf)
+  }
+
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  // Height, sprung — the pattern behind both the history cell and the settings
+  // card. Measured on each run, because the content can change under it.
+  function sprungHeight(el, open, cfg) {
+    el.__stop?.()
+    const from = el.getBoundingClientRect().height
+    const target = open ? el.firstElementChild.getBoundingClientRect().height : 0
+    if (still) {
+      el.style.height = open ? 'auto' : '0px'
+      return
+    }
+    el.__stop = springTo(cfg, from, target, (v) => {
+      el.style.height = Math.max(0, v) + 'px'
+    }, () => {
+      el.style.height = open ? 'auto' : '0px'
     })
   }
 
@@ -1563,27 +1659,50 @@
     for (const p of pages) p.classList.toggle('on', p.id === target)
     for (const a of links) a.classList.toggle('on', a.dataset.page === target)
     if (header) header.hidden = target !== pages[0].id
-    document.querySelector('main').scrollTo?.({ top: 0 })
     window.scrollTo({ top: 0 })
   }
   window.addEventListener('hashchange', () => show(location.hash.slice(1)))
   show(location.hash.slice(1))
 
-  // ── tab bar: the pill slides ───────────────────────────────────────────
+  // ── tab bar: TAB_SPRING, the same one the app uses ─────────────────────
   const STEP = 64 + 4
   for (const bar of document.querySelectorAll('[data-tabbar]')) {
     const pill = bar.querySelector('[data-pill]')
+    let at = 0
     for (const item of bar.querySelectorAll('[data-tab]')) {
       item.addEventListener('click', () => {
         for (const o of bar.querySelectorAll('[data-tab]')) o.classList.toggle('on', o === item)
-        pill.style.transform = 'translateX(' + +item.dataset.tab * STEP + 'px)'
+        const to = +item.dataset.tab * STEP
+        pill.__stop?.()
+        if (still) { pill.style.transform = 'translateX(' + to + 'px)'; at = to; return }
+        pill.__stop = springTo(SPRINGS.TAB_SPRING, at, to, (v) => {
+          at = v
+          pill.style.transform = 'translateX(' + v + 'px)'
+        })
       })
     }
   }
 
-  // ── history cell: open and shut ────────────────────────────────────────
+  // ── history cell: EXPAND_SPRING ────────────────────────────────────────
+  // Anything marked open at build time has to start at its real height, since
+  // the reveal is closed by default in CSS.
+  for (const cell of document.querySelectorAll('.hcell.open')) {
+    cell.querySelector('.hreveal').style.height = 'auto'
+    cell.querySelector('.hchev').style.transform = 'rotate(180deg)'
+  }
+
   for (const head of document.querySelectorAll('[data-cellhead]')) {
-    head.addEventListener('click', () => head.closest('.hcell').classList.toggle('open'))
+    head.addEventListener('click', () => {
+      const cell = head.closest('.hcell')
+      const open = !cell.classList.contains('open')
+      cell.classList.toggle('open', open)
+      const chev = cell.querySelector('.hchev')
+      let a = open ? 0 : 180
+      springTo(SPRINGS.EXPAND_SPRING, a, open ? 180 : 0, (v) => {
+        chev.style.transform = 'rotate(' + v + 'deg)'
+      })
+      sprungHeight(cell.querySelector('.hreveal'), open, SPRINGS.EXPAND_SPRING)
+    })
   }
   for (const b of document.querySelectorAll('[data-cellroutine]')) {
     b.addEventListener('click', () => {
@@ -1609,16 +1728,67 @@
     }
   }
 
-  // ── buttons: routine, and pressed state ────────────────────────────────
+  // ── settings: the switch reveals the card, on REVEAL_SPRING ────────────
+  const PACES = [
+    ['Circuit', 'Barely any rest. One set straight into the next. Suits lighter weights, bodyweight rounds and easy holds, where the point is to keep going rather than to push each set.'],
+    ['Standard', 'A minute between sets. Enough to come back for the next one without the session stretching out.'],
+    ['Strength', 'Two minutes. Long enough to repeat a heavy set at close to the same weight.'],
+    ['Heavy', 'Three minutes. For the sets where the last rep was the point.'],
+  ]
+  for (const t of document.querySelectorAll('[data-reveal-toggle]')) {
+    t.addEventListener('click', () => {
+      const on = !t.classList.contains('on')
+      t.classList.toggle('on', on)
+      sprungHeight(t.closest('.scard').querySelector('[data-reveal]'), on, SPRINGS.REVEAL_SPRING)
+    })
+  }
+  for (const group of document.querySelectorAll('[data-paces]')) {
+    for (const c of group.querySelectorAll('.choice')) {
+      c.addEventListener('click', () => {
+        for (const o of group.querySelectorAll('.choice')) o.classList.toggle('chosen', o === c)
+        const card = group.closest('.scard')
+        const [name, desc] = PACES[+c.dataset.pace]
+        card.querySelector('.pacename').textContent = name
+        card.querySelector('.pacedesc').textContent = desc
+        // The description changes length, so the open card re-measures.
+        const rev = card.querySelector('[data-reveal]')
+        if (rev.style.height !== '0px') requestAnimationFrame(() => sprungHeight(rev, true, SPRINGS.REVEAL_SPRING))
+      })
+    }
+  }
+  for (const t of document.querySelectorAll('.track:not([data-reveal-toggle])')) {
+    t.addEventListener('click', () => t.classList.toggle('on'))
+  }
+  for (const group of document.querySelectorAll('.choices:not([data-paces])')) {
+    for (const c of group.querySelectorAll('.choice')) {
+      c.addEventListener('click', () => {
+        for (const o of group.querySelectorAll('.choice')) o.classList.toggle('chosen', o === c)
+      })
+    }
+  }
+  for (const w of document.querySelectorAll('[data-weight]')) {
+    w.addEventListener('click', () => w.classList.toggle('editing'))
+  }
+
+  // ── buttons ────────────────────────────────────────────────────────────
+  const WORKOUT_LABELS = ['Skip', 'Next exercise', 'Finish workout']
   function paintButtons(name) {
     const mode = document.querySelector('[data-scheme].on')?.dataset.scheme ?? 'light'
     const r = ROUTINE[name][mode]
-    const stage = document.querySelector('[data-btnstage]')
-    if (stage) stage.style.background = r.base
-    const primary = document.querySelector('[data-btn="primary"]')
-    const secondary = document.querySelector('[data-btn="secondary"]')
-    if (primary) { primary.style.background = r.ink; primary.style.color = r.base }
-    if (secondary) { secondary.style.background = r.wash; secondary.style.color = r.ink }
+    for (const st of document.querySelectorAll('[data-btnstage], [data-btnstage2]')) {
+      st.style.background = r.base
+      st.style.setProperty('--s-wash', r.wash)
+      st.style.setProperty('--s-btnink', r.ink)
+      st.style.color = r.ink
+    }
+    const set = (sel, bg, fg) => {
+      const el = document.querySelector(sel)
+      if (el) { el.style.background = bg; el.style.color = fg }
+    }
+    set('[data-btn="primary"]', r.ink, r.base)
+    set('[data-btn="secondary"]', r.wash, r.ink)
+    set('[data-btn="workout"]', r.wash, r.ink)
+    for (const sp of document.querySelectorAll('.signpost')) sp.style.color = r.ink
   }
   for (const b of document.querySelectorAll('[data-routine]')) {
     b.addEventListener('click', () => {
@@ -1626,19 +1796,17 @@
       paintButtons(b.dataset.routine)
     })
   }
+  // The workout button says where you are, so it cycles through the three.
+  const wb = document.querySelector('[data-btn="workout"]')
+  if (wb) {
+    let n = 0
+    wb.addEventListener('click', () => {
+      n = (n + 1) % WORKOUT_LABELS.length
+      wb.textContent = WORKOUT_LABELS[n]
+    })
+  }
   paintButtons('glutes')
 
-  // ── the controls behave like controls ──────────────────────────────────
-  for (const t of document.querySelectorAll('.track')) {
-    t.addEventListener('click', () => t.classList.toggle('on'))
-  }
-  for (const group of document.querySelectorAll('.choices')) {
-    for (const c of group.querySelectorAll('.choice')) {
-      c.addEventListener('click', () => {
-        for (const o of group.querySelectorAll('.choice')) o.classList.toggle('chosen', o === c)
-      })
-    }
-  }
   // Cards cycle through the routines, so every colour can be seen at full size.
   const ORDER = ["glutes","full body","core","upper body","mobility","lower body"]
   for (const c of document.querySelectorAll('[data-rc]')) {

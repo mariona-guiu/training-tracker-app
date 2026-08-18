@@ -233,6 +233,23 @@ const readConst = (file, name) => {
   if (!m) throw new Error(`${name} is no longer exported from ${file}`)
   return +m[1]
 }
+// The app's springs, read out of src/data/motion.js. It imports Easing from
+// Reanimated, so it cannot be imported here — the constants are parsed instead,
+// and a renamed spring is an error rather than a silently different animation.
+const SPRINGS = (() => {
+  const src = readFileSync(join(root, 'src/data/motion.js'), 'utf8')
+  const out = {}
+  for (const m of src.matchAll(
+    /export const (\w+_SPRING) = \{ stiffness: ([\d.]+), damping: ([\d.]+), mass: ([\d.]+) \}/g,
+  )) {
+    out[m[1]] = { stiffness: +m[2], damping: +m[3], mass: +m[4] }
+  }
+  for (const need of ['TAB_SPRING', 'EXPAND_SPRING', 'REVEAL_SPRING']) {
+    if (!out[need]) throw new Error(`${need} is no longer in src/data/motion.js`)
+  }
+  return out
+})()
+
 const CARD_WIDTH = readConst('WorkoutStack.jsx', 'CARD_WIDTH')
 const CARD_HEIGHT = readConst('WorkoutStack.jsx', 'CARD_HEIGHT')
 
@@ -656,25 +673,51 @@ const css = `
   .btn:active, .btn.pressed { opacity: .82; transform: scale(.98); }
   .btn.quiet { background: var(--s-raised); color: var(--s-ink); }
 
-  /* the pill slides, it does not reappear */
+  /* The pill and the reveals are driven by a spring in JS, so nothing here
+     transitions them — a CSS transition on top would fight the integrator. */
   .tabpill {
     position: absolute; left: 4px; top: 4px; width: 64px; height: 44px;
     border-radius: ${RADIUS.pill}px; background: var(--s-highlight);
-    transition: transform .32s cubic-bezier(.22,1,.36,1);
+    will-change: transform;
   }
-  @media (prefers-reduced-motion: reduce) { .tabpill { transition: none; } }
   .tabitem { background: none; border: 0; cursor: pointer; position: relative; z-index: 1; }
 
-  /* the cell opens and shuts */
-  .hhead { width: 100%; border: 0; cursor: pointer; text-align: left; font: inherit; }
-  .hreveal { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .34s cubic-bezier(.22,1,.36,1); }
-  .hcell.open .hreveal { grid-template-rows: 1fr; }
-  .hreveal > * { overflow: hidden; min-height: 0; }
-  .hchev { transition: transform .3s cubic-bezier(.22,1,.36,1); }
-  .hcell.open .hchev { transform: rotate(180deg); }
-  @media (prefers-reduced-motion: reduce) {
-    .hreveal, .hchev { transition: none; }
+  /* the cell, and the settings card, open and shut on their own springs */
+  .hhead { width: 100%; border: 0; cursor: pointer; text-align: left; font: inherit; display: flex; align-items: flex-start; justify-content: space-between; gap: ${SPACE[2]}px; }
+  .hreveal, .sreveal { height: 0; overflow: hidden; will-change: height; }
+  .hchev { will-change: transform; }
+
+  /* The stage keeps its size while the component inside it changes, so the page
+     does not reflow around a component being opened. */
+  .stage.holds { min-height: 520px; align-content: flex-start; }
+
+  .settingsblock { width: 100%; max-width: 420px; }
+  .snote.outside { margin: ${SPACE[2]}px 0 0; padding: 0 ${SPACE[3]}px; }
+  .sinner { padding-top: ${SPACE[3]}px; }
+  .pacename {
+    margin: ${SPACE[4]}px 0 0; font-size: ${TYPE.label.fontSize}px; font-weight: ${TYPE.label.fontWeight};
+    letter-spacing: ${TYPE.label.letterSpacing}px; text-transform: uppercase; color: var(--s-ink);
   }
+  .pacedesc { margin: ${SPACE[2]}px 0 0; font-size: ${TYPE.body.fontSize}px; color: var(--s-ink); max-width: none; }
+  .spread { margin-top: ${SPACE[4]}px; }
+  .weightcard { display: block; width: 100%; border: 0; text-align: left; font: inherit; cursor: pointer; }
+  .weightcard .caret { display: none; }
+  .weightcard.editing { outline: 1px solid var(--s-ink); outline-offset: -1px; }
+  .weightcard.editing .caret { display: inline-block; animation: blink 1.06s steps(1) infinite; }
+  .weightcard.editing .wunit { opacity: .45; }
+  @keyframes blink { 0%, 50% { opacity: 1 } 50.01%, 100% { opacity: 0 } }
+
+  /* workout buttons */
+  .btn.workout { background: var(--s-wash, rgba(0,0,0,.1)); color: var(--s-btnink, var(--s-ink)); }
+  .signposts { display: flex; justify-content: space-between; gap: ${SPACE[3]}px; margin-top: ${SPACE[3]}px; }
+  .signpost {
+    display: flex; align-items: center; gap: ${SPACE[2]}px; background: none; border: 0;
+    cursor: pointer; font: inherit; font-size: 14px; line-height: 21.6px; max-width: 46%;
+    text-align: left; padding: 0;
+  }
+  .signpost.right { text-align: right; }
+  .signpost svg { width: 24px; height: 24px; display: block; }
+  .sparrow { flex: none; }
 
   .track, .choice, .tabitem, .rcard { cursor: pointer; }
   .choice { border: 0; font: inherit; }
@@ -1110,7 +1153,7 @@ const componentSection = () => {
     </div>
     <span class="hint">Tap the cell to open and shut it.</span>
   </div>
-  <div class="stage col spec" data-spec="light">
+  <div class="stage col spec holds" data-spec="light">
     ${cell('full body', true)}
   </div>
   <p class="hint">Skipped work and the calorie footnote sit at ${'0.76'} opacity — the point at
@@ -1118,14 +1161,10 @@ const componentSection = () => {
     here: the cell's ink sits at exactly 4.5 at full strength.</p>
 
   <h3>Buttons</h3>
-  <p>One shape: minimum height ${52}, fully rounded, ${SPACE[3]}px of horizontal padding, set in
-    <code>control</code> at ${TYPE.control.fontSize}px medium and sentence case. They are
-    <b>full width and stacked</b> with ${SPACE[2]}px between them, not laid side by side.</p>
-  <p>There is no "primary" colour token, because on the completion screen the routine
-    supplies both: the primary fills with the routine's <em>ink</em> and takes its colour as
-    the label, and the secondary fills with the <em>button wash</em> — the same translucent
-    token in the colour library — and takes ink as the label. Press one to see its pressed
-    state.</p>
+  <p>One shape: height ${52}, fully rounded, set in <code>control</code> at
+    ${TYPE.control.fontSize}px medium and sentence case. There is no "primary" colour token —
+    the routine supplies it. Press any of them; the workout button takes
+    <code>scale(0.99)</code>, which is the app's own pressed state.</p>
   <div class="switcher">
     <div class="seg" role="group" aria-label="Routine">
       ${CANONICAL_ORDER.map(
@@ -1133,7 +1172,37 @@ const componentSection = () => {
       ).join('')}
     </div>
   </div>
-  <div class="stage col spec center btnstage" data-spec="light" data-btnstage>
+
+  <h4>In a workout</h4>
+  <p>The primary sits on a blurred surface at a tenth of the ink, so it reads as a panel of
+    the screen rather than a shape drawn on it. Its label depends on where you are:
+    <b>Skip</b> until the sets are logged, <b>Next exercise</b> once they are, and
+    <b>Finish workout</b> on the last one.</p>
+  <div class="stage col center spec btnstage" data-spec="light" data-btnstage>
+    <div class="actions">
+      <button class="btn workout" data-btn="workout">Skip</button>
+      <div class="signposts">
+        <button class="signpost" data-btn="prev">
+          <span class="sparrow">${ICONS.find((i) => i.name === 'ChevronLeftIcon').shapes.join('') ? `<svg viewBox="0 0 24 24">${ICONS.find((i) => i.name === 'ChevronLeftIcon').shapes.join('')}</svg>` : ''}</span>
+          <span class="splabel">Barbell row</span>
+        </button>
+        <button class="signpost right" data-btn="next">
+          <span class="splabel">Overhead press</span>
+          <span class="sparrow"><svg viewBox="0 0 24 24">${ICONS.find((i) => i.name === 'ChevronRightIcon').shapes.join('')}</svg></span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <p class="hint">The signposts are the tertiary: an arrow beside the exercise you would move
+    to. The arrow is its own element rather than a character in the name, so a name that
+    wraps keeps the arrow centred against the whole block.</p>
+
+  <h4>When a workout ends</h4>
+  <p>Full width and stacked with ${SPACE[2]}px between them. The primary fills with the
+    routine's <em>ink</em> and takes its colour as the label; the secondary fills with the
+    <em>button wash</em> — the same translucent token in the colour library — and takes ink
+    as the label.</p>
+  <div class="stage col center spec btnstage" data-spec="light" data-btnstage2>
     <div class="actions">
       <button class="btn" data-btn="primary">See completed workouts</button>
       <button class="btn" data-btn="secondary">Do another workout</button>
@@ -1159,57 +1228,57 @@ const componentSection = () => {
 
   <h3>Settings row</h3>
   <p>A card at radius ${RADIUS.card} on the raised surface, ${SPACE[3]}px padding. The label is
-    <code>label</code>; the note under it is <code>caption</code> with its line height stated
-    at 17, the one place that role needs one. The switch track is 46 × 28 with a 22 × 22 knob.</p>
+    <code>label</code>; the note below is <code>caption</code> with its line height stated at
+    17, the one place that role needs one. The switch track is 46 × 28 with a 22 × 22 knob.</p>
+  <p><b>The switch reveals the rest of the card.</b> Turn it on: the pace control, the name
+    and description of that pace, and the per-routine spread unfold on
+    <code>REVEAL_SPRING</code>. That is the whole point of the row, and it starts off.</p>
   <div class="stage col spec" data-spec="light">
-    <div class="scard">
-      <div class="srow"><span class="slabel">Show rest time between sets</span><span class="track on"><i></i></span></div>
-      <p class="snote">When you turn Rest Time on, after logging a set you will see a countdown for your rest time between sets.</p>
-    </div>
-    <div class="scard">
-      <div class="srow"><span class="slabel">Show rest time between sets</span><span class="track"><i></i></span></div>
+    <div class="settingsblock">
+      <div class="scard">
+        <div class="srow"><span class="slabel">Show rest time between sets</span><button class="track" data-reveal-toggle aria-label="Show rest time between sets"><i></i></button></div>
+        <div class="sreveal" data-reveal>
+          <div class="sinner">
+            <div class="choices" data-paces>
+              ${['20s', '60s', '120s', '180s']
+                .map((v, n) => `<button class="choice${n === 0 ? ' chosen' : ''}" data-pace="${n}">${v}</button>`)
+                .join('\n              ')}
+            </div>
+            <p class="pacename">Circuit</p>
+            <p class="pacedesc" data-pacedesc>Barely any rest. One set straight into the next. Suits lighter weights, bodyweight rounds and easy holds, where the point is to keep going rather than to push each set.</p>
+            <div class="spread">
+              ${[
+                ['Lower body', '20s'],
+                ['Upper body', '20s'],
+                ['Core', '20s'],
+                ['Mobility', '30s'],
+              ]
+                .map(([n, v]) => `<div class="spreadrow"><span class="spreadof">${n}</span><span class="spreadsec">${v}</span></div>`)
+                .join('\n              ')}
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="snote outside">When you turn Rest Time on, after logging a set you will see a countdown for your rest time between sets.</p>
     </div>
   </div>
 
-  <h3>Segmented control</h3>
+  <h3>Appearance</h3>
   <p>Each option is a flexible cell at least 90 tall, radius ${RADIUS.card}, set in
     <code>title</code>. The chosen one fills with ink and its label flips to
     <code>onInk</code>; the rest step back to <code>textDim</code>, so the row reads as one
-    selection among several rather than several equal buttons.</p>
+    selection among three rather than three equal buttons.</p>
   <div class="stage col spec" data-spec="light">
-    <div class="scard">
-      <div class="srow"><span class="slabel">Show rest time between sets</span><span class="track on"><i></i></span></div>
-      <div class="choices">
-        ${['20s', '60s', '120s', '180s']
-          .map((v, n) => `<span class="choice${n === 0 ? ' chosen' : ''}">${v}</span>`)
-          .join('\n        ')}
+    <div class="settingsblock">
+      <div class="scard">
+        <span class="slabel">Appearance</span>
+        <div class="choices low">
+          ${['System', 'Light', 'Dark']
+            .map((v, n) => `<button class="choice${n === 0 ? ' chosen' : ''}">${v}</button>`)
+            .join('\n          ')}
+        </div>
       </div>
-    </div>
-    <div class="scard">
-      <span class="slabel">Appearance</span>
-      <div class="choices low">
-        ${['System', 'Light', 'Dark']
-          .map((v, n) => `<span class="choice${n === 1 ? ' chosen' : ''}">${v}</span>`)
-          .join('\n        ')}
-      </div>
-      <p class="snote">System follows your phone, switching with it when it changes.</p>
-    </div>
-  </div>
-
-  <h3>Rest spread</h3>
-  <p>Hairline-separated rows: the routine in <code>label</code> stepped back, its seconds in
-    the same size and weight but mixed case with <code>caption</code>'s tracking — under
-    <code>label</code> alone, "120s" came out as "120S".</p>
-  <div class="stage col spec" data-spec="light">
-    <div class="scard">
-      ${[
-        ['Lower body', '20s'],
-        ['Upper body', '20s'],
-        ['Core', '20s'],
-        ['Mobility', '30s'],
-      ]
-        .map(([n, v]) => `<div class="spreadrow"><span class="spreadof">${n}</span><span class="spreadsec">${v}</span></div>`)
-        .join('\n      ')}
+      <p class="snote outside">System follows your phone, switching with it when it changes.</p>
     </div>
   </div>
 
@@ -1220,13 +1289,16 @@ const componentSection = () => {
     back to 0.45, and a drawn caret stands in for the cursor — the real field is parked
     off-screen, focusable and never seen.</p>
   <div class="stage col spec" data-spec="light">
-    <div class="scard">
-      <div class="weightrow"><span class="slabel">Body weight</span><span class="weightval">96<span class="wunit">kg</span></span></div>
-    </div>
-    <div class="scard editing">
-      <div class="weightrow"><span class="slabel">Body weight</span><span class="weightval">96<i class="caret"></i><span class="wunit dim">kg</span></span></div>
+    <div class="settingsblock">
+      <button class="scard weightcard" data-weight>
+        <div class="weightrow"><span class="slabel">Body weight</span><span class="weightval"><span data-wnum>96</span><i class="caret"></i><span class="wunit">kg</span></span></div>
+      </button>
+      <p class="snote outside">Optional, and only used to estimate the calories a workout burns. It isn't tracked over time and never leaves this device.</p>
     </div>
   </div>
+  <p class="hint">Tap it to start editing. The card outlines itself so it is obvious which one
+    the keypad belongs to, the unit steps back to 0.45, and a drawn caret stands in for the
+    cursor — the real field is parked off-screen, focusable and never seen.</p>
 
   <h3>Icons</h3>
   <p>${ICONS.length} icons, drawn rather than shipped as images so the ink is a prop. The
@@ -1387,26 +1459,67 @@ const page = `<title>Training Tracker — design system</title>
         c.style.color = r.ink
       }
       const chosenRoutine = document.querySelector('[data-routine].on')?.dataset.routine
-      if (chosenRoutine) setTimeout(() => paintButtons(chosenRoutine), 0)
-      for (const cell of document.querySelectorAll('[data-cell]')) {
-        const r = ROUTINE[cell.dataset.cell][mode]
-        const head = cell.querySelector('[data-part="head"]')
-        if (head) { head.style.background = r.base; head.style.color = r.ink }
-        const tag = cell.querySelector('[data-part="tag"]')
-        if (tag) { tag.style.background = r.tint; tag.style.color = r.tintInk }
-        const body = cell.querySelector('[data-part="body"]')
-        if (body) { body.style.background = r.pale; body.style.color = r.paleInk }
-      }
+      const chosenCell = document.querySelector('[data-cellroutine].on')?.dataset.cellroutine
+      setTimeout(() => {
+        if (chosenRoutine) paintButtons(chosenRoutine)
+        if (chosenCell) paintCells(chosenCell)
+      }, 0)
     })
   }
 
-  // The token swatches have their own switch, since they are lists rather than specimens.
-  for (const b of document.querySelectorAll('[data-pal]')) {
-    b.addEventListener('click', () => {
-      for (const o of document.querySelectorAll('[data-pal]')) o.classList.toggle('on', o === b)
-      for (const g of document.querySelectorAll('[data-pal-target]')) {
-        g.hidden = g.dataset.palTarget !== b.dataset.pal
+  // ── the app's spring, ported ───────────────────────────────────────────
+  //
+  // Reanimated integrates a damped harmonic oscillator from stiffness, damping
+  // and mass. A CSS cubic-bezier cannot reproduce one — it has no velocity and
+  // no overshoot — so rather than approximate it, the same equation runs here
+  // with the same constants, read out of src/data/motion.js at build time.
+  const SPRINGS = ${JSON.stringify(SPRINGS)}
+
+  function springTo(cfg, from, to, apply, done) {
+    const { stiffness: k, damping: c, mass: m } = cfg
+    let x = from
+    let v = 0
+    let last = performance.now()
+    let raf = 0
+    function frame(now) {
+      const dt = Math.min((now - last) / 1000, 0.064)
+      last = now
+      // Fixed sub-steps, so the result does not depend on the frame rate.
+      const steps = Math.max(1, Math.ceil(dt * 240))
+      const h = dt / steps
+      for (let i = 0; i < steps; i++) {
+        v += ((-k * (x - to) - c * v) / m) * h
+        x += v * h
       }
+      apply(x)
+      // Reanimated's own resting thresholds.
+      if (Math.abs(to - x) < 0.01 && Math.abs(v) < 2) {
+        apply(to)
+        done?.()
+        return
+      }
+      raf = requestAnimationFrame(frame)
+    }
+    raf = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(raf)
+  }
+
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  // Height, sprung — the pattern behind both the history cell and the settings
+  // card. Measured on each run, because the content can change under it.
+  function sprungHeight(el, open, cfg) {
+    el.__stop?.()
+    const from = el.getBoundingClientRect().height
+    const target = open ? el.firstElementChild.getBoundingClientRect().height : 0
+    if (still) {
+      el.style.height = open ? 'auto' : '0px'
+      return
+    }
+    el.__stop = springTo(cfg, from, target, (v) => {
+      el.style.height = Math.max(0, v) + 'px'
+    }, () => {
+      el.style.height = open ? 'auto' : '0px'
     })
   }
 
@@ -1420,27 +1533,50 @@ const page = `<title>Training Tracker — design system</title>
     for (const p of pages) p.classList.toggle('on', p.id === target)
     for (const a of links) a.classList.toggle('on', a.dataset.page === target)
     if (header) header.hidden = target !== pages[0].id
-    document.querySelector('main').scrollTo?.({ top: 0 })
     window.scrollTo({ top: 0 })
   }
   window.addEventListener('hashchange', () => show(location.hash.slice(1)))
   show(location.hash.slice(1))
 
-  // ── tab bar: the pill slides ───────────────────────────────────────────
+  // ── tab bar: TAB_SPRING, the same one the app uses ─────────────────────
   const STEP = 64 + 4
   for (const bar of document.querySelectorAll('[data-tabbar]')) {
     const pill = bar.querySelector('[data-pill]')
+    let at = 0
     for (const item of bar.querySelectorAll('[data-tab]')) {
       item.addEventListener('click', () => {
         for (const o of bar.querySelectorAll('[data-tab]')) o.classList.toggle('on', o === item)
-        pill.style.transform = 'translateX(' + +item.dataset.tab * STEP + 'px)'
+        const to = +item.dataset.tab * STEP
+        pill.__stop?.()
+        if (still) { pill.style.transform = 'translateX(' + to + 'px)'; at = to; return }
+        pill.__stop = springTo(SPRINGS.TAB_SPRING, at, to, (v) => {
+          at = v
+          pill.style.transform = 'translateX(' + v + 'px)'
+        })
       })
     }
   }
 
-  // ── history cell: open and shut ────────────────────────────────────────
+  // ── history cell: EXPAND_SPRING ────────────────────────────────────────
+  // Anything marked open at build time has to start at its real height, since
+  // the reveal is closed by default in CSS.
+  for (const cell of document.querySelectorAll('.hcell.open')) {
+    cell.querySelector('.hreveal').style.height = 'auto'
+    cell.querySelector('.hchev').style.transform = 'rotate(180deg)'
+  }
+
   for (const head of document.querySelectorAll('[data-cellhead]')) {
-    head.addEventListener('click', () => head.closest('.hcell').classList.toggle('open'))
+    head.addEventListener('click', () => {
+      const cell = head.closest('.hcell')
+      const open = !cell.classList.contains('open')
+      cell.classList.toggle('open', open)
+      const chev = cell.querySelector('.hchev')
+      let a = open ? 0 : 180
+      springTo(SPRINGS.EXPAND_SPRING, a, open ? 180 : 0, (v) => {
+        chev.style.transform = 'rotate(' + v + 'deg)'
+      })
+      sprungHeight(cell.querySelector('.hreveal'), open, SPRINGS.EXPAND_SPRING)
+    })
   }
   for (const b of document.querySelectorAll('[data-cellroutine]')) {
     b.addEventListener('click', () => {
@@ -1466,16 +1602,67 @@ const page = `<title>Training Tracker — design system</title>
     }
   }
 
-  // ── buttons: routine, and pressed state ────────────────────────────────
+  // ── settings: the switch reveals the card, on REVEAL_SPRING ────────────
+  const PACES = [
+    ['Circuit', 'Barely any rest. One set straight into the next. Suits lighter weights, bodyweight rounds and easy holds, where the point is to keep going rather than to push each set.'],
+    ['Standard', 'A minute between sets. Enough to come back for the next one without the session stretching out.'],
+    ['Strength', 'Two minutes. Long enough to repeat a heavy set at close to the same weight.'],
+    ['Heavy', 'Three minutes. For the sets where the last rep was the point.'],
+  ]
+  for (const t of document.querySelectorAll('[data-reveal-toggle]')) {
+    t.addEventListener('click', () => {
+      const on = !t.classList.contains('on')
+      t.classList.toggle('on', on)
+      sprungHeight(t.closest('.scard').querySelector('[data-reveal]'), on, SPRINGS.REVEAL_SPRING)
+    })
+  }
+  for (const group of document.querySelectorAll('[data-paces]')) {
+    for (const c of group.querySelectorAll('.choice')) {
+      c.addEventListener('click', () => {
+        for (const o of group.querySelectorAll('.choice')) o.classList.toggle('chosen', o === c)
+        const card = group.closest('.scard')
+        const [name, desc] = PACES[+c.dataset.pace]
+        card.querySelector('.pacename').textContent = name
+        card.querySelector('.pacedesc').textContent = desc
+        // The description changes length, so the open card re-measures.
+        const rev = card.querySelector('[data-reveal]')
+        if (rev.style.height !== '0px') requestAnimationFrame(() => sprungHeight(rev, true, SPRINGS.REVEAL_SPRING))
+      })
+    }
+  }
+  for (const t of document.querySelectorAll('.track:not([data-reveal-toggle])')) {
+    t.addEventListener('click', () => t.classList.toggle('on'))
+  }
+  for (const group of document.querySelectorAll('.choices:not([data-paces])')) {
+    for (const c of group.querySelectorAll('.choice')) {
+      c.addEventListener('click', () => {
+        for (const o of group.querySelectorAll('.choice')) o.classList.toggle('chosen', o === c)
+      })
+    }
+  }
+  for (const w of document.querySelectorAll('[data-weight]')) {
+    w.addEventListener('click', () => w.classList.toggle('editing'))
+  }
+
+  // ── buttons ────────────────────────────────────────────────────────────
+  const WORKOUT_LABELS = ['Skip', 'Next exercise', 'Finish workout']
   function paintButtons(name) {
     const mode = document.querySelector('[data-scheme].on')?.dataset.scheme ?? 'light'
     const r = ROUTINE[name][mode]
-    const stage = document.querySelector('[data-btnstage]')
-    if (stage) stage.style.background = r.base
-    const primary = document.querySelector('[data-btn="primary"]')
-    const secondary = document.querySelector('[data-btn="secondary"]')
-    if (primary) { primary.style.background = r.ink; primary.style.color = r.base }
-    if (secondary) { secondary.style.background = r.wash; secondary.style.color = r.ink }
+    for (const st of document.querySelectorAll('[data-btnstage], [data-btnstage2]')) {
+      st.style.background = r.base
+      st.style.setProperty('--s-wash', r.wash)
+      st.style.setProperty('--s-btnink', r.ink)
+      st.style.color = r.ink
+    }
+    const set = (sel, bg, fg) => {
+      const el = document.querySelector(sel)
+      if (el) { el.style.background = bg; el.style.color = fg }
+    }
+    set('[data-btn="primary"]', r.ink, r.base)
+    set('[data-btn="secondary"]', r.wash, r.ink)
+    set('[data-btn="workout"]', r.wash, r.ink)
+    for (const sp of document.querySelectorAll('.signpost')) sp.style.color = r.ink
   }
   for (const b of document.querySelectorAll('[data-routine]')) {
     b.addEventListener('click', () => {
@@ -1483,19 +1670,17 @@ const page = `<title>Training Tracker — design system</title>
       paintButtons(b.dataset.routine)
     })
   }
+  // The workout button says where you are, so it cycles through the three.
+  const wb = document.querySelector('[data-btn="workout"]')
+  if (wb) {
+    let n = 0
+    wb.addEventListener('click', () => {
+      n = (n + 1) % WORKOUT_LABELS.length
+      wb.textContent = WORKOUT_LABELS[n]
+    })
+  }
   paintButtons('${CANONICAL_ORDER[0]}')
 
-  // ── the controls behave like controls ──────────────────────────────────
-  for (const t of document.querySelectorAll('.track')) {
-    t.addEventListener('click', () => t.classList.toggle('on'))
-  }
-  for (const group of document.querySelectorAll('.choices')) {
-    for (const c of group.querySelectorAll('.choice')) {
-      c.addEventListener('click', () => {
-        for (const o of group.querySelectorAll('.choice')) o.classList.toggle('chosen', o === c)
-      })
-    }
-  }
   // Cards cycle through the routines, so every colour can be seen at full size.
   const ORDER = ${JSON.stringify(CANONICAL_ORDER)}
   for (const c of document.querySelectorAll('[data-rc]')) {
