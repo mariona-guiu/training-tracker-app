@@ -107,14 +107,20 @@ const readIcons = (file) => {
 
   const icons = []
   for (const { name, hasActive, body: raw } of bodies) {
-    // An icon with two states draws one or the other, never both. Keep the
-    // resting branch of `{active ? (…) : (…)}` — the selected state is the
-    // tab bar's job to show, and a gallery wants the shape at rest.
+    // An icon with two states draws one or the other, never both, so each state
+    // is read separately: `wantActive` picks the branch of `{active ? (…) : (…)}`
+    // and of every `active ? x : y` inside an attribute or an attribute bag.
+    const readState = (wantActive) => {
     let body = raw
     const tern = body.indexOf('{active ? (')
     if (tern !== -1) {
       const elseAt = body.indexOf(') : (', tern)
-      if (elseAt !== -1) body = body.slice(0, tern) + body.slice(elseAt + 5)
+      const close = body.lastIndexOf(')}')
+      if (elseAt !== -1) {
+        body = wantActive
+          ? body.slice(0, tern) + body.slice(tern + '{active ? ('.length, elseAt)
+          : body.slice(0, tern) + body.slice(elseAt + 5, close === -1 ? undefined : close)
+      }
     }
 
     // `{...plate}` — an attribute bag defined next to the element — and
@@ -139,8 +145,8 @@ const readIcons = (file) => {
       const bag = {}
       for (const kv of o[2].matchAll(/(\w+):\s*([^,\n]+)/g)) {
         let v = kv[2].trim()
-        const t = v.match(/^\w+ \? .+ : (.+)$/) // active ? x : y — take the resting value
-        if (t) v = t[1].trim()
+        const t = v.match(/^\w+ \? (.+) : (.+)$/)
+        if (t) v = (wantActive ? t[1] : t[2]).trim()
         bag[kv[1]] = v.replace(/^['"]|['"]$/g, '')
       }
       spreads[o[1]] = bag
@@ -164,8 +170,8 @@ const readIcons = (file) => {
         const m2 = attrs.match(new RegExp(`\\b${k}=(?:"([^"]*)"|\\{([^{}]*)\\})`))
         if (!m2) return null
         let v = (m2[1] ?? m2[2]).trim()
-        const t = v.match(/^\w+ \? .+ : (.+)$/)
-        if (t) v = t[1].trim()
+        const t = v.match(/^\w+ \? (.+) : (.+)$/)
+        if (t) v = (wantActive ? t[1] : t[2]).trim()
         return v.replace(/^['"`]|['"`]$/g, '')
       }
 
@@ -226,12 +232,18 @@ const readIcons = (file) => {
       for (const d of ds) shapes.push(`<path d="${d}"${tf} ${paint}/>`)
     }
 
+      return shapes
+    }
+
+    const shapes = readState(false)
     if (!shapes.length) continue
     // A shape with neither a stroke nor a fill lays out perfectly and draws
     // nothing, which is indistinguishable from an icon that is simply missing.
     if (!shapes.some((sh) => sh.includes('currentColor')))
       throw new Error(`${name}: every shape resolved to no paint — it would render blank`)
-    icons.push({ name, hasActive, shapes })
+    const active = hasActive ? readState(true) : null
+    if (hasActive && !active?.length) throw new Error(`${name}: has an active state that did not parse`)
+    icons.push({ name, hasActive, shapes, active })
   }
 
   if (!icons.length) throw new Error(`no icons parsed out of ${file} — the parser needs updating`)
@@ -826,8 +838,21 @@ const css = `
   .glassstage > * { position: relative; z-index: 1; }
 
   .icongrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; width: 100%; }
-  .icontile { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 16px 8px; border-radius: ${RADIUS.chip}px; text-align: center; }
-  .icontile:hover { background: var(--s-raised); }
+  .icontile {
+    display: flex; flex-direction: column; align-items: center; gap: 9px;
+    padding: 16px 8px; border-radius: ${RADIUS.chip}px; text-align: center;
+    background: none; border: 0; font: inherit; color: inherit;
+  }
+  .icontile.twostate { cursor: pointer; }
+  .icontile.twostate:hover { background: var(--s-raised); }
+  .icontile[disabled] { cursor: default; }
+  /* The pill the tab bar puts behind a selected icon, so the state reads the
+     way it reads in the app rather than as a shape that simply changed. */
+  .icontile .ico {
+    display: grid; place-items: center; width: 44px; height: 34px;
+    border-radius: ${RADIUS.pill}px;
+  }
+  .icontile[aria-pressed='true'] .ico { background: var(--s-highlight); }
   .icontile svg { width: 26px; height: 26px; color: var(--s-ink); }
   .icontile em { font-style: normal; font-size: 10.5px; color: var(--s-dim); word-break: break-word; }
 
@@ -1418,16 +1443,27 @@ const componentSection = () => {
 
   <h3>Icons</h3>
   <p>${ICONS.length} icons, drawn rather than shipped as images so the ink is a prop. The
-    shapes below are read out of the component source when this page is built; icons with a
-    selected state are shown at rest.</p>
+    shapes below are read out of the component source when this page is built.
+    <b>${ICONS.filter((i) => i.hasActive).length} of them carry a selected state</b> — tap those
+    to switch between the two. The rest have one shape, and the tab bar's pill is what marks
+    them instead.</p>
   <div class="stage spec" data-spec="light">
     <div class="icongrid">
-      ${ICONS.map(
-        (i) => `<div class="icontile">
-        <svg viewBox="0 0 24 24" role="img" aria-label="${i.name}">${i.shapes.join('').replace(/stroke-width="[\d.]+"/g, 'stroke-width="2"')}</svg>
+      ${ICONS.map((i) => {
+        // Anything under 2 is brought up to 2 so the set reads as one weight;
+        // anything at or above it is left alone, because StatsIcon's selected
+        // state *is* a heavier stroke and normalising it away would make the
+        // two states identical.
+        const at = (sh) =>
+          sh.join('').replace(/stroke-width="([\d.]+)"/g, (m, w) => (+w < 2 ? 'stroke-width="2"' : m))
+        return `<button class="icontile${i.hasActive ? ' twostate' : ''}"${
+          i.hasActive ? ' data-icon aria-pressed="false"' : ' disabled'
+        }>
+        <span class="ico rest"><svg viewBox="0 0 24 24" role="img" aria-label="${i.name}">${at(i.shapes)}</svg></span>
+        ${i.hasActive ? `<span class="ico act" hidden><svg viewBox="0 0 24 24" aria-hidden="true">${at(i.active)}</svg></span>` : ''}
         <em>${i.name.replace(/Icon$/, '')}</em>
-      </div>`,
-      ).join('\n      ')}
+      </button>`
+      }).join('\n      ')}
     </div>
   </div>`
 }
@@ -1674,6 +1710,16 @@ const page = `<title>Training Tracker — design system</title>
       el.style.height = Math.max(0, v) + 'px'
     }, () => {
       el.style.height = open ? 'auto' : '0px'
+    })
+  }
+
+  // ── icons with two states swap between them ────────────────────────────
+  for (const tile of document.querySelectorAll('[data-icon]')) {
+    tile.addEventListener('click', () => {
+      const on = tile.getAttribute('aria-pressed') !== 'true'
+      tile.setAttribute('aria-pressed', String(on))
+      tile.querySelector('.rest').hidden = on
+      tile.querySelector('.act').hidden = !on
     })
   }
 
