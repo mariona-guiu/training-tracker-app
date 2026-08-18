@@ -1832,6 +1832,7 @@ const page = `<title>Training Tracker — design system</title>
       let dragging = false
       let startX = 0, startY = 0, fromX = 0, fromY = 0
       let lastX = 0, lastT = 0, vx = 0
+      let startTurn = restAngle
       let moved = 0
       let stopTurn = null, stopX = null, stopY = null
 
@@ -1842,6 +1843,7 @@ const page = `<title>Training Tracker — design system</title>
         startX = e.clientX; startY = e.clientY
         fromX = state.x; fromY = state.y
         lastX = e.clientX; lastT = performance.now(); vx = 0
+        startTurn = state.turn
         stopX?.(); stopY?.(); stopTurn?.()
         card.classList.add('held')
         card.style.zIndex = ++top
@@ -1868,7 +1870,7 @@ const page = `<title>Training Tracker — design system</title>
         // The app leans by how far the card has been dragged, not how fast:
         // the resting angle plus translationX times TILT_PER_PX, capped at
         // TILT_MAX. Driven from velocity, as this was, the card stays straight.
-        const want = Math.min(Math.max(restAngle + dx * S.TILT_PER_PX, -S.TILT_MAX), S.TILT_MAX)
+        const want = Math.min(Math.max(startTurn + dx * S.TILT_PER_PX, -S.TILT_MAX), S.TILT_MAX)
         stopTurn?.()
         stopTurn = springTo(SPRINGS.TILT_SPRING, state.turn, want, (v) => { state.turn = v; draw() })
       })
@@ -1894,8 +1896,9 @@ const page = `<title>Training Tracker — design system</title>
         const maxX = canvas.clientWidth - CARD.w + CARD.w * 0.3 - base.left
         const target = Math.min(Math.max(state.x + vx * S.THROW, minX), maxX)
         stopX = springTo(SPRINGS.GLIDE_SPRING, state.x, target, (v) => { state.x = v; draw() })
-        stopTurn?.()
-        stopTurn = springTo(SPRINGS.TILT_SPRING, state.turn, 0, (v) => { state.turn = v; draw() })
+        // The angle is deliberately left where the drag put it. The app never
+        // straightens a released card — a card keeps the lean it was thrown
+        // with, and only the restack returns it to its resting angle.
       }
       card.addEventListener('pointerup', release)
       card.addEventListener('pointercancel', release)
