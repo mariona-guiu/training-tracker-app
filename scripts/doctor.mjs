@@ -210,6 +210,12 @@ try {
   fail('docs/design-tokens.html', 'is out of date — run `npm run tokens`')
 }
 
+try {
+  execFileSync('node', [join(here, 'generate-design-system.mjs'), '--check'], { stdio: 'pipe' })
+} catch {
+  fail('docs/design-system.html', 'is out of date — run `npm run design-system`')
+}
+
 // ── report ────────────────────────────────────────────────────────────────
 
 if (problems.length === 0) {

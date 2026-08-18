@@ -362,7 +362,7 @@ export const SPACE = { 1: 4, 2: 8, 3: 16, 4: 24, 5: 32, 6: 48 }
 
 // Three shapes, which is all this app turns out to need: a chip, a card, and
 // anything fully rounded. The app had twelve radius values, several of them
-// one shape written four ways — see docs/design-tokens.json.
+// one shape written four ways — see docs/design-system.html.
 //
 // Not every literal has moved onto these yet. What is left is the set where
 // adopting the token would *change* the shape (a history cell at 8, the chart

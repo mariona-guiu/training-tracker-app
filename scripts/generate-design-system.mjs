@@ -1,0 +1,1102 @@
+// Builds docs/design-system.html from the app itself.  npm run design-system
+//
+// The whole page is generated. Unlike docs/design-tokens.html, which is prose
+// written by hand with generated tables dropped into it, there is nothing here
+// to preserve between runs — the explanatory text lives in this file, next to
+// the code that reads the value it explains, and the output is overwritten
+// whole. If a sentence here disagrees with the theme, the sentence is wrong.
+//
+// Nothing is transcribed. Colours, sizes, tracking, caps, spacing, radii and
+// the icon path data are all read from src/theme, src/data/routineStyles.js and
+// src/components/*Icons.jsx at generation time.
+//
+// `npm run doctor` runs this with --check and fails if the committed page
+// differs from what the theme produces now.
+
+import { readFileSync, writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
+
+import {
+  LIGHT,
+  DARK,
+  TYPE,
+  CAP,
+  SPACE,
+  RADIUS,
+  NAV_HEIGHT,
+  NAV_FLOAT_GAP,
+  TAB_BAR_CLEARANCE,
+  SYSTEM_LINE,
+  SYSTEM_CAP,
+} from '../src/theme/index.js'
+import {
+  CANONICAL_ORDER,
+  styleFor,
+  restTintFor,
+  paleFor,
+  inkFor,
+  washFor,
+} from '../src/data/routineStyles.js'
+
+const here = dirname(fileURLToPath(import.meta.url))
+const root = join(here, '..')
+const OUT = join(root, 'docs', 'design-system.html')
+
+// ── colour maths, for the contrast figures shown beside each pair ──────────
+
+const ch = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
+const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
+const lum = (hex) => {
+  const [r, g, b] = ch(hex).map(lin)
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+const ratio = (a, b) => {
+  const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m)
+  return (x + 0.05) / (y + 0.05)
+}
+const lstar = (hex) => {
+  const y = lum(hex)
+  const f = (v) => (v > 0.008856 ? Math.cbrt(v) : 7.787 * v + 16 / 116)
+  return 116 * f(y) - 16
+}
+// An rgba over a known ground, so a translucent token can be shown as the
+// colour it actually becomes rather than as a swatch of nothing.
+const over = (rgba, groundHex) => {
+  const m = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?\)/)
+  if (!m) return rgba
+  const a = m[4] === undefined ? 1 : +m[4]
+  const g = ch(groundHex).map((c) => c * 255)
+  const mix = [1, 2, 3].map((i) => Math.round(+m[i] * a + g[i - 1] * (1 - a)))
+  return '#' + mix.map((v) => v.toString(16).padStart(2, '0')).join('')
+}
+
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+// ── icons, read out of the component source ───────────────────────────────
+//
+// The icons are react-native-svg elements whose colour is a prop, so the shapes
+// can be lifted straight out and re-drawn here with currentColor. What is
+// parsed: literal `d="…"`, `d={CONST}` against a module-level string, template
+// literals joining two constants, arrays of path strings passed to .map(), and
+// <Rect> with its transform. Anything a file cannot yield is an error rather
+// than a silent omission — an icon quietly missing from a gallery of icons is
+// exactly the kind of thing nobody notices.
+
+const readIcons = (file) => {
+  const src = readFileSync(join(root, 'src/components', file), 'utf8')
+
+  const consts = {}
+  for (const m of src.matchAll(/^const (\w+) =\s*\n?\s*'([^']+)'/gm)) consts[m[1]] = m[2]
+
+  const bodies = []
+  const rx = /export function (\w+)\(([^)]*)\)\s*\{/g
+  let m
+  while ((m = rx.exec(src))) {
+    const start = m.index + m[0].length
+    const next = new RegExp(rx.source, 'g')
+    next.lastIndex = rx.lastIndex
+    const after = next.exec(src)
+    bodies.push({
+      name: m[1],
+      hasActive: /\bactive\b/.test(m[2]),
+      body: src.slice(start, after ? after.index : src.length),
+    })
+  }
+
+  const icons = []
+  for (const { name, hasActive, body: raw } of bodies) {
+    // An icon with two states draws one or the other, never both. Keep the
+    // resting branch of `{active ? (…) : (…)}` — the selected state is the
+    // tab bar's job to show, and a gallery wants the shape at rest.
+    let body = raw
+    const tern = body.indexOf('{active ? (')
+    if (tern !== -1) {
+      const elseAt = body.indexOf(') : (', tern)
+      if (elseAt !== -1) body = body.slice(0, tern) + body.slice(elseAt + 5)
+    }
+
+    // `{...plate}` — an attribute bag defined next to the element.
+    const spreads = {}
+    for (const o of body.matchAll(/const (\w+) = \{([\s\S]*?)\n\s*\}/g)) {
+      const bag = {}
+      for (const kv of o[2].matchAll(/(\w+):\s*([^,\n]+)/g)) {
+        let v = kv[2].trim()
+        const t = v.match(/^\w+ \? .+ : (.+)$/) // active ? x : y — take the resting value
+        if (t) v = t[1].trim()
+        bag[kv[1]] = v.replace(/^['"]|['"]$/g, '')
+      }
+      spreads[o[1]] = bag
+    }
+
+    // Paths generated by mapping over an array of `d` strings.
+    const mapped = [...body.matchAll(/\[((?:\s*'[^']+',?\s*)+)\]\.map/g)].map((a) =>
+      [...a[1].matchAll(/'([^']+)'/g)].map((x) => x[1]),
+    )
+
+    const shapes = []
+    for (const el of body.matchAll(/<(Path|Rect)\b([\s\S]*?)\/>/g)) {
+      const tag = el[1]
+      let attrs = el[2]
+      for (const sp of attrs.matchAll(/\{\.\.\.(\w+)\}/g)) {
+        const bag = spreads[sp[1]]
+        if (bag) attrs += ' ' + Object.entries(bag).map(([k, v]) => `${k}="${v}"`).join(' ')
+      }
+
+      const attr = (k) => {
+        const m2 = attrs.match(new RegExp(`\\b${k}=(?:"([^"]*)"|\\{([^{}]*)\\})`))
+        if (!m2) return null
+        let v = (m2[1] ?? m2[2]).trim()
+        const t = v.match(/^\w+ \? .+ : (.+)$/)
+        if (t) v = t[1].trim()
+        return v.replace(/^['"`]|['"`]$/g, '')
+      }
+
+      // Colour is a prop in the app; here it inherits.
+      const strokeRaw = attr('stroke')
+      const fillRaw = attr('fill')
+      const stroked = strokeRaw && strokeRaw !== 'none'
+      const filled = fillRaw && fillRaw !== 'none'
+      const paint =
+        `fill="${filled ? 'currentColor' : 'none'}"` +
+        (stroked
+          ? ` stroke="currentColor" stroke-width="${attr('strokeWidth') ?? 2}"` +
+            ` stroke-linecap="${attr('strokeLinecap') ?? 'round'}"` +
+            ` stroke-linejoin="${attr('strokeLinejoin') ?? 'round'}"`
+          : '') +
+        (attr('fillRule') ? ` fill-rule="${attr('fillRule')}"` : '')
+      const tf = attr('transform') ? ` transform="${attr('transform')}"` : ''
+
+      if (tag === 'Rect') {
+        const need = ['width', 'height'].filter((k) => attr(k) === null)
+        if (need.length) throw new Error(`${name}: <Rect> is missing ${need.join(', ')}`)
+        shapes.push(
+          `<rect x="${attr('x') ?? 0}" y="${attr('y') ?? 0}" width="${attr('width')}"` +
+            ` height="${attr('height')}"${attr('rx') ? ` rx="${attr('rx')}"` : ''}${tf} ${paint}/>`,
+        )
+        continue
+      }
+
+      // d="literal" | d={CONST} | d={`${A} ${B}`} | d={x} from a .map
+      const dm = attrs.match(/\bd=(?:"([^"]+)"|\{`([^`]+)`\}|\{(\w+)\})/)
+      if (!dm) throw new Error(`${name}: a <Path> has no readable d attribute`)
+      let ds = []
+      if (dm[1]) ds = [dm[1]]
+      else if (dm[2]) ds = [dm[2].replace(/\$\{(\w+)\}/g, (_, k) => consts[k] ?? '')]
+      else if (consts[dm[3]]) ds = [consts[dm[3]]]
+      else if (mapped.length) ds = mapped.shift()
+      if (!ds.length || ds.some((d) => !d))
+        throw new Error(`${name}: could not resolve the d attribute ${dm[0]}`)
+
+      for (const d of ds) shapes.push(`<path d="${d}"${tf} ${paint}/>`)
+    }
+
+    if (shapes.length) icons.push({ name, hasActive, shapes })
+  }
+
+  if (!icons.length) throw new Error(`no icons parsed out of ${file} — the parser needs updating`)
+  return icons
+}
+
+const ICON_FILES = ['TabIcons.jsx', 'WorkoutIcons.jsx', 'HistoryIcons.jsx', 'StackIcon.jsx']
+const ICONS = ICON_FILES.flatMap((f) => readIcons(f).map((i) => ({ ...i, file: f })))
+
+// ── the page's own palette, taken from the app's ──────────────────────────
+//
+// The design system is rendered in the design system. The neutrals, the two
+// type families and the six routine hues on this page are the app's own values,
+// so the page cannot look right while the app looks wrong.
+
+const css = `
+  :root {
+    --bg: ${LIGHT.bg};
+    --raised: ${LIGHT.bgRaised};
+    --line: ${LIGHT.border};
+    --ink: ${LIGHT.text};
+    --dim: ${LIGHT.textDim};
+    --danger: ${LIGHT.danger};
+    --shadow: rgba(25, 25, 25, 0.07);
+    --nav-w: 236px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --bg: ${DARK.bg};
+      --raised: ${DARK.bgRaised};
+      --line: ${DARK.border};
+      --ink: ${DARK.text};
+      --dim: ${DARK.textDim};
+      --danger: ${DARK.danger};
+      --shadow: rgba(0, 0, 0, 0.5);
+    }
+  }
+  :root[data-theme='dark'] {
+    --bg: ${DARK.bg};
+    --raised: ${DARK.bgRaised};
+    --line: ${DARK.border};
+    --ink: ${DARK.text};
+    --dim: ${DARK.textDim};
+    --danger: ${DARK.danger};
+    --shadow: rgba(0, 0, 0, 0.5);
+  }
+
+  /* The specimen palettes. These are pinned by the toggle rather than by the
+     viewer's theme, because a dark palette has to be inspectable from a light
+     page — that is most of what this page is for. */
+  [data-spec='light'] {
+    --s-bg: ${LIGHT.bg};
+    --s-raised: ${LIGHT.bgRaised};
+    --s-line: ${LIGHT.border};
+    --s-ink: ${LIGHT.text};
+    --s-dim: ${LIGHT.textDim};
+    --s-track: ${LIGHT.controlTrack};
+    --s-onink: ${LIGHT.onInk};
+    --s-danger: ${LIGHT.danger};
+    --s-glass-a: ${LIGHT.glassWash[0]};
+    --s-glass-b: ${LIGHT.glassWash[1]};
+    --s-glass-edge: ${LIGHT.glassEdge};
+    --s-highlight: ${LIGHT.highlight};
+  }
+  [data-spec='dark'] {
+    --s-bg: ${DARK.bg};
+    --s-raised: ${DARK.bgRaised};
+    --s-line: ${DARK.border};
+    --s-ink: ${DARK.text};
+    --s-dim: ${DARK.textDim};
+    --s-track: ${DARK.controlTrack};
+    --s-onink: ${DARK.onInk};
+    --s-danger: ${DARK.danger};
+    --s-glass-a: ${DARK.glassWash[0]};
+    --s-glass-b: ${DARK.glassWash[1]};
+    --s-glass-edge: ${DARK.glassEdge};
+    --s-highlight: ${DARK.highlight};
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    /* The app's own two families. \`ui-rounded\` is what the app asks iOS for,
+       and Safari and Chrome on a Mac resolve it to the same SF Pro Rounded, so
+       this page is set in the typeface it documents. */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .rounded { font-family: ui-rounded, -apple-system, system-ui, sans-serif; }
+
+  /* ── shell ─────────────────────────────────────────────────────────── */
+
+  .shell { display: grid; grid-template-columns: var(--nav-w) minmax(0, 1fr); }
+
+  nav {
+    position: sticky; top: 0; align-self: start;
+    height: 100vh; overflow-y: auto;
+    border-right: 1px solid var(--line);
+    padding: 28px 0 40px;
+    display: flex; flex-direction: column; gap: 22px;
+  }
+  .brand { padding: 0 22px; display: flex; flex-direction: column; gap: 3px; }
+  .brand b { font-family: ui-rounded, system-ui, sans-serif; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+  .brand span { font-size: 11.5px; color: var(--dim); }
+
+  .navgroup { display: flex; flex-direction: column; gap: 1px; }
+  .navgroup > p {
+    margin: 0 0 5px; padding: 0 22px;
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--dim);
+  }
+  nav a {
+    padding: 6px 22px; color: var(--dim); text-decoration: none; font-size: 13.5px;
+    border-left: 2px solid transparent; transition: color .12s, border-color .12s;
+  }
+  nav a:hover { color: var(--ink); }
+  nav a.on { color: var(--ink); font-weight: 600; border-left-color: var(--ink); }
+  nav a:focus-visible, .copy:focus-visible, button:focus-visible {
+    outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 3px;
+  }
+
+  main { min-width: 0; padding: 0 0 140px; }
+  .inner { max-width: 940px; padding: 0 40px; }
+
+  header.top { padding: 76px 40px 46px; max-width: 940px; }
+  header.top h1 {
+    font-family: ui-rounded, system-ui, sans-serif;
+    margin: 0 0 14px; font-size: 46px; font-weight: 700;
+    letter-spacing: -0.022em; line-height: 1.04; text-wrap: balance;
+  }
+  header.top p { margin: 0; max-width: 60ch; color: var(--dim); font-size: 16.5px; }
+
+  section { padding-top: 60px; scroll-margin-top: 8px; }
+  section > .inner > h2 {
+    font-family: ui-rounded, system-ui, sans-serif;
+    margin: 0 0 6px; font-size: 30px; font-weight: 700; letter-spacing: -0.014em;
+  }
+  .eyebrow {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.11em;
+    text-transform: uppercase; color: var(--dim); margin: 0 0 10px;
+  }
+  h3 {
+    font-family: ui-rounded, system-ui, sans-serif;
+    margin: 44px 0 10px; font-size: 18px; font-weight: 700;
+  }
+  h4 { margin: 26px 0 8px; font-size: 14px; font-weight: 600; }
+  p { margin: 0 0 12px; max-width: 68ch; }
+  .lede { color: var(--dim); font-size: 16px; margin-bottom: 22px; }
+  ul { margin: 0 0 14px; padding-left: 20px; }
+  li { margin-bottom: 5px; max-width: 66ch; }
+
+  .note {
+    border-left: 2px solid var(--ink); background: var(--raised);
+    padding: 14px 18px; margin: 18px 0; border-radius: 0 ${RADIUS.chip}px ${RADIUS.chip}px 0;
+  }
+  .note p:last-child { margin-bottom: 0; }
+  .note b { font-weight: 600; }
+
+  code, .mono {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 12.5px; font-variant-numeric: tabular-nums;
+  }
+  code { background: var(--raised); padding: 1.5px 5px; border-radius: 3px; }
+
+  .scroll { overflow-x: auto; margin-bottom: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th {
+    text-align: left; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--dim);
+    padding: 0 14px 8px 0; border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  td { padding: 9px 14px 9px 0; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ── swatches, and copying ─────────────────────────────────────────── */
+
+  .copy {
+    background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 8px; position: relative;
+  }
+  .copy::after {
+    content: 'copied'; position: absolute; left: 50%; bottom: calc(100% + 6px);
+    transform: translate(-50%, 3px); background: var(--ink); color: var(--bg);
+    font-size: 10px; letter-spacing: 0.04em; padding: 2px 7px; border-radius: 3px;
+    opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; white-space: nowrap;
+  }
+  .copy.done::after { opacity: 1; transform: translate(-50%, 0); }
+
+  .chip {
+    width: 30px; height: 22px; border-radius: ${RADIUS.chip}px; flex: none;
+    border: 1px solid var(--line); display: inline-block; vertical-align: middle;
+  }
+  .tokengrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(228px, 1fr)); gap: 12px; margin-bottom: 10px; }
+  .token {
+    border: 1px solid var(--line); border-radius: ${RADIUS.card}px; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .token .fill { height: 66px; border-bottom: 1px solid var(--line); }
+  .token .meta { padding: 9px 12px 11px; display: flex; flex-direction: column; gap: 2px; }
+  .token .meta b { font-size: 12.5px; font-weight: 600; }
+  .token .meta span { font-size: 11.5px; color: var(--dim); }
+
+  .ramp { display: flex; border-radius: ${RADIUS.chip}px; overflow: hidden; border: 1px solid var(--line); }
+  .ramp > div { flex: 1; height: 46px; }
+
+  /* ── specimen stage ────────────────────────────────────────────────── */
+
+  .stage {
+    background: var(--s-bg); color: var(--s-ink);
+    border: 1px solid var(--line); border-radius: ${RADIUS.card}px;
+    padding: 30px; margin-bottom: 10px;
+    display: flex; flex-wrap: wrap; gap: 26px; align-items: flex-start;
+  }
+  .stage.col { flex-direction: column; align-items: stretch; }
+  .stage.center { justify-content: center; }
+
+  .switcher { display: flex; align-items: center; gap: 10px; margin: 20px 0 12px; flex-wrap: wrap; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: ${RADIUS.chip}px; overflow: hidden; }
+  .seg button {
+    background: none; border: 0; padding: 5px 13px; font: inherit; font-size: 12.5px;
+    color: var(--dim); cursor: pointer;
+  }
+  .seg button.on { background: var(--ink); color: var(--bg); font-weight: 600; }
+  .hint { font-size: 12px; color: var(--dim); }
+
+  /* ── the app's own components, rebuilt in HTML ─────────────────────── */
+
+  .rcard {
+    width: 214px; height: 152px; border-radius: ${RADIUS.card}px;
+    padding: 16px; display: flex; flex-direction: column; justify-content: space-between;
+    box-shadow: 0 8px 22px var(--shadow);
+  }
+  .rcard b {
+    font-family: ui-rounded, system-ui, sans-serif; font-weight: 400;
+    font-size: ${TYPE.routineCard.fontSize}px; text-transform: uppercase; line-height: 1.02;
+  }
+  .rcard span {
+    font-family: ui-rounded, system-ui, sans-serif;
+    font-size: ${TYPE.routineCardMeta.fontSize}px; text-transform: uppercase;
+    font-variant-numeric: tabular-nums; opacity: .82; display: block; line-height: 1.25;
+  }
+
+  .btn {
+    border: 0; border-radius: ${RADIUS.pill}px; padding: 14px 26px; cursor: pointer;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: ${TYPE.control.fontSize}px; font-weight: ${TYPE.control.fontWeight};
+  }
+  .btn.ghost { background: transparent; border: 1px solid var(--s-line); color: var(--s-ink); }
+  .btn.quiet { background: var(--s-raised); color: var(--s-ink); }
+  .btn.danger { background: var(--s-danger); color: #fff; }
+
+  .tabbar {
+    position: relative; width: 246px; height: ${NAV_HEIGHT}px;
+    border-radius: ${NAV_HEIGHT / 2}px; overflow: hidden;
+    border: 1px solid var(--s-glass-edge);
+    background: linear-gradient(var(--s-glass-a), var(--s-glass-b));
+    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    display: flex; align-items: center; justify-content: space-around;
+  }
+  .tabbar .slot { width: 44px; height: 34px; display: grid; place-items: center; border-radius: ${RADIUS.pill}px; }
+  .tabbar .slot.on { background: var(--s-highlight); }
+  .tabbar svg { width: 22px; height: 22px; display: block; }
+
+  .switchctl { width: 51px; height: 31px; border-radius: ${RADIUS.pill}px; background: var(--s-track); position: relative; flex: none; }
+  .switchctl.on { background: var(--s-ink); }
+  .switchctl i { position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.28); transition: left .18s; }
+  .switchctl.on i { left: 22px; }
+
+  .row {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 13px 16px; background: var(--s-raised); border-radius: ${RADIUS.card}px; width: 100%;
+  }
+  .row .lbl {
+    font-size: ${TYPE.label.fontSize}px; font-weight: ${TYPE.label.fontWeight};
+    letter-spacing: ${TYPE.label.letterSpacing}px; text-transform: uppercase;
+  }
+
+  .hcell {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+    border-radius: ${RADIUS.card}px; width: 100%;
+  }
+  .hcell .dot { width: 34px; height: 34px; border-radius: 50%; flex: none; }
+  .hcell b { font-family: ui-rounded, system-ui, sans-serif; font-size: ${TYPE.title.fontSize}px; font-weight: 700; }
+  .hcell span { font-size: 12px; color: var(--s-dim); display: block; }
+
+  .chart { display: flex; align-items: flex-end; gap: 7px; height: 96px; }
+  .chart i { width: 22px; border-radius: ${RADIUS.chip}px ${RADIUS.chip}px 0 0; display: block; }
+
+  .icongrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; width: 100%; }
+  .icontile {
+    display: flex; flex-direction: column; align-items: center; gap: 9px;
+    padding: 16px 8px; border-radius: ${RADIUS.chip}px; text-align: center;
+  }
+  .icontile:hover { background: var(--s-raised); }
+  .icontile svg { width: 26px; height: 26px; color: var(--s-ink); }
+  .icontile em { font-style: normal; font-size: 10.5px; color: var(--s-dim); word-break: break-word; }
+
+  .typerow { display: flex; align-items: baseline; gap: 20px; padding: 18px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .typerow:last-child { border-bottom: none; }
+  .typerow .spec { flex: 1 1 190px; min-width: 190px; }
+  .typerow .spec b { display: block; font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .typerow .spec span { font-size: 11.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .typerow .sample { flex: 2 1 320px; min-width: 0; overflow-x: auto; color: var(--ink); }
+
+  .spacebar { background: var(--ink); height: 15px; border-radius: 2px; display: block; }
+
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    nav {
+      position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line);
+      flex-direction: row; flex-wrap: wrap; gap: 10px 4px; padding: 16px 20px;
+    }
+    .navgroup { flex-direction: row; flex-wrap: wrap; gap: 2px; }
+    .navgroup > p { display: none; }
+    nav a { border-left: 0; padding: 5px 10px; border-radius: ${RADIUS.chip}px; }
+    nav a.on { background: var(--raised); }
+    .brand { width: 100%; padding: 0; }
+    header.top { padding: 40px 20px 30px; }
+    .inner { padding: 0 20px; }
+  }
+`
+
+// ── section builders ──────────────────────────────────────────────────────
+
+const swatch = (name, value, ground, note) => {
+  const shown = value.startsWith('rgba') ? over(value, ground) : value
+  return `<div class="token">
+        <div class="fill" style="background:${shown}"></div>
+        <div class="meta">
+          <b>${name}</b>
+          <button class="copy mono" data-copy="${value}"><span>${value}</span></button>
+          ${note ? `<span>${note}</span>` : ''}
+        </div>
+      </div>`
+}
+
+const SEMANTIC = [
+  ['bg', 'The page itself'],
+  ['bgRaised', 'Cards and rows. <b>Lighter</b> than the page in dark'],
+  ['border', 'Hairlines and the unfilled half of a control'],
+  ['text', 'Everything read'],
+  ['textDim', 'Secondary and supporting text'],
+  ['danger', 'Destructive actions only'],
+  ['onInk', 'What sits on a filled ink surface'],
+  ['controlTrack', 'The unfilled half of a control'],
+]
+
+const colourSection = () => {
+  const pairs = [
+    ['text on bg', LIGHT.text, LIGHT.bg, DARK.text, DARK.bg],
+    ['text on bgRaised', LIGHT.text, LIGHT.bgRaised, DARK.text, DARK.bgRaised],
+    ['textDim on bg', LIGHT.textDim, LIGHT.bg, DARK.textDim, DARK.bg],
+    ['textDim on bgRaised', LIGHT.textDim, LIGHT.bgRaised, DARK.textDim, DARK.bgRaised],
+    ['onInk on text', LIGHT.onInk, LIGHT.text, DARK.onInk, DARK.text],
+  ]
+  return `
+  <p class="lede">Two palettes of the same shape. A screen picks one at the top and passes it
+    down; nothing below re-decides.</p>
+
+  <h3>Semantic tokens</h3>
+  <p>Named for the job rather than the colour, which is what lets the same component
+    serve both schemes without being restyled. Click any value to copy it.</p>
+
+  <div class="switcher">
+    <div class="seg" role="group" aria-label="Palette">
+      <button class="on" data-pal="light">Light</button><button data-pal="dark">Dark</button>
+    </div>
+    <span class="hint">Switches the swatches below, independently of this page's own theme.</span>
+  </div>
+
+  <div class="tokengrid" data-pal-target="light">
+    ${SEMANTIC.map(([k, note]) => swatch(k, LIGHT[k], LIGHT.bg, note)).join('\n    ')}
+    ${swatch('surfaceCard', LIGHT.surfaceCard, LIGHT.bg, 'A tint over the page, not a panel')}
+  </div>
+  <div class="tokengrid" data-pal-target="dark" hidden>
+    ${SEMANTIC.map(([k, note]) => swatch(k, DARK[k], DARK.bg, note)).join('\n    ')}
+    ${swatch('surfaceCard', DARK.surfaceCard, DARK.bg, 'A tint over the page, not a panel')}
+  </div>
+
+  <div class="note">
+    <p><b>Elevation runs the other way in dark.</b> <code>bgRaised</code> is
+    ${lstar(LIGHT.bgRaised) < lstar(LIGHT.bg) ? 'darker' : 'lighter'} than the page in light
+    (L* ${lstar(LIGHT.bgRaised).toFixed(1)} against ${lstar(LIGHT.bg).toFixed(1)}) and
+    ${lstar(DARK.bgRaised) > lstar(DARK.bg) ? 'lighter' : 'darker'} in dark
+    (L* ${lstar(DARK.bgRaised).toFixed(1)} against ${lstar(DARK.bg).toFixed(1)}).
+    A dark theme has nothing for a shadow to darken, so it lifts a surface with light instead.</p>
+  </div>
+
+  <h3>Contrast, measured</h3>
+  <p>Computed from the tokens each time this page is built, so these cannot drift from
+    the palette. AA wants 4.5:1 for body text and 3:1 for large text and icons.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Pair</th><th class="num">Light</th><th class="num">Dark</th><th>Note</th></tr></thead>
+    <tbody>
+      ${pairs
+        .map(([label, lf, lb, df, db]) => {
+          const l = ratio(lf, lb)
+          const d = ratio(df, db)
+          const worst = Math.min(l, d)
+          return `<tr><td><code>${label}</code></td><td class="num">${l.toFixed(2)}:1</td><td class="num">${d.toFixed(2)}:1</td><td>${
+            worst >= 4.5 ? 'Passes AA for body text' : 'Large text and icons only'
+          }</td></tr>`
+        })
+        .join('\n      ')}
+    </tbody>
+  </table></div>
+
+  <h3>Glass</h3>
+  <p>The floating tab bar has no Liquid Glass to lean on, so the material is implied by
+    hand: a wash lit from the top, a hairline edge over it, and a pill marking the tab
+    you are on. All three invert between schemes — light mode marks the current tab by
+    darkening it, which on a dark bar would mark it by making it vanish.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Token</th><th>Light</th><th>Dark</th></tr></thead>
+    <tbody>
+      <tr><td><code>glassWash</code></td><td class="mono">${LIGHT.glassWash.join('<br>')}</td><td class="mono">${DARK.glassWash.join('<br>')}</td></tr>
+      <tr><td><code>glassEdge</code></td><td class="mono">${LIGHT.glassEdge}</td><td class="mono">${DARK.glassEdge}</td></tr>
+      <tr><td><code>highlight</code></td><td class="mono">${LIGHT.highlight}</td><td class="mono">${DARK.highlight}</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Routine colours</h3>
+  <p>A routine's colour is its identity: the same hue carries its card in the stack, the
+    workout screen it opens into, and its days on the Stats calendar. These are the only
+    literal colours in the app, and the only saturation in it.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Routine</th><th>Card</th><th>Rest sweep</th><th>History cell</th><th>Button wash</th><th>Ink</th></tr></thead>
+    <tbody>
+      ${CANONICAL_ORDER.map((name) => {
+        const cell = (scheme) => {
+          const base = styleFor(scheme, name).background
+          const rest = restTintFor(scheme, name)
+          const pale = paleFor(scheme, name).background
+          const wash = washFor(scheme, name)
+          return { base, rest, pale, wash }
+        }
+        const l = cell('light')
+        const d = cell('dark')
+        const two = (a, b) =>
+          `<button class="copy" data-copy="${a}"><span class="chip" style="background:${a}"></span></button>` +
+          `<button class="copy" data-copy="${b}"><span class="chip" style="background:${b}"></span></button>`
+        return `<tr>
+        <td><b class="rounded" style="text-transform:uppercase;font-size:13px">${name}</b></td>
+        <td>${two(l.base, d.base)}</td>
+        <td>${two(l.rest, d.rest)}</td>
+        <td>${two(l.pale, d.pale)}</td>
+        <td>${two(over(l.wash, l.base), over(d.wash, d.base))}</td>
+        <td class="mono">${inkFor('light', name)}</td>
+      </tr>`
+      }).join('\n      ')}
+    </tbody>
+  </table></div>
+  <p class="hint">Each cell shows light then dark. The wash is drawn over its own colour at
+    partial opacity, so what is shown is the result, not the raw value.</p>`
+}
+
+const typeSection = () => {
+  const SAMPLE = {
+    caption: 'Estimated, and deliberately low.',
+    label: 'Show rest time between sets',
+    body: 'Everything lives on the phone. No account, no backend.',
+    control: 'Log set',
+    routineCardMeta: '50 min · 6 exercises',
+    title: 'This week',
+    heading: 'Bulgarian split squat',
+    routineCard: 'Lower body',
+    screenTitle: 'Workouts',
+    figure: '1,240',
+    hero: '42:08',
+  }
+  const order = ['caption', 'label', 'body', 'control', 'routineCardMeta', 'title', 'heading', 'routineCard', 'screenTitle', 'figure', 'hero']
+  return `
+  <p class="lede">Eleven roles, each named for the job so a screen picks a role rather than a
+    number. Two families, both from the system and neither bundled.</p>
+
+  <div class="note">
+    <p><b>Rounded is what gets looked at; plain is what gets read.</b> SF Pro Rounded carries
+    the routine card, the page title, the exercise you are on and the figure you are lifting.
+    Plain SF Pro carries labels, prose, controls and list rows. The split is by job, not by size.</p>
+  </div>
+
+  <h3>The scale</h3>
+  ${order
+    .map((role) => {
+      const t = TYPE[role]
+      const rounded = t.fontFamily === 'ui-rounded'
+      const track = t.letterSpacing
+      const pct = track ? ((track / t.fontSize) * 100).toFixed(0) : null
+      const cap = CAP[role]?.maxFontSizeMultiplier
+      return `<div class="typerow">
+    <div class="spec">
+      <b>${role}</b>
+      <span>${t.fontSize}px · ${t.fontWeight} · ${rounded ? 'SF Pro Rounded' : 'SF Pro'}${
+        track ? ` · ${pct > 0 ? '+' : ''}${pct}% tracking` : ''
+      }${t.textTransform ? ' · uppercase' : ''}${
+        t.fontVariant ? ' · tabular' : ''
+      } · ${cap ? `caps at ${cap}×` : 'uncapped'}</span>
+    </div>
+    <div class="sample" style="font-family:${rounded ? 'ui-rounded, system-ui' : '-apple-system, system-ui'},sans-serif;
+      font-size:${t.fontSize}px; font-weight:${t.fontWeight}; letter-spacing:${track}px;
+      ${t.textTransform ? 'text-transform:uppercase;' : ''}${t.fontVariant ? 'font-variant-numeric:tabular-nums;' : ''}
+      line-height:${SYSTEM_LINE}">${esc(SAMPLE[role])}</div>
+  </div>`
+    })
+    .join('\n  ')}
+
+  <h3>Tracking follows the weight, not the size</h3>
+  <p>Only five roles carry any tracking at all; the other six sit at a plain zero. Where it
+    is non-zero it is written as <code>size × ratio</code>, so changing a size carries its
+    tracking with it.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Role</th><th class="num">Size</th><th>Weight</th><th class="num">Tracking</th></tr></thead>
+    <tbody>
+      ${order
+        .filter((r) => TYPE[r].letterSpacing !== 0)
+        .map((r) => {
+          const t = TYPE[r]
+          const pct = ((t.letterSpacing / t.fontSize) * 100).toFixed(0)
+          return `<tr><td><code>${r}</code></td><td class="num">${t.fontSize}</td><td>${
+            t.fontWeight === '500' ? 'medium' : t.fontWeight === '700' ? 'bold' : 'regular'
+          }</td><td class="num">${pct > 0 ? '+' : ''}${pct}%</td></tr>`
+        })
+        .join('\n      ')}
+    </tbody>
+  </table></div>
+  <p>Medium opens, bold tightens. Size never predicted it: <code>heading</code> at 30 opens
+    while <code>screenTitle</code> at 32 tightens.</p>
+
+  <h3>Case belongs to the role</h3>
+  <p>${order.filter((r) => TYPE[r].textTransform).length} roles render uppercase —
+    ${order.filter((r) => TYPE[r].textTransform).map((r) => `<code>${r}</code>`).join(', ')} — while
+    the source strings stay in sentence case. Settings really does contain "Show rest time
+    between sets"; the role shouts it. Copy written as prose is easier to write, read and
+    eventually translate, and the same string can be reused unshouted without being edited.</p>
+  <p><code>control</code> is deliberately not among them. Uppercase button labels tracked out
+    is Material's convention, not Apple's — iOS sets buttons in sentence case and lets SF Pro's
+    own optical tracking do the spacing. The buttons speak rather than shout.</p>
+
+  <h3>Dynamic Type</h3>
+  <p>Every role scales with the iOS text-size setting; what differs is how far. Nothing
+    anywhere sets <code>allowFontScaling={false}</code>, which would refuse the setting
+    outright rather than bounding it.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Cap</th><th>Roles</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td class="num">uncapped</td><td><code>body</code>, <code>caption</code></td><td>The text someone raised their text size in order to read. Both live in boxes that grow.</td></tr>
+      <tr><td class="num">1.5×</td><td><code>control</code>, <code>label</code></td><td>Fixed-width boxes; past about 1.5 they wrap and a control stops looking like one.</td></tr>
+      <tr><td class="num">1.4×</td><td><code>title</code></td><td>Names in cells and bars that cannot reflow far.</td></tr>
+      <tr><td class="num">1.3×</td><td><code>screenTitle</code>, <code>heading</code>, <code>routineCard</code>, <code>routineCardMeta</code></td><td>Already large, so a smaller multiplier still adds real size.</td></tr>
+      <tr><td class="num">1.2×</td><td><code>figure</code>, <code>hero</code></td><td><code>hero</code> is ${TYPE.hero.fontSize}px already — the largest thing on the screen at any setting.</td></tr>
+    </tbody>
+  </table></div>`
+}
+
+const shapeSection = () => `
+  <p class="lede">Small scales, deliberately. The app had twelve radius values, several of them
+    one shape written four ways.</p>
+
+  <h3>Space</h3>
+  <p>A six-step scale, in points.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Step</th><th class="num">Value</th><th>Scale</th></tr></thead>
+    <tbody>
+      ${Object.entries(SPACE)
+        .map(
+          ([k, v]) =>
+            `<tr><td><code>SPACE.${k}</code></td><td class="num">${v}</td><td><i class="spacebar" style="width:${v * 3}px"></i></td></tr>`,
+        )
+        .join('\n      ')}
+    </tbody>
+  </table></div>
+
+  <h3>Radius</h3>
+  <p>Three shapes, which is all this app turns out to need.</p>
+  <div class="stage center" data-spec="light">
+    ${Object.entries(RADIUS)
+      .map(
+        ([k, v]) =>
+          `<div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="width:96px;height:72px;background:var(--s-raised);border:1px solid var(--s-line);border-radius:${v}px"></div>
+        <div style="font-size:12px"><b>${k}</b> <span style="color:var(--s-dim)">${v === 999 ? 'fully rounded' : v + 'px'}</span></div>
+      </div>`,
+      )
+      .join('\n    ')}
+  </div>
+  <p class="hint">Not every literal has moved onto these yet. What is left is the set where
+    adopting the token would <em>change</em> the shape, so those go one at a time with a look
+    on the device.</p>
+
+  <h3>The floating bar</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Constant</th><th class="num">Value</th><th>What it is</th></tr></thead>
+    <tbody>
+      <tr><td><code>NAV_HEIGHT</code></td><td class="num">${NAV_HEIGHT}</td><td>The bar itself</td></tr>
+      <tr><td><code>NAV_FLOAT_GAP</code></td><td class="num">${NAV_FLOAT_GAP}</td><td>Room between the bar and the home indicator</td></tr>
+      <tr><td><code>TAB_BAR_CLEARANCE</code></td><td class="num">${TAB_BAR_CLEARANCE}</td><td>How far a scrolling screen must clear the bar, before its own safe-area inset</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Type metrics</h3>
+  <p>SF Pro and SF Pro Rounded share these exactly — one em, one set of numbers — so a single
+    constant covers both families. Every derived measurement in the app is built from them.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Constant</th><th class="num">Value</th></tr></thead>
+    <tbody>
+      <tr><td><code>SYSTEM_LINE</code></td><td class="num">${SYSTEM_LINE}</td></tr>
+      <tr><td><code>SYSTEM_CAP</code></td><td class="num">${SYSTEM_CAP}</td></tr>
+    </tbody>
+  </table></div>`
+
+const componentSection = () => {
+  const r = (name, scheme) => styleFor(scheme, name).background
+  const ink = (name) => inkFor('light', name)
+  const tabIcons = ICONS.filter((i) => i.file === 'TabIcons.jsx')
+  return `
+  <p class="lede">Rebuilt here in HTML from the same tokens the app uses, so a value that
+    changes in the theme changes on this page too. Use the Light / Dark control to inspect
+    either palette.</p>
+
+  <div class="switcher">
+    <div class="seg" role="group" aria-label="Specimen palette">
+      <button class="on" data-scheme="light">Light</button><button data-scheme="dark">Dark</button>
+    </div>
+    <span class="hint">Applies to every specimen below.</span>
+  </div>
+
+  <h3>Routine card</h3>
+  <p>The unit the whole app is built around. A slab of the routine's colour, its name in
+    rounded regular — the card is already emphatic and does not need the weight as well —
+    and two meta lines set in tabular figures so they hold their place as the stack is dragged.</p>
+  <div class="stage spec" data-spec="light">
+    ${['lower body', 'core', 'glutes']
+      .map(
+        (n) => `<div class="rcard" data-rc="${n}" style="background:${r(n, 'light')};color:${ink(n)}">
+      <b>${n}</b><div><span>50 min</span><span>6 exercises</span></div>
+    </div>`,
+      )
+      .join('\n    ')}
+  </div>
+
+  <h3>Buttons</h3>
+  <p>One shape, fully rounded, set in <code>control</code> at ${TYPE.control.fontSize}px
+    medium and sentence case. The primary button takes the routine's colour, which is why
+    there is no single "primary" token — on a workout screen the colour <em>is</em> the routine.</p>
+  <div class="stage spec" data-spec="light">
+    <button class="btn" data-btn style="background:${r('lower body', 'light')};color:${ink('lower body')}">Log set</button>
+    <button class="btn quiet">Skip</button>
+    <button class="btn ghost">End workout</button>
+    <button class="btn danger">Delete</button>
+  </div>
+
+  <h3>Tab bar</h3>
+  <p>Blurred, washed and edged by hand. Each icon sits on its own compositing layer — Safari
+    would not reliably repaint what sat under the blur once a full-screen layer above it was
+    removed, and the icons stayed blank until something else made the bar redraw.</p>
+  <div class="stage center spec" data-spec="light">
+    <div class="tabbar">
+      ${tabIcons
+        .map(
+          (i, n) =>
+            `<span class="slot${n === 0 ? ' on' : ''}"><svg viewBox="0 0 24 24" aria-label="${i.name}">${i.shapes.join('')}</svg></span>`,
+        )
+        .join('\n      ')}
+    </div>
+  </div>
+
+  <h3>Rows and controls</h3>
+  <div class="stage col spec" data-spec="light">
+    <div class="row"><span class="lbl">Show rest time between sets</span><span class="switchctl on"><i></i></span></div>
+    <div class="row"><span class="lbl">Haptics</span><span class="switchctl"><i></i></span></div>
+  </div>
+
+  <h3>History cell</h3>
+  <p>The routine's pale tone, so a glance down the list reads as colour before it reads as text.</p>
+  <div class="stage col spec" data-spec="light">
+    ${['upper body', 'full body']
+      .map(
+        (n) => `<div class="hcell" data-hc="${n}" style="background:${paleFor('light', n).background}">
+      <span class="dot" style="background:${r(n, 'light')}"></span>
+      <span><b style="color:${LIGHT.text}">${n}</b><span>Tuesday · 48 min · 18 sets</span></span>
+    </div>`,
+      )
+      .join('\n    ')}
+  </div>
+
+  <h3>Weekly chart</h3>
+  <p>Segments in each routine's colour, stacked by how much of the week went to it.</p>
+  <div class="stage center spec" data-spec="light">
+    <div class="chart">
+      ${[38, 62, 44, 88, 30, 70, 52]
+        .map((h, n) => {
+          const name = CANONICAL_ORDER[n % CANONICAL_ORDER.length]
+          return `<i data-bar="${name}" style="height:${h}%;background:${r(name, 'light')}"></i>`
+        })
+        .join('\n      ')}
+    </div>
+  </div>
+
+  <h3>Icons</h3>
+  <p>${ICONS.length} icons, drawn rather than shipped as images so the ink is a prop and there
+    is nothing to re-export at another size or density. The shapes below are read out of the
+    component source when this page is built.</p>
+  <div class="stage spec" data-spec="light">
+    <div class="icongrid">
+      ${ICONS.map(
+        (i) => `<div class="icontile">
+        <svg viewBox="0 0 24 24" role="img" aria-label="${i.name}">${i.shapes.join('')}</svg>
+        <em>${i.name.replace(/Icon$/, '')}</em>
+      </div>`,
+      ).join('\n      ')}
+    </div>
+  </div>`
+}
+
+const patternSection = () => `
+  <p class="lede">The conventions that are not obvious from any single file, and that cost
+    the most to rediscover.</p>
+
+  <h3>Style with tokens, never with literals</h3>
+  <p>The only literal colours in the app belong to routines, through
+    <code>styleFor()</code>. Everything else is a token, which is what let a whole dark
+    palette arrive without any component being restyled.</p>
+
+  <h3>A routine's colour is its identity</h3>
+  <p>Card, workout screen and Stats calendar all pull from the same place. A routine is not
+    "the blue one" by coincidence — the colour is how you recognise it across three screens
+    that otherwise look nothing alike.</p>
+
+  <h3>Styles are a factory, not an object</h3>
+  <p><code>StyleSheet.create</code> runs once at import, which is before a theme exists.
+    A themed screen therefore holds a <code>makeStyles(t)</code> factory called through
+    <code>useThemedStyles</code>, so the sheet is rebuilt when the palette changes.
+    A screen that calls <code>StyleSheet.create</code> at module scope will look correct
+    until the moment someone switches theme.</p>
+
+  <h3>Class names are global; so are shared files</h3>
+  <p>Every regression this project has had came from the same shape: a change in a shared
+    file breaking a screen nobody was looking at. Before changing anything shared, say which
+    screens it reaches and what you will check — the sentence is the point.</p>
+
+  <div class="note">
+    <p><b>Two failed hypotheses is a hard stop.</b> Stop changing code and go to the history
+    or add a measurement instead. When something that worked stops working and its own code
+    has not changed, diff it against the commit where it worked first.</p>
+  </div>
+
+  <h3>Opacity is not a colour</h3>
+  <p>Fading text to imply hierarchy composites it against whatever is behind, and the result
+    is invisible to every off-the-shelf contrast checker — they read the declared colour, not
+    the rendered one. Quiet text uses <code>textDim</code>, which is a measured value.</p>`
+
+// ── assemble ──────────────────────────────────────────────────────────────
+
+const SECTIONS = [
+  { id: 'colour', eyebrow: '01 — Foundations', title: 'Colour', html: colourSection() },
+  { id: 'type', eyebrow: '02 — Foundations', title: 'Typography', html: typeSection() },
+  { id: 'shape', eyebrow: '03 — Foundations', title: 'Space & shape', html: shapeSection() },
+  { id: 'components', eyebrow: '04 — Library', title: 'Components', html: componentSection() },
+  { id: 'patterns', eyebrow: '05 — Practice', title: 'Conventions', html: patternSection() },
+]
+
+const NAV = [
+  ['Foundations', [['colour', 'Colour'], ['type', 'Typography'], ['shape', 'Space & shape']]],
+  ['Library', [['components', 'Components']]],
+  ['Practice', [['patterns', 'Conventions']]],
+]
+
+const page = `<title>Training Tracker — design system</title>
+
+<style>${css}</style>
+
+<div class="shell">
+  <nav>
+    <div class="brand">
+      <b>Training Tracker</b>
+      <span>Design system</span>
+    </div>
+    ${NAV.map(
+      ([group, items]) => `<div class="navgroup">
+      <p>${group}</p>
+      ${items.map(([id, label]) => `<a href="#${id}">${label}</a>`).join('\n      ')}
+    </div>`,
+    ).join('\n    ')}
+  </nav>
+
+  <main>
+    <header class="top">
+      <h1>The system behind the app</h1>
+      <p>Every value on this page is read out of <code>src/theme</code>,
+        <code>src/data/routineStyles.js</code> and the icon components when the page is
+        built — not from a design file, and not from memory. Where this page and the app
+        disagree, the app is right and this is stale.</p>
+    </header>
+
+    ${SECTIONS.map(
+      (s) => `<section id="${s.id}">
+      <div class="inner">
+        <p class="eyebrow">${s.eyebrow}</p>
+        <h2>${s.title}</h2>
+        ${s.html}
+      </div>
+    </section>`,
+    ).join('\n\n    ')}
+  </main>
+</div>
+
+<script>
+  // Copy a value, and say so.
+  for (const b of document.querySelectorAll('.copy')) {
+    b.addEventListener('click', () => {
+      navigator.clipboard?.writeText(b.dataset.copy)
+      b.classList.add('done')
+      setTimeout(() => b.classList.remove('done'), 900)
+    })
+  }
+
+  // The specimen palette, pinned independently of the page's own theme.
+  const ROUTINE = ${JSON.stringify(
+    Object.fromEntries(
+      CANONICAL_ORDER.map((n) => [
+        n,
+        {
+          light: styleFor('light', n).background,
+          dark: styleFor('dark', n).background,
+          paleLight: paleFor('light', n).background,
+          paleDark: paleFor('dark', n).background,
+          inkLight: inkFor('light', n),
+          inkDark: inkFor('dark', n),
+        },
+      ]),
+    ),
+  )}
+  const TEXT = { light: '${LIGHT.text}', dark: '${DARK.text}' }
+
+  for (const seg of document.querySelectorAll('[data-scheme]')) {
+    seg.addEventListener('click', () => {
+      const mode = seg.dataset.scheme
+      for (const b of document.querySelectorAll('[data-scheme]')) b.classList.toggle('on', b === seg)
+      for (const stage of document.querySelectorAll('.stage.spec')) stage.dataset.spec = mode
+      for (const c of document.querySelectorAll('[data-rc]')) {
+        c.style.background = ROUTINE[c.dataset.rc][mode]
+        c.style.color = ROUTINE[c.dataset.rc][mode === 'dark' ? 'inkDark' : 'inkLight']
+      }
+      for (const c of document.querySelectorAll('[data-hc]')) {
+        c.style.background = ROUTINE[c.dataset.hc][mode === 'dark' ? 'paleDark' : 'paleLight']
+        c.querySelector('.dot').style.background = ROUTINE[c.dataset.hc][mode]
+        c.querySelector('b').style.color = TEXT[mode]
+      }
+      for (const b of document.querySelectorAll('[data-bar]')) b.style.background = ROUTINE[b.dataset.bar][mode]
+      const btn = document.querySelector('[data-btn]')
+      btn.style.background = ROUTINE['lower body'][mode]
+      btn.style.color = ROUTINE['lower body'][mode === 'dark' ? 'inkDark' : 'inkLight']
+    })
+  }
+
+  // The token swatches have their own switch, since they are lists rather than specimens.
+  for (const b of document.querySelectorAll('[data-pal]')) {
+    b.addEventListener('click', () => {
+      for (const o of document.querySelectorAll('[data-pal]')) o.classList.toggle('on', o === b)
+      for (const g of document.querySelectorAll('[data-pal-target]')) {
+        g.hidden = g.dataset.palTarget !== b.dataset.pal
+      }
+    })
+  }
+
+  // Mark the section being read.
+  const links = [...document.querySelectorAll('nav a')]
+  const spy = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue
+        for (const a of links) a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id)
+      }
+    },
+    { rootMargin: '-10% 0px -80% 0px' },
+  )
+  for (const s of document.querySelectorAll('section')) spy.observe(s)
+</script>
+`
+
+const current = (() => {
+  try {
+    return readFileSync(OUT, 'utf8')
+  } catch {
+    return null
+  }
+})()
+
+if (process.argv.includes('--check')) {
+  if (current !== page) {
+    console.error('docs/design-system.html is out of date — run `npm run design-system`')
+    process.exitCode = 1
+  } else {
+    console.log(`docs/design-system.html matches the app (${SECTIONS.length} sections, ${ICONS.length} icons)`)
+  }
+} else {
+  writeFileSync(OUT, page)
+  console.log(
+    `docs/design-system.html written — ${SECTIONS.length} sections, ${ICONS.length} icons, ${CANONICAL_ORDER.length} routines`,
+  )
+}

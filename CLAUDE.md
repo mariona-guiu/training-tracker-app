@@ -68,6 +68,7 @@ npm start        # Metro; open it in Expo Go on the phone
 npm run lint     # oxlint; must report nothing
 npm run audit    # contrast, every pair the app can render
 npm run tokens   # rewrite docs/design-tokens.html from the theme
+npm run design-system   # rewrite docs/design-system.html from theme + components
 npm run doctor   # is anything in the docs no longer true?
 npm run ios      # simulator, if Xcode is installed
 npx expo export --platform ios --output-dir /tmp/x   # does it still bundle?
@@ -95,6 +96,14 @@ sits between sentinels and is written by `npm run tokens` from
 `src/theme/index.js` and `src/data/routineStyles.js`. **Do not hand-edit
 anything between `<!-- generated:x -->` and `<!-- /generated:x -->`** — the next
 run overwrites it. The prose around them is written by hand and stays that way.
+
+`docs/design-system.html` is the browsable version — foundations, components
+and conventions, with live specimens in both schemes. It is generated **whole**
+by `npm run design-system`, so nothing in it survives a run: its prose lives in
+`scripts/generate-design-system.mjs`, next to the code that reads the value each
+sentence describes. Edit the generator, never the page. The icon shapes are
+parsed out of `src/components/*Icons.jsx` at build time, and an icon the parser
+cannot read is an error rather than a silent omission.
 
 `npm run doctor` checks four things that have exactly one right answer: paths
 named in this file and the README resolve, `CONSTANT_CASE` names in backticks
