@@ -339,7 +339,7 @@
     margin: 8px 0 0; max-width: none;
   }
   .track {
-    width: 46px; height: 28px; padding: 3px; border-radius: 999px;
+    border: 0; padding: 3px; width: 46px; height: 28px; padding: 3px; border-radius: 999px;
     background: var(--s-track); flex: none; display: flex; align-items: center;
     transition: background .15s;
   }
@@ -435,7 +435,10 @@
 
   /* The stage keeps its size while the component inside it changes, so the page
      does not reflow around a component being opened. */
-  .stage.holds { min-height: 520px; align-content: flex-start; }
+  /* Fixed, not minimum: a component opening inside must not resize the frame
+     around it, or the page reflows every time you tap something. */
+  .stage.holds { height: 560px; overflow-y: auto; align-content: flex-start; }
+  .stage.holds-s { height: 470px; overflow-y: auto; align-content: flex-start; }
 
   .settingsblock { width: 100%; max-width: 420px; }
   .snote.outside { margin: 8px 0 0; padding: 0 16px; }
@@ -461,7 +464,10 @@
     cursor: pointer; font: inherit; font-size: 14px; line-height: 21.6px; max-width: 46%;
     text-align: left; padding: 0;
   }
-  .signpost.right { text-align: right; }
+  .signpost.right { text-align: right; margin-left: auto; }
+  /* Kept in the layout when there is no previous exercise, exactly as the app
+     keeps an empty View there — otherwise the remaining one slides across. */
+  .signpost.empty { visibility: hidden; pointer-events: none; }
   .signpost svg { width: 24px; height: 24px; display: block; }
   .sparrow { flex: none; }
 
@@ -483,6 +489,7 @@
   }
   .canvas .rcard {
     position: absolute; will-change: transform; cursor: grab;
+    user-select: none; -webkit-user-select: none;
     box-shadow: 0 10px 30px rgba(0,0,0,.13);
   }
   .canvas .rcard.held { cursor: grabbing; }
@@ -1345,15 +1352,15 @@
           <span class="hwhen">Tuesday 12 August, 09:30</span>
         </span>
         <span class="htag" data-part="tag" style="background:#C41419;color:#ffffff">Advanced</span>
-        <svg viewBox="0 0 24 24" class="hchev"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" class="hchev"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <div class="hreveal">
         <div class="hbody" data-part="body" style="background:#FF7175;color:#0a0a0a">
           <div class="hsummary">
-            <div class="hstat"><svg viewBox="0 0 24 24" class="statico"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/></svg><span>56 min</span></div>
-            <div class="hstat"><svg viewBox="0 0 24 24" class="statico"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/></svg><span>5/5 exercises completed</span></div>
-            <div class="hstat"><svg viewBox="0 0 24 24" class="statico"><path d="M16 3l3.5 3.5L16 10M20 6.5H7.5A3.5 3.5 0 004 10v1.5M8 21l-3.5-3.5L8 14M4 17.5h12.5a3.5 3.5 0 003.5-3.5v-1.5" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/></svg><span>15/15 sets completed</span></div>
-            <div class="hstat"><svg viewBox="0 0 24 24" class="statico"><path d="M13 3L5 13h6l-1 8 8-10h-6l1-8z" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/></svg><span>~360 kcal*</span></div>
+            <div class="hstat"><svg viewBox="0 0 24 24" class="statico"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>56 min</span></div>
+            <div class="hstat"><svg viewBox="0 0 24 24" class="statico"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>5/5 exercises completed</span></div>
+            <div class="hstat"><svg viewBox="0 0 24 24" class="statico"><path d="M16 3l3.5 3.5L16 10M20 6.5H7.5A3.5 3.5 0 004 10v1.5M8 21l-3.5-3.5L8 14M4 17.5h12.5a3.5 3.5 0 003.5-3.5v-1.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>15/15 sets completed</span></div>
+            <div class="hstat"><svg viewBox="0 0 24 24" class="statico"><path d="M13 3L5 13h6l-1 8 8-10h-6l1-8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>~360 kcal*</span></div>
           </div>
           <div class="hlifts">
             <div class="hlift faded"><span class="hliftname">Squat**</span><span class="hliftsets">4x 8x45kg</span></div>
@@ -1440,7 +1447,7 @@
   <p><b>The switch reveals the rest of the card.</b> Turn it on: the pace control, the name
     and description of that pace, and the per-routine spread unfold on
     <code>REVEAL_SPRING</code>. That is the whole point of the row, and it starts off.</p>
-  <div class="stage col spec" data-spec="light">
+  <div class="stage col spec holds-s" data-spec="light">
     <div class="settingsblock">
       <div class="scard">
         <div class="srow"><span class="slabel">Show rest time between sets</span><button class="track" data-reveal-toggle aria-label="Show rest time between sets"><i></i></button></div>
@@ -1527,7 +1534,7 @@
         <em>Close</em>
       </div>
       <div class="icontile">
-        <svg viewBox="0 0 24 24" role="img" aria-label="PencilIcon"><path d="M4 20h4L20 8l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" role="img" aria-label="PencilIcon"><path d="M4 20h4L20 8l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <em>Pencil</em>
       </div>
       <div class="icontile">
@@ -1543,35 +1550,35 @@
         <em>ChevronRight</em>
       </div>
       <div class="icontile">
-        <svg viewBox="0 0 24 24" role="img" aria-label="ClockIcon"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" role="img" aria-label="ClockIcon"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <em>Clock</em>
       </div>
       <div class="icontile">
-        <svg viewBox="0 0 24 24" role="img" aria-label="DumbbellIcon"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" role="img" aria-label="DumbbellIcon"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <em>Dumbbell</em>
       </div>
       <div class="icontile">
-        <svg viewBox="0 0 24 24" role="img" aria-label="RepeatIcon"><path d="M16 3l3.5 3.5L16 10M20 6.5H7.5A3.5 3.5 0 004 10v1.5M8 21l-3.5-3.5L8 14M4 17.5h12.5a3.5 3.5 0 003.5-3.5v-1.5" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" role="img" aria-label="RepeatIcon"><path d="M16 3l3.5 3.5L16 10M20 6.5H7.5A3.5 3.5 0 004 10v1.5M8 21l-3.5-3.5L8 14M4 17.5h12.5a3.5 3.5 0 003.5-3.5v-1.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <em>Repeat</em>
       </div>
       <div class="icontile">
-        <svg viewBox="0 0 24 24" role="img" aria-label="BoltIcon"><path d="M13 3L5 13h6l-1 8 8-10h-6l1-8z" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" role="img" aria-label="BoltIcon"><path d="M13 3L5 13h6l-1 8 8-10h-6l1-8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <em>Bolt</em>
       </div>
       <div class="icontile">
-        <svg viewBox="0 0 24 24" role="img" aria-label="TrashIcon"><path d="M19 6V20C19 20.53 18.789 21.039 18.414 21.414C18.039 21.789 17.53 22 17 22H7C6.47 22 5.961 21.789 5.586 21.414C5.211 21.039 5 20.53 5 20V6M8 6V4C8 3.47 8.211 2.961 8.586 2.586C8.961 2.211 9.47 2 10 2H14C14.53 2 15.039 2.211 15.414 2.586C15.789 2.961 16 3.47 16 4V6" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 6H5H21" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11V17" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 11V17" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" role="img" aria-label="TrashIcon"><path d="M19 6V20C19 20.53 18.789 21.039 18.414 21.414C18.039 21.789 17.53 22 17 22H7C6.47 22 5.961 21.789 5.586 21.414C5.211 21.039 5 20.53 5 20V6M8 6V4C8 3.47 8.211 2.961 8.586 2.586C8.961 2.211 9.47 2 10 2H14C14.53 2 15.039 2.211 15.414 2.586C15.789 2.961 16 3.47 16 4V6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 6H5H21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11V17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 11V17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <em>Trash</em>
       </div>
       <div class="icontile">
-        <svg viewBox="0 0 24 24" role="img" aria-label="ChevronIcon"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" role="img" aria-label="ChevronIcon"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <em>Chevron</em>
       </div>
       <div class="icontile">
-        <svg viewBox="0 0 24 24" role="img" aria-label="BackIcon"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="width" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" role="img" aria-label="BackIcon"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <em>Back</em>
       </div>
       <div class="icontile">
-        <svg viewBox="0 0 24 24" role="img" aria-label="StackIcon"><path d="M6.41874 2.63534L6.47706 3.63468L15.2917 3.05845L15.2334 2.05912L15.175 1.05978L6.36042 1.63601L6.41874 2.63534ZM16.1727 2.88897L15.1738 2.95427L15.357 6.0946L16.3559 6.0293L17.3548 5.964L17.1716 2.82367L16.1727 2.88897ZM5.87016 8.50086L6.86906 8.43556L6.58196 3.51593L5.58306 3.58123L4.58416 3.64653L4.87125 8.56616L5.87016 8.50086ZM15.2334 2.05912L15.2917 3.05845C15.2302 3.06247 15.1774 3.01583 15.1738 2.95427L16.1727 2.88897L17.1716 2.82367C17.1107 1.7814 16.2169 0.991678 15.175 1.05978L15.2334 2.05912ZM6.41874 2.63534L6.36042 1.63601C5.3186 1.70412 4.52334 2.60426 4.58416 3.64653L5.58306 3.58123L6.58196 3.51593C6.58556 3.57749 6.53859 3.63065 6.47706 3.63468L6.41874 2.63534Z" fill="currentColor"/><path d="M18.8667 6.56744L17.8779 6.40862L17.8779 6.40862L18.8667 6.56744ZM9.32493 4.41969L9.21117 5.41424L17.9755 6.53726L18.0892 5.54271L18.203 4.54816L9.43869 3.42515L9.32493 4.41969ZM7.79851 8.99134L8.78786 9.14631L9.33421 5.3206L8.34486 5.16563L7.35551 5.01065L6.80917 8.83637L7.79851 8.99134ZM18.8667 6.56744L17.8779 6.40862L16.1447 18.2169L17.1335 18.3757L18.1222 18.5345L19.8555 6.72626L18.8667 6.56744ZM18.0892 5.54271L17.9755 6.53726C17.9129 6.52925 17.8687 6.47098 17.8779 6.40862L18.8667 6.56744L19.8555 6.72626C20.0104 5.67041 19.262 4.68385 18.203 4.54816L18.0892 5.54271ZM9.32493 4.41969L9.43869 3.42515C8.42352 3.29507 7.50015 3.99785 7.35551 5.01065L8.34486 5.16563L9.33421 5.3206C9.32566 5.38042 9.27113 5.42193 9.21117 5.41424L9.32493 4.41969Z" fill="currentColor"/><rect x="0" y="0" width="10.6267" height="14.066" rx="0.889382" transform="matrix(0.9851 -0.171981 0.153989 0.988073 5 9.10156)" fill="none" stroke="currentColor" stroke-width="2.00207" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" role="img" aria-label="StackIcon"><path d="M6.41874 2.63534L6.47706 3.63468L15.2917 3.05845L15.2334 2.05912L15.175 1.05978L6.36042 1.63601L6.41874 2.63534ZM16.1727 2.88897L15.1738 2.95427L15.357 6.0946L16.3559 6.0293L17.3548 5.964L17.1716 2.82367L16.1727 2.88897ZM5.87016 8.50086L6.86906 8.43556L6.58196 3.51593L5.58306 3.58123L4.58416 3.64653L4.87125 8.56616L5.87016 8.50086ZM15.2334 2.05912L15.2917 3.05845C15.2302 3.06247 15.1774 3.01583 15.1738 2.95427L16.1727 2.88897L17.1716 2.82367C17.1107 1.7814 16.2169 0.991678 15.175 1.05978L15.2334 2.05912ZM6.41874 2.63534L6.36042 1.63601C5.3186 1.70412 4.52334 2.60426 4.58416 3.64653L5.58306 3.58123L6.58196 3.51593C6.58556 3.57749 6.53859 3.63065 6.47706 3.63468L6.41874 2.63534Z" fill="currentColor"/><path d="M18.8667 6.56744L17.8779 6.40862L17.8779 6.40862L18.8667 6.56744ZM9.32493 4.41969L9.21117 5.41424L17.9755 6.53726L18.0892 5.54271L18.203 4.54816L9.43869 3.42515L9.32493 4.41969ZM7.79851 8.99134L8.78786 9.14631L9.33421 5.3206L8.34486 5.16563L7.35551 5.01065L6.80917 8.83637L7.79851 8.99134ZM18.8667 6.56744L17.8779 6.40862L16.1447 18.2169L17.1335 18.3757L18.1222 18.5345L19.8555 6.72626L18.8667 6.56744ZM18.0892 5.54271L17.9755 6.53726C17.9129 6.52925 17.8687 6.47098 17.8779 6.40862L18.8667 6.56744L19.8555 6.72626C20.0104 5.67041 19.262 4.68385 18.203 4.54816L18.0892 5.54271ZM9.32493 4.41969L9.43869 3.42515C8.42352 3.29507 7.50015 3.99785 7.35551 5.01065L8.34486 5.16563L9.33421 5.3206C9.32566 5.38042 9.27113 5.42193 9.21117 5.41424L9.32493 4.41969Z" fill="currentColor"/><rect x="0" y="0" width="10.6267" height="14.066" rx="0.889382" transform="matrix(0.9851 -0.171981 0.153989 0.988073 5 9.10156)" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <em>Stack</em>
       </div>
       <div class="icontile">
@@ -1835,8 +1842,16 @@
     }
   }
   for (const w of document.querySelectorAll('[data-weight]')) {
-    w.addEventListener('click', () => w.classList.toggle('editing'))
+    w.addEventListener('click', (e) => {
+      e.stopPropagation()
+      w.classList.toggle('editing')
+    })
   }
+  // Tapping anywhere else commits and leaves, the way the real field does when
+  // it loses focus — previously it only ended by tapping the card again.
+  document.addEventListener('click', () => {
+    for (const w of document.querySelectorAll('[data-weight].editing')) w.classList.remove('editing')
+  })
 
   // ── buttons ────────────────────────────────────────────────────────────
   const WORKOUT_LABELS = ['Skip', 'Next exercise', 'Finish workout']
@@ -1888,7 +1903,8 @@
 
     for (const card of cards) {
       const slot = +card.dataset.slot
-      const state = { x: 0, y: 0, turn: S.TILTS[slot % S.TILTS.length], scale: 1 }
+      const restAngle = S.TILTS[slot % S.TILTS.length]
+      const state = { x: 0, y: 0, turn: restAngle, scale: 1 }
       card.__state = state
       card.__slot = slot
       card.style.zIndex = slot + 1
@@ -1945,7 +1961,10 @@
         state.y = rubber(fromY + dy, minY, maxY, S.ELASTIC)
         draw()
 
-        const want = Math.min(Math.max(vx * 0.001 * S.TILT_PER_PX * 60, -S.TILT_MAX), S.TILT_MAX)
+        // The app leans by how far the card has been dragged, not how fast:
+        // the resting angle plus translationX times TILT_PER_PX, capped at
+        // TILT_MAX. Driven from velocity, as this was, the card stays straight.
+        const want = Math.min(Math.max(restAngle + dx * S.TILT_PER_PX, -S.TILT_MAX), S.TILT_MAX)
         stopTurn?.()
         stopTurn = springTo(SPRINGS.TILT_SPRING, state.turn, want, (v) => { state.turn = v; draw() })
       })
@@ -1961,7 +1980,7 @@
           stopTurn?.()
           stopX = springTo(SPRINGS.GLIDE_SPRING, state.x, 0, (v) => { state.x = v; draw() })
           stopY = springTo(SPRINGS.GLIDE_SPRING, state.y, 0, (v) => { state.y = v; draw() })
-          springTo(SPRINGS.TILT_SPRING, state.turn, S.TILTS[slot % S.TILTS.length], (v) => { state.turn = v; draw() })
+          springTo(SPRINGS.TILT_SPRING, state.turn, restAngle, (v) => { state.turn = v; draw() })
           return
         }
 
@@ -2004,8 +2023,8 @@
     const prev = document.querySelector('[data-btn="prev"]')
     const next = document.querySelector('[data-btn="next"]')
     if (!prev || !next) return
-    prev.hidden = at === 0
-    next.hidden = at === EXERCISES.length - 1
+    prev.classList.toggle('empty', at === 0)
+    next.classList.toggle('empty', at === EXERCISES.length - 1)
     if (at > 0) prev.querySelector('.splabel').textContent = EXERCISES[at - 1]
     if (at < EXERCISES.length - 1) next.querySelector('.splabel').textContent = EXERCISES[at + 1]
     const wb = document.querySelector('[data-btn="workout"]')

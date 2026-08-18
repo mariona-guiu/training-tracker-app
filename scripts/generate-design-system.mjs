@@ -122,10 +122,16 @@ const readIcons = (file) => {
     // The second form is why six icons drew nothing: no bag was resolved, so no
     // stroke was emitted and the shape was painted in nothing at all.
     const spreads = {}
-    for (const o of src.matchAll(/const (\w+) = \([^)]*\) => \(\{([\s\S]*?)\n\}\)/g)) {
+    for (const o of src.matchAll(/const (\w+) = \(([^)]*)\) => \(\{([\s\S]*?)\n\}\)/g)) {
+      // The helper's own defaults — `(color, width = 2)`. Without them a bag
+      // entry of `strokeWidth: width` emits the parameter *name*, which is not
+      // a number, so the browser drops it and draws a hairline instead.
+      const defaults = {}
+      for (const d of o[2].matchAll(/(\w+)\s*=\s*([\d.]+)/g)) defaults[d[1]] = d[2]
       const bag = {}
-      for (const kv of o[2].matchAll(/(\w+):\s*([^,\n]+)/g)) {
-        bag[kv[1]] = kv[2].trim().replace(/^['"]|['"]$/g, '')
+      for (const kv of o[3].matchAll(/(\w+):\s*([^,\n]+)/g)) {
+        const v = kv[2].trim().replace(/^['"]|['"]$/g, '')
+        bag[kv[1]] = defaults[v] ?? v
       }
       spreads[o[1]] = bag
     }
@@ -163,6 +169,14 @@ const readIcons = (file) => {
         return v.replace(/^['"`]|['"`]$/g, '')
       }
 
+      // A stroke width that does not resolve to a number is dropped by the
+      // browser and drawn as a hairline, so it is an error rather than a
+      // silently thinner icon. Fifteen shapes emitted the parameter *name*.
+      const width = (raw) => {
+        if (raw === null) return 2
+        if (!/^[\d.]+$/.test(raw)) throw new Error(`${name}: strokeWidth is "${raw}", not a number`)
+        return raw
+      }
       // Colour is a prop in the app; here it inherits.
       const strokeRaw = attr('stroke')
       const fillRaw = attr('fill')
@@ -174,7 +188,7 @@ const readIcons = (file) => {
       const paint =
         `fill="${filled ? 'currentColor' : 'none'}"` +
         (stroked
-          ? ` stroke="currentColor" stroke-width="${attr('strokeWidth') ?? 2}"` +
+          ? ` stroke="currentColor" stroke-width="${width(attr('strokeWidth'))}"` +
             ` stroke-linecap="${attr('strokeLinecap') ?? 'round'}"` +
             ` stroke-linejoin="${attr('strokeLinejoin') ?? 'round'}"`
           : '') +
@@ -625,7 +639,7 @@ const css = `
     margin: ${SPACE[2]}px 0 0; max-width: none;
   }
   .track {
-    width: 46px; height: 28px; padding: 3px; border-radius: ${RADIUS.pill}px;
+    border: 0; padding: 3px; width: 46px; height: 28px; padding: 3px; border-radius: ${RADIUS.pill}px;
     background: var(--s-track); flex: none; display: flex; align-items: center;
     transition: background .15s;
   }
@@ -721,7 +735,10 @@ const css = `
 
   /* The stage keeps its size while the component inside it changes, so the page
      does not reflow around a component being opened. */
-  .stage.holds { min-height: 520px; align-content: flex-start; }
+  /* Fixed, not minimum: a component opening inside must not resize the frame
+     around it, or the page reflows every time you tap something. */
+  .stage.holds { height: 560px; overflow-y: auto; align-content: flex-start; }
+  .stage.holds-s { height: 470px; overflow-y: auto; align-content: flex-start; }
 
   .settingsblock { width: 100%; max-width: 420px; }
   .snote.outside { margin: ${SPACE[2]}px 0 0; padding: 0 ${SPACE[3]}px; }
@@ -747,7 +764,10 @@ const css = `
     cursor: pointer; font: inherit; font-size: 14px; line-height: 21.6px; max-width: 46%;
     text-align: left; padding: 0;
   }
-  .signpost.right { text-align: right; }
+  .signpost.right { text-align: right; margin-left: auto; }
+  /* Kept in the layout when there is no previous exercise, exactly as the app
+     keeps an empty View there — otherwise the remaining one slides across. */
+  .signpost.empty { visibility: hidden; pointer-events: none; }
   .signpost svg { width: 24px; height: 24px; display: block; }
   .sparrow { flex: none; }
 
@@ -769,6 +789,7 @@ const css = `
   }
   .canvas .rcard {
     position: absolute; will-change: transform; cursor: grab;
+    user-select: none; -webkit-user-select: none;
     box-shadow: 0 10px 30px rgba(0,0,0,.13);
   }
   .canvas .rcard.held { cursor: grabbing; }
@@ -1317,7 +1338,7 @@ const componentSection = () => {
   <p><b>The switch reveals the rest of the card.</b> Turn it on: the pace control, the name
     and description of that pace, and the per-routine spread unfold on
     <code>REVEAL_SPRING</code>. That is the whole point of the row, and it starts off.</p>
-  <div class="stage col spec" data-spec="light">
+  <div class="stage col spec holds-s" data-spec="light">
     <div class="settingsblock">
       <div class="scard">
         <div class="srow"><span class="slabel">Show rest time between sets</span><button class="track" data-reveal-toggle aria-label="Show rest time between sets"><i></i></button></div>
@@ -1392,7 +1413,7 @@ const componentSection = () => {
     <div class="icongrid">
       ${ICONS.map(
         (i) => `<div class="icontile">
-        <svg viewBox="0 0 24 24" role="img" aria-label="${i.name}">${i.shapes.join('')}</svg>
+        <svg viewBox="0 0 24 24" role="img" aria-label="${i.name}">${i.shapes.join('').replace(/stroke-width="[\d.]+"/g, 'stroke-width="2"')}</svg>
         <em>${i.name.replace(/Icon$/, '')}</em>
       </div>`,
       ).join('\n      ')}
@@ -1725,8 +1746,16 @@ const page = `<title>Training Tracker — design system</title>
     }
   }
   for (const w of document.querySelectorAll('[data-weight]')) {
-    w.addEventListener('click', () => w.classList.toggle('editing'))
+    w.addEventListener('click', (e) => {
+      e.stopPropagation()
+      w.classList.toggle('editing')
+    })
   }
+  // Tapping anywhere else commits and leaves, the way the real field does when
+  // it loses focus — previously it only ended by tapping the card again.
+  document.addEventListener('click', () => {
+    for (const w of document.querySelectorAll('[data-weight].editing')) w.classList.remove('editing')
+  })
 
   // ── buttons ────────────────────────────────────────────────────────────
   const WORKOUT_LABELS = ['Skip', 'Next exercise', 'Finish workout']
@@ -1778,7 +1807,8 @@ const page = `<title>Training Tracker — design system</title>
 
     for (const card of cards) {
       const slot = +card.dataset.slot
-      const state = { x: 0, y: 0, turn: S.TILTS[slot % S.TILTS.length], scale: 1 }
+      const restAngle = S.TILTS[slot % S.TILTS.length]
+      const state = { x: 0, y: 0, turn: restAngle, scale: 1 }
       card.__state = state
       card.__slot = slot
       card.style.zIndex = slot + 1
@@ -1835,7 +1865,10 @@ const page = `<title>Training Tracker — design system</title>
         state.y = rubber(fromY + dy, minY, maxY, S.ELASTIC)
         draw()
 
-        const want = Math.min(Math.max(vx * 0.001 * S.TILT_PER_PX * 60, -S.TILT_MAX), S.TILT_MAX)
+        // The app leans by how far the card has been dragged, not how fast:
+        // the resting angle plus translationX times TILT_PER_PX, capped at
+        // TILT_MAX. Driven from velocity, as this was, the card stays straight.
+        const want = Math.min(Math.max(restAngle + dx * S.TILT_PER_PX, -S.TILT_MAX), S.TILT_MAX)
         stopTurn?.()
         stopTurn = springTo(SPRINGS.TILT_SPRING, state.turn, want, (v) => { state.turn = v; draw() })
       })
@@ -1851,7 +1884,7 @@ const page = `<title>Training Tracker — design system</title>
           stopTurn?.()
           stopX = springTo(SPRINGS.GLIDE_SPRING, state.x, 0, (v) => { state.x = v; draw() })
           stopY = springTo(SPRINGS.GLIDE_SPRING, state.y, 0, (v) => { state.y = v; draw() })
-          springTo(SPRINGS.TILT_SPRING, state.turn, S.TILTS[slot % S.TILTS.length], (v) => { state.turn = v; draw() })
+          springTo(SPRINGS.TILT_SPRING, state.turn, restAngle, (v) => { state.turn = v; draw() })
           return
         }
 
@@ -1894,8 +1927,8 @@ const page = `<title>Training Tracker — design system</title>
     const prev = document.querySelector('[data-btn="prev"]')
     const next = document.querySelector('[data-btn="next"]')
     if (!prev || !next) return
-    prev.hidden = at === 0
-    next.hidden = at === EXERCISES.length - 1
+    prev.classList.toggle('empty', at === 0)
+    next.classList.toggle('empty', at === EXERCISES.length - 1)
     if (at > 0) prev.querySelector('.splabel').textContent = EXERCISES[at - 1]
     if (at < EXERCISES.length - 1) next.querySelector('.splabel').textContent = EXERCISES[at + 1]
     const wb = document.querySelector('[data-btn="workout"]')
