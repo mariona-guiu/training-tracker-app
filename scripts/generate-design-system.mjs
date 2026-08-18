@@ -250,6 +250,30 @@ const SPRINGS = (() => {
   return out
 })()
 
+const STACK = (() => {
+  const src = readFileSync(join(root, 'src/components/WorkoutStack.jsx'), 'utf8')
+  const num = (name) => {
+    const m = src.match(new RegExp(`const ${name} = ([\\d.]+)`))
+    if (!m) throw new Error(`${name} is no longer in WorkoutStack.jsx`)
+    return +m[1]
+  }
+  const tilts = readFileSync(join(root, 'src/data/routineStyles.js'), 'utf8').match(
+    /const TILTS = \[([-\d, ]+)\]/,
+  )
+  if (!tilts) throw new Error('TILTS is no longer in routineStyles.js')
+  return {
+    STACK_TOP: num('STACK_TOP'),
+    PEEK_STEP: num('PEEK_STEP'),
+    DISTURBED: num('DISTURBED'),
+    THROW: num('THROW'),
+    TILT_PER_PX: num('TILT_PER_PX'),
+    TILT_MAX: num('TILT_MAX'),
+    ELASTIC: num('ELASTIC'),
+    TAP_SLOP: num('TAP_SLOP'),
+    TILTS: tilts[1].split(',').map((n) => +n.trim()),
+  }
+})()
+
 const CARD_WIDTH = readConst('WorkoutStack.jsx', 'CARD_WIDTH')
 const CARD_HEIGHT = readConst('WorkoutStack.jsx', 'CARD_HEIGHT')
 
@@ -297,6 +321,14 @@ const css = `
   /* The specimen palettes. These are pinned by the toggle rather than by the
      viewer's theme, because a dark palette has to be inspectable from a light
      page — that is most of what this page is for. */
+  .glassstage {
+    --g1: ${styleFor('light', CANONICAL_ORDER[0]).background};
+    --g2: ${styleFor('light', CANONICAL_ORDER[1]).background};
+    --g3: ${styleFor('light', CANONICAL_ORDER[2]).background};
+    --g4: ${paleFor('light', CANONICAL_ORDER[3]).background};
+    --g5: ${paleFor('light', CANONICAL_ORDER[5]).background};
+  }
+
   [data-spec='light'] {
     --s-bg: ${LIGHT.bg};
     --s-raised: ${LIGHT.bgRaised};
@@ -575,7 +607,6 @@ const css = `
     width: 64px; height: 44px; border-radius: ${RADIUS.pill}px;
     display: grid; place-items: center; color: var(--s-ink);
   }
-  .tabitem.on { background: var(--s-highlight); }
   .tabitem svg { width: 22px; height: 22px; display: block; }
 
   /* settings */
@@ -662,6 +693,7 @@ const css = `
 
   /* buttons, as the completion screen stacks them */
   .btnstage { align-items: center; }
+  .btnstage .actions { margin: 0 auto; }
   .actions { display: flex; flex-direction: column; gap: ${SPACE[2]}px; width: 100%; max-width: 340px; }
   .btn {
     width: 100%; border: 0; border-radius: ${RADIUS.pill}px; min-height: 52px;
@@ -722,6 +754,44 @@ const css = `
   .track, .choice, .tabitem, .rcard { cursor: pointer; }
   .choice { border: 0; font: inherit; }
   .seg button[data-routine], .seg button[data-cellroutine] { text-transform: capitalize; }
+
+  /* The whole page is set in the app's two families, so the design system is
+     branded in the system it documents. ui-rounded is what the app asks iOS for
+     and what Safari and Chrome resolve to SF Pro Rounded on a Mac. */
+  h1, h2, h3, h4, .rname, .brand b { font-family: ui-rounded, -apple-system, system-ui, sans-serif; }
+
+  /* the stack's canvas */
+  .canvasstage { padding: 0; overflow: hidden; }
+  .canvas {
+    position: relative; width: 100%; height: 560px;
+    background: var(--s-bg); border-radius: ${RADIUS.card}px; touch-action: none;
+    overflow: hidden;
+  }
+  .canvas .rcard {
+    position: absolute; will-change: transform; cursor: grab;
+    box-shadow: 0 10px 30px rgba(0,0,0,.13);
+  }
+  .canvas .rcard.held { cursor: grabbing; }
+  .restack {
+    position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
+    z-index: 99; border: 0; cursor: pointer; border-radius: ${RADIUS.pill}px;
+    padding: 12px ${SPACE[4]}px; background: var(--s-ink); color: var(--s-onink);
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: ${TYPE.control.fontSize}px; font-weight: ${TYPE.control.fontWeight};
+  }
+
+  /* something behind the bar, so the blur has something to blur */
+  .glassstage { position: relative; overflow: hidden; }
+  .glassstage::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 18% 30%, var(--g1) 0 22%, transparent 55%),
+      radial-gradient(circle at 62% 70%, var(--g2) 0 20%, transparent 52%),
+      radial-gradient(circle at 85% 25%, var(--g3) 0 18%, transparent 50%),
+      linear-gradient(120deg, var(--g4), var(--g5));
+    opacity: .9;
+  }
+  .glassstage > * { position: relative; z-index: 1; }
 
   .icongrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; width: 100%; }
   .icontile { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 16px 8px; border-radius: ${RADIUS.chip}px; text-align: center; }
@@ -1058,15 +1128,6 @@ const shapeSection = () => `
   </table></div>`
 
 const componentSection = () => {
-  const card = (name, scheme) => {
-    const c = styleFor(scheme, name).background
-    const ink = inkFor(scheme, name)
-    return `<div class="rcard" data-rc="${name}" style="background:${c};color:${ink}">
-        <span class="rcard-name">${name}</span>
-        <span class="rcard-meta"><span>40 min</span><span>5 exercises</span></span>
-      </div>`
-  }
-
   const cell = (name, expanded) => {
     const base = styleFor('light', name).background
     const ink = inkFor('light', name)
@@ -1136,9 +1197,32 @@ const componentSection = () => {
     top — positioned by its capitals rather than its line box, so it holds still if the
     typeface changes — and the two meta lines are centred ${20}px from the bottom. Both are
     uppercase by role, and the source strings stay in sentence case.</p>
-  <div class="stage spec scrollrow" data-spec="light">
-    ${CANONICAL_ORDER.map((n) => card(n, 'light')).join('\n    ')}
+
+  <h3>The stack</h3>
+  <p>The same canvas as the Workouts tab, with the workout taken out: drag a card and it
+    leans into the movement, throw it and it glides, tap one and it comes to the front.
+    Cards peek ${STACK.PEEK_STEP} apart and each sits at its own angle by position in the
+    stack — ${STACK.TILTS.join('°, ')}° — so the pile reads as a pile rather than a list.</p>
+  <div class="stage center spec canvasstage" data-spec="light">
+    <div class="canvas" data-canvas>
+      ${CANONICAL_ORDER.map((n, i) => {
+        const c = styleFor('light', n, i)
+        return `<div class="rcard" data-card data-rc="${n}" data-slot="${i}"
+          style="background:${c.background};color:${inkFor('light', n, i)}">
+          <span class="rcard-name">${n}</span>
+          <span class="rcard-meta"><span>40 min</span><span>5 exercises</span></span>
+        </div>`
+      }).join('\n      ')}
+      <button class="restack" data-restack hidden>Restack</button>
+    </div>
   </div>
+  <p class="hint">A card may hang ${Math.round(0.3 * 100)}% of its own size off any edge before
+    the boundary catches it, and past that it still follows your finger by
+    ${STACK.ELASTIC} of the overshoot — give rather than a wall. A release throws the card to
+    ${STACK.THROW} of its velocity and settles it on <code>GLIDE_SPRING</code>; the lean is a
+    target the angle springs toward on <code>TILT_SPRING</code>, which is why it lags behind
+    the finger. Moving a card more than ${STACK.DISTURBED}px summons the restack button, so a
+    card that was only tapped does not.</p>
 
   <h3>History cell</h3>
   <p>Shut, and open. The head takes the routine's base colour; the tag takes the same deeper
@@ -1214,7 +1298,7 @@ const componentSection = () => {
     them. The edge is drawn over the bar rather than bordered — a border would come out of
     the ${NAV_HEIGHT} and leave the items overflowing by two. Tap a tab: the pill slides
     rather than reappearing, which is what makes the bar feel like one object.</p>
-  <div class="stage center spec" data-spec="light">
+  <div class="stage center spec glassstage" data-spec="light">
     <div class="tabbar" data-tabbar>
       <span class="tabpill" data-pill></span>
       ${['WorkoutIcon', 'StatsIcon', 'SettingsIcon']
@@ -1670,30 +1754,156 @@ const page = `<title>Training Tracker — design system</title>
       paintButtons(b.dataset.routine)
     })
   }
-  // The workout button says where you are, so it cycles through the three.
-  const wb = document.querySelector('[data-btn="workout"]')
-  if (wb) {
-    let n = 0
-    wb.addEventListener('click', () => {
-      n = (n + 1) % WORKOUT_LABELS.length
-      wb.textContent = WORKOUT_LABELS[n]
-    })
-  }
   paintButtons('${CANONICAL_ORDER[0]}')
 
-  // Cards cycle through the routines, so every colour can be seen at full size.
-  const ORDER = ${JSON.stringify(CANONICAL_ORDER)}
-  for (const c of document.querySelectorAll('[data-rc]')) {
-    c.addEventListener('click', () => {
-      const mode = document.querySelector('[data-scheme].on')?.dataset.scheme ?? 'light'
-      const next = ORDER[(ORDER.indexOf(c.dataset.rc) + 1) % ORDER.length]
-      c.dataset.rc = next
-      const r = ROUTINE[next][mode]
-      c.style.background = r.base
-      c.style.color = r.ink
-      c.querySelector('.rcard-name').textContent = next
-    })
+  // ── the stack, ported from WorkoutStack ────────────────────────────────
+  //
+  // Same constants, same springs, same rubber banding. A drag leans the card by
+  // springing an angle toward a target rather than setting it, which is where
+  // the lag behind the finger comes from; a release throws it to a fraction of
+  // its velocity and settles on GLIDE_SPRING.
+  const S = ${JSON.stringify(STACK)}
+  const CARD = { w: ${CARD_WIDTH}, h: ${CARD_HEIGHT} }
+
+  function rubber(v, min, max, elastic) {
+    if (v < min) return min + (v - min) * elastic
+    if (v > max) return max + (v - max) * elastic
+    return v
   }
+
+  for (const canvas of document.querySelectorAll('[data-canvas]')) {
+    const cards = [...canvas.querySelectorAll('[data-card]')]
+    const restack = canvas.querySelector('[data-restack]')
+    let top = cards.length
+
+    for (const card of cards) {
+      const slot = +card.dataset.slot
+      const state = { x: 0, y: 0, turn: S.TILTS[slot % S.TILTS.length], scale: 1 }
+      card.__state = state
+      card.__slot = slot
+      card.style.zIndex = slot + 1
+
+      const place = () => {
+        const left = (canvas.clientWidth - CARD.w) / 2
+        const t = S.STACK_TOP + slot * S.PEEK_STEP
+        card.style.left = left + 'px'
+        card.style.top = t + 'px'
+        return { left, top: t }
+      }
+      let base = place()
+      window.addEventListener('resize', () => { base = place() })
+
+      const draw = () => {
+        card.style.transform =
+          'translate(' + state.x + 'px,' + state.y + 'px) rotate(' + state.turn + 'deg) scale(' + state.scale + ')'
+      }
+      draw()
+
+      let dragging = false
+      let startX = 0, startY = 0, fromX = 0, fromY = 0
+      let lastX = 0, lastT = 0, vx = 0
+      let moved = 0
+      let stopTurn = null, stopX = null, stopY = null
+
+      card.addEventListener('pointerdown', (e) => {
+        card.setPointerCapture(e.pointerId)
+        dragging = true
+        moved = 0
+        startX = e.clientX; startY = e.clientY
+        fromX = state.x; fromY = state.y
+        lastX = e.clientX; lastT = performance.now(); vx = 0
+        stopX?.(); stopY?.(); stopTurn?.()
+        card.classList.add('held')
+        card.style.zIndex = ++top
+        // held: scale(1 - 0.02), sprung like the app
+        springTo(SPRINGS.TILT_SPRING, state.scale, 0.98, (v) => { state.scale = v; draw() })
+      })
+
+      card.addEventListener('pointermove', (e) => {
+        if (!dragging) return
+        const dx = e.clientX - startX
+        const dy = e.clientY - startY
+        moved = Math.max(moved, Math.hypot(dx, dy))
+        const now = performance.now()
+        if (now > lastT) { vx = ((e.clientX - lastX) / (now - lastT)) * 1000; lastX = e.clientX; lastT = now }
+
+        const minX = -CARD.w * 0.3 - base.left
+        const maxX = canvas.clientWidth - CARD.w + CARD.w * 0.3 - base.left
+        const minY = -CARD.h * 0.3 - base.top
+        const maxY = canvas.clientHeight - CARD.h + CARD.h * 0.3 - base.top
+        state.x = rubber(fromX + dx, minX, maxX, S.ELASTIC)
+        state.y = rubber(fromY + dy, minY, maxY, S.ELASTIC)
+        draw()
+
+        const want = Math.min(Math.max(vx * 0.001 * S.TILT_PER_PX * 60, -S.TILT_MAX), S.TILT_MAX)
+        stopTurn?.()
+        stopTurn = springTo(SPRINGS.TILT_SPRING, state.turn, want, (v) => { state.turn = v; draw() })
+      })
+
+      const release = () => {
+        if (!dragging) return
+        dragging = false
+        card.classList.remove('held')
+        springTo(SPRINGS.TILT_SPRING, state.scale, 1, (v) => { state.scale = v; draw() })
+
+        // A tap, not a drag: come to the front and settle back to rest.
+        if (moved <= S.TAP_SLOP) {
+          stopTurn?.()
+          stopX = springTo(SPRINGS.GLIDE_SPRING, state.x, 0, (v) => { state.x = v; draw() })
+          stopY = springTo(SPRINGS.GLIDE_SPRING, state.y, 0, (v) => { state.y = v; draw() })
+          springTo(SPRINGS.TILT_SPRING, state.turn, S.TILTS[slot % S.TILTS.length], (v) => { state.turn = v; draw() })
+          return
+        }
+
+        if (moved > S.DISTURBED) restack.hidden = false
+
+        const minX = -CARD.w * 0.3 - base.left
+        const maxX = canvas.clientWidth - CARD.w + CARD.w * 0.3 - base.left
+        const target = Math.min(Math.max(state.x + vx * S.THROW, minX), maxX)
+        stopX = springTo(SPRINGS.GLIDE_SPRING, state.x, target, (v) => { state.x = v; draw() })
+        stopTurn?.()
+        stopTurn = springTo(SPRINGS.TILT_SPRING, state.turn, 0, (v) => { state.turn = v; draw() })
+      }
+      card.addEventListener('pointerup', release)
+      card.addEventListener('pointercancel', release)
+    }
+
+    restack.addEventListener('click', () => {
+      restack.hidden = true
+      for (const card of cards) {
+        const st = card.__state
+        const slot = card.__slot
+        card.style.zIndex = slot + 1
+        springTo(SPRINGS.GLIDE_SPRING, st.x, 0, (v) => { st.x = v; paint(card) })
+        springTo(SPRINGS.GLIDE_SPRING, st.y, 0, (v) => { st.y = v; paint(card) })
+        springTo(SPRINGS.TILT_SPRING, st.turn, S.TILTS[slot % S.TILTS.length], (v) => { st.turn = v; paint(card) })
+      }
+      top = cards.length
+    })
+    function paint(card) {
+      const st = card.__state
+      card.style.transform =
+        'translate(' + st.x + 'px,' + st.y + 'px) rotate(' + st.turn + 'deg) scale(' + st.scale + ')'
+    }
+  }
+
+  // ── the signposts move you through the exercises ───────────────────────
+  const EXERCISES = ['Squat', 'Bench press', 'Barbell row', 'Overhead press', 'Plank']
+  let at = 2
+  function paintSignposts() {
+    const prev = document.querySelector('[data-btn="prev"]')
+    const next = document.querySelector('[data-btn="next"]')
+    if (!prev || !next) return
+    prev.hidden = at === 0
+    next.hidden = at === EXERCISES.length - 1
+    if (at > 0) prev.querySelector('.splabel').textContent = EXERCISES[at - 1]
+    if (at < EXERCISES.length - 1) next.querySelector('.splabel').textContent = EXERCISES[at + 1]
+    const wb = document.querySelector('[data-btn="workout"]')
+    if (wb) wb.textContent = at === EXERCISES.length - 1 ? 'Finish workout' : 'Next exercise'
+  }
+  document.querySelector('[data-btn="prev"]')?.addEventListener('click', () => { at = Math.max(0, at - 1); paintSignposts() })
+  document.querySelector('[data-btn="next"]')?.addEventListener('click', () => { at = Math.min(EXERCISES.length - 1, at + 1); paintSignposts() })
+  paintSignposts()
 </script>
 `
 
