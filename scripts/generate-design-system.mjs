@@ -273,6 +273,12 @@ const css = `
 
   * { box-sizing: border-box; }
 
+  /* Any class that sets its own display value outranks the browser's built-in
+     rule for the hidden attribute, so a hidden element carries on rendering.
+     This bit the light and dark token grids: both were drawn, stacked, and the
+     switch between them looked like it did nothing at all. */
+  [hidden] { display: none !important; }
+
   body {
     margin: 0;
     background: var(--bg);
@@ -773,7 +779,7 @@ const shapeSection = () => `
 
   <h3>Radius</h3>
   <p>Three shapes, which is all this app turns out to need.</p>
-  <div class="stage center" data-spec="light">
+  <div class="stage center spec" data-spec="light">
     ${Object.entries(RADIUS)
       .map(
         ([k, v]) =>
