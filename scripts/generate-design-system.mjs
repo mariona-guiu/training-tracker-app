@@ -690,10 +690,15 @@ const css = `
   .rrole { font-size: 11.5px; opacity: .95; }
   .rval { font-size: 11.5px; font-variant-numeric: tabular-nums; }
   .rval b { font-weight: 600; }
+  /* The wash is not a flat tint in the app: it is a blurred surface with the
+     wash laid over it, which is why it reads as a material rather than a
+     colour. Same construction here. */
   .rwash {
     position: absolute; left: 16%; top: 26px; width: 34%; height: 62%;
-    border-radius: ${RADIUS.card}px; padding: 10px 12px;
+    border-radius: ${RADIUS.pill}px; padding: 10px 12px;
     display: flex; flex-direction: column; justify-content: space-between;
+    -webkit-backdrop-filter: blur(14px) saturate(1.3);
+    backdrop-filter: blur(14px) saturate(1.3);
   }
   @media (max-width: 620px) {
     .rwash { display: none; }
@@ -737,8 +742,10 @@ const css = `
      does not reflow around a component being opened. */
   /* Fixed, not minimum: a component opening inside must not resize the frame
      around it, or the page reflows every time you tap something. */
-  .stage.holds { height: 560px; overflow-y: auto; align-content: flex-start; }
-  .stage.holds-s { height: 470px; overflow-y: auto; align-content: flex-start; }
+  /* Height is measured once at load from the component's *tallest* state, so a
+     frame neither grows when something opens nor clips it. Guessing a number
+     here either scrolled or cut the content off. */
+  .stage.holds, .stage.holds-s { align-content: flex-start; overflow: visible; }
 
   .settingsblock { width: 100%; max-width: 420px; }
   .snote.outside { margin: ${SPACE[2]}px 0 0; padding: 0 ${SPACE[3]}px; }
@@ -783,7 +790,11 @@ const css = `
   /* the stack's canvas */
   .canvasstage { padding: 0; overflow: hidden; }
   .canvas {
-    position: relative; width: 100%; height: 560px;
+    position: relative; width: 100%;
+    /* Tall enough for the whole stack at its own spacing: the top offset, five
+       peeks, and a card. On the phone this is the screen and the lower cards
+       sit below the fold; here they should all be reachable. */
+    height: ${STACK.STACK_TOP + (CANONICAL_ORDER.length - 1) * STACK.PEEK_STEP + CARD_HEIGHT + 24}px;
     background: var(--s-bg); border-radius: ${RADIUS.card}px; touch-action: none;
     overflow: hidden;
   }
@@ -1609,6 +1620,44 @@ const page = `<title>Training Tracker — design system</title>
     return () => cancelAnimationFrame(raf)
   }
 
+  // A spring that can be re-aimed while it is running, keeping its velocity.
+  // Reanimated does this, and it is the whole difference between a card that
+  // leans continuously and one that jerks: springTo above starts from rest
+  // every time, so re-aiming it on each pointermove restarts the motion.
+  function makeSpring(cfg, initial, apply) {
+    const st = { x: initial, v: 0, to: initial, raf: 0, last: 0 }
+    function frame(now) {
+      const dt = Math.min((now - st.last) / 1000, 0.064)
+      st.last = now
+      const steps = Math.max(1, Math.ceil(dt * 240))
+      const h = dt / steps
+      for (let i = 0; i < steps; i++) {
+        st.v += ((-cfg.stiffness * (st.x - st.to) - cfg.damping * st.v) / cfg.mass) * h
+        st.x += st.v * h
+      }
+      apply(st.x)
+      if (Math.abs(st.to - st.x) < 0.01 && Math.abs(st.v) < 2) {
+        st.x = st.to
+        st.v = 0
+        apply(st.x)
+        st.raf = 0
+        return
+      }
+      st.raf = requestAnimationFrame(frame)
+    }
+    return {
+      to(v) {
+        st.to = v
+        if (!st.raf) {
+          st.last = performance.now()
+          st.raf = requestAnimationFrame(frame)
+        }
+      },
+      set(v) { st.x = v; st.to = v; st.v = 0; apply(v) },
+      get value() { return st.x },
+    }
+  }
+
   const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   // Height, sprung — the pattern behind both the history cell and the settings
@@ -1627,6 +1676,27 @@ const page = `<title>Training Tracker — design system</title>
       el.style.height = open ? 'auto' : '0px'
     })
   }
+
+  // ── frames hold the height of their tallest state ──────────────────────
+  //
+  // Measured rather than guessed: open everything inside, take the height,
+  // then put it back. A number chosen by hand either clipped the expanded
+  // history cell or left the rest-time card scrolling inside its own frame.
+  function fixStageHeights() {
+    for (const stage of document.querySelectorAll('.stage.holds, .stage.holds-s')) {
+      const reveals = [...stage.querySelectorAll('.hreveal, .sreveal')]
+      const before = reveals.map((r) => r.style.height)
+      for (const r of reveals) r.style.height = 'auto'
+      stage.style.height = ''
+      const tallest = stage.scrollHeight
+      reveals.forEach((r, i) => { r.style.height = before[i] })
+      stage.style.height = tallest + 'px'
+    }
+  }
+  // Fonts land after first paint and change the measurement, so do it again.
+  requestAnimationFrame(fixStageHeights)
+  document.fonts?.ready.then(fixStageHeights)
+  window.addEventListener('resize', fixStageHeights)
 
   // ── routing: one section at a time ─────────────────────────────────────
   const pages = [...document.querySelectorAll('section')]
@@ -1829,10 +1899,13 @@ const page = `<title>Training Tracker — design system</title>
       }
       draw()
 
+      const turn = makeSpring(SPRINGS.TILT_SPRING, restAngle, (v) => { state.turn = v; draw() })
+      card.__turn = turn
       let dragging = false
       let startX = 0, startY = 0, fromX = 0, fromY = 0
       let lastX = 0, lastT = 0, vx = 0
       let startTurn = restAngle
+      let stopTurn = null
       let moved = 0
       let stopTurn = null, stopX = null, stopY = null
 
@@ -1844,7 +1917,7 @@ const page = `<title>Training Tracker — design system</title>
         fromX = state.x; fromY = state.y
         lastX = e.clientX; lastT = performance.now(); vx = 0
         startTurn = state.turn
-        stopX?.(); stopY?.(); stopTurn?.()
+        stopX?.(); stopY?.()
         card.classList.add('held')
         card.style.zIndex = ++top
         // held: scale(1 - 0.02), sprung like the app
@@ -1870,9 +1943,7 @@ const page = `<title>Training Tracker — design system</title>
         // The app leans by how far the card has been dragged, not how fast:
         // the resting angle plus translationX times TILT_PER_PX, capped at
         // TILT_MAX. Driven from velocity, as this was, the card stays straight.
-        const want = Math.min(Math.max(startTurn + dx * S.TILT_PER_PX, -S.TILT_MAX), S.TILT_MAX)
-        stopTurn?.()
-        stopTurn = springTo(SPRINGS.TILT_SPRING, state.turn, want, (v) => { state.turn = v; draw() })
+        turn.to(Math.min(Math.max(startTurn + dx * S.TILT_PER_PX, -S.TILT_MAX), S.TILT_MAX))
       })
 
       const release = () => {
@@ -1883,10 +1954,9 @@ const page = `<title>Training Tracker — design system</title>
 
         // A tap, not a drag: come to the front and settle back to rest.
         if (moved <= S.TAP_SLOP) {
-          stopTurn?.()
           stopX = springTo(SPRINGS.GLIDE_SPRING, state.x, 0, (v) => { state.x = v; draw() })
           stopY = springTo(SPRINGS.GLIDE_SPRING, state.y, 0, (v) => { state.y = v; draw() })
-          springTo(SPRINGS.TILT_SPRING, state.turn, restAngle, (v) => { state.turn = v; draw() })
+          turn.to(restAngle)
           return
         }
 
@@ -1912,7 +1982,7 @@ const page = `<title>Training Tracker — design system</title>
         card.style.zIndex = slot + 1
         springTo(SPRINGS.GLIDE_SPRING, st.x, 0, (v) => { st.x = v; paint(card) })
         springTo(SPRINGS.GLIDE_SPRING, st.y, 0, (v) => { st.y = v; paint(card) })
-        springTo(SPRINGS.TILT_SPRING, st.turn, S.TILTS[slot % S.TILTS.length], (v) => { st.turn = v; paint(card) })
+        card.__turn.to(S.TILTS[slot % S.TILTS.length])
       }
       top = cards.length
     })
