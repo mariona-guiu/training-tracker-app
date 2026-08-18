@@ -1905,7 +1905,6 @@ const page = `<title>Training Tracker — design system</title>
       let startX = 0, startY = 0, fromX = 0, fromY = 0
       let lastX = 0, lastT = 0, vx = 0
       let startTurn = restAngle
-      let stopTurn = null
       let moved = 0
       let stopTurn = null, stopX = null, stopY = null
 
@@ -2012,6 +2011,20 @@ const page = `<title>Training Tracker — design system</title>
   paintSignposts()
 </script>
 `
+
+// The page's script lives inside a template literal, so oxlint never sees it
+// and a syntax error ships silently — every section is display:none until the
+// router runs, so the page renders as a nav and nothing else. Parsing it here
+// is the only thing standing between a typo and a blank page.
+{
+  const script = page.match(/<script>([\s\S]*?)<\/script>/)?.[1]
+  if (!script) throw new Error('the page has no script block')
+  try {
+    new Function(script)
+  } catch (err) {
+    throw new Error(`the page's script does not parse: ${err.message}`)
+  }
+}
 
 const current = (() => {
   try {
