@@ -117,8 +117,18 @@ const readIcons = (file) => {
       if (elseAt !== -1) body = body.slice(0, tern) + body.slice(elseAt + 5)
     }
 
-    // `{...plate}` — an attribute bag defined next to the element.
+    // `{...plate}` — an attribute bag defined next to the element — and
+    // `{...stroke(color)}`, where the bag comes from a helper that returns one.
+    // The second form is why six icons drew nothing: no bag was resolved, so no
+    // stroke was emitted and the shape was painted in nothing at all.
     const spreads = {}
+    for (const o of src.matchAll(/const (\w+) = \([^)]*\) => \(\{([\s\S]*?)\n\}\)/g)) {
+      const bag = {}
+      for (const kv of o[2].matchAll(/(\w+):\s*([^,\n]+)/g)) {
+        bag[kv[1]] = kv[2].trim().replace(/^['"]|['"]$/g, '')
+      }
+      spreads[o[1]] = bag
+    }
     for (const o of body.matchAll(/const (\w+) = \{([\s\S]*?)\n\s*\}/g)) {
       const bag = {}
       for (const kv of o[2].matchAll(/(\w+):\s*([^,\n]+)/g)) {
@@ -136,10 +146,10 @@ const readIcons = (file) => {
     )
 
     const shapes = []
-    for (const el of body.matchAll(/<(Path|Rect)\b([\s\S]*?)\/>/g)) {
+    for (const el of body.matchAll(/<(Path|Rect|Circle)\b([\s\S]*?)\/>/g)) {
       const tag = el[1]
       let attrs = el[2]
-      for (const sp of attrs.matchAll(/\{\.\.\.(\w+)\}/g)) {
+      for (const sp of attrs.matchAll(/\{\.\.\.(\w+)(?:\([^)]*\))?\}/g)) {
         const bag = spreads[sp[1]]
         if (bag) attrs += ' ' + Object.entries(bag).map(([k, v]) => `${k}="${v}"`).join(' ')
       }
@@ -156,8 +166,11 @@ const readIcons = (file) => {
       // Colour is a prop in the app; here it inherits.
       const strokeRaw = attr('stroke')
       const fillRaw = attr('fill')
-      const stroked = strokeRaw && strokeRaw !== 'none'
       const filled = fillRaw && fillRaw !== 'none'
+      // These are outline icons: an element that resolved neither is stroked,
+      // not invisible. Getting this wrong is silent — the icon still lays out,
+      // it simply has no shape in it.
+      const stroked = (strokeRaw && strokeRaw !== 'none') || !filled
       const paint =
         `fill="${filled ? 'currentColor' : 'none'}"` +
         (stroked
@@ -167,6 +180,13 @@ const readIcons = (file) => {
           : '') +
         (attr('fillRule') ? ` fill-rule="${attr('fillRule')}"` : '')
       const tf = attr('transform') ? ` transform="${attr('transform')}"` : ''
+
+      if (tag === 'Circle') {
+        shapes.push(
+          `<circle cx="${attr('cx') ?? 12}" cy="${attr('cy') ?? 12}" r="${attr('r') ?? 9}"${tf} ${paint}/>`,
+        )
+        continue
+      }
 
       if (tag === 'Rect') {
         const need = ['width', 'height'].filter((k) => attr(k) === null)
@@ -192,7 +212,12 @@ const readIcons = (file) => {
       for (const d of ds) shapes.push(`<path d="${d}"${tf} ${paint}/>`)
     }
 
-    if (shapes.length) icons.push({ name, hasActive, shapes })
+    if (!shapes.length) continue
+    // A shape with neither a stroke nor a fill lays out perfectly and draws
+    // nothing, which is indistinguishable from an icon that is simply missing.
+    if (!shapes.some((sh) => sh.includes('currentColor')))
+      throw new Error(`${name}: every shape resolved to no paint — it would render blank`)
+    icons.push({ name, hasActive, shapes })
   }
 
   if (!icons.length) throw new Error(`no icons parsed out of ${file} — the parser needs updating`)
@@ -612,6 +637,49 @@ const css = `
     .rwash { display: none; }
   }
 
+  /* one section at a time */
+  section { display: none; }
+  section.on { display: block; animation: pagein .18s ease-out; }
+  @keyframes pagein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { section.on { animation: none; } }
+
+  /* buttons, as the completion screen stacks them */
+  .btnstage { align-items: center; }
+  .actions { display: flex; flex-direction: column; gap: ${SPACE[2]}px; width: 100%; max-width: 340px; }
+  .btn {
+    width: 100%; border: 0; border-radius: ${RADIUS.pill}px; min-height: 52px;
+    padding: ${SPACE[2]}px ${SPACE[3]}px; cursor: pointer;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: ${TYPE.control.fontSize}px; font-weight: ${TYPE.control.fontWeight};
+    transition: opacity .12s, transform .12s;
+  }
+  .btn:active, .btn.pressed { opacity: .82; transform: scale(.98); }
+  .btn.quiet { background: var(--s-raised); color: var(--s-ink); }
+
+  /* the pill slides, it does not reappear */
+  .tabpill {
+    position: absolute; left: 4px; top: 4px; width: 64px; height: 44px;
+    border-radius: ${RADIUS.pill}px; background: var(--s-highlight);
+    transition: transform .32s cubic-bezier(.22,1,.36,1);
+  }
+  @media (prefers-reduced-motion: reduce) { .tabpill { transition: none; } }
+  .tabitem { background: none; border: 0; cursor: pointer; position: relative; z-index: 1; }
+
+  /* the cell opens and shuts */
+  .hhead { width: 100%; border: 0; cursor: pointer; text-align: left; font: inherit; }
+  .hreveal { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .34s cubic-bezier(.22,1,.36,1); }
+  .hcell.open .hreveal { grid-template-rows: 1fr; }
+  .hreveal > * { overflow: hidden; min-height: 0; }
+  .hchev { transition: transform .3s cubic-bezier(.22,1,.36,1); }
+  .hcell.open .hchev { transform: rotate(180deg); }
+  @media (prefers-reduced-motion: reduce) {
+    .hreveal, .hchev { transition: none; }
+  }
+
+  .track, .choice, .tabitem, .rcard { cursor: pointer; }
+  .choice { border: 0; font: inherit; }
+  .seg button[data-routine], .seg button[data-cellroutine] { text-transform: capitalize; }
+
   .icongrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; width: 100%; }
   .icontile { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 16px 8px; border-radius: ${RADIUS.chip}px; text-align: center; }
   .icontile:hover { background: var(--s-raised); }
@@ -978,42 +1046,36 @@ const componentSection = () => {
       const i = ICONS.find((x) => x.name === n)
       return i ? `<svg viewBox="0 0 24 24" class="statico">${i.shapes.join('')}</svg>` : ''
     }
-    return `<div class="hcell" data-cell="${name}">
-      <div class="hhead" data-part="head" style="background:${base};color:${ink}">
-        <div class="hheading">
+    return `<div class="hcell${expanded ? ' open' : ''}" data-cell="${name}">
+      <button class="hhead" data-part="head" data-cellhead style="background:${base};color:${ink}">
+        <span class="hheading">
           <span class="hname">${name[0].toUpperCase() + name.slice(1)}</span>
           <span class="hwhen">Tuesday 12 August, 09:30</span>
-        </div>
-        <span class="htag" data-part="tag" style="background:${tint};color:${inkOn(tint)}">${expanded ? 'Advanced' : 'Ended early'}</span>
-        <svg viewBox="0 0 24 24" class="hchev" style="transform:rotate(${expanded ? 180 : 0}deg)">${
+        </span>
+        <span class="htag" data-part="tag" style="background:${tint};color:${inkOn(tint)}">Advanced</span>
+        <svg viewBox="0 0 24 24" class="hchev">${
           ICONS.find((x) => x.name === 'ChevronIcon')?.shapes.join('') ?? ''
         }</svg>
+      </button>
+      <div class="hreveal">
+        <div class="hbody" data-part="body" style="background:${pale.background};color:${pale.ink}">
+          <div class="hsummary">
+            ${stats.map(([ic, txt]) => `<div class="hstat">${svg(ic)}<span>${txt}</span></div>`).join('\n            ')}
+          </div>
+          <div class="hlifts">
+            ${lifts
+              .map(
+                ([n, sets, skipped]) =>
+                  `<div class="hlift${skipped ? ' faded' : ''}"><span class="hliftname">${n}${skipped ? '**' : ''}</span><span class="hliftsets">${sets}</span></div>`,
+              )
+              .join('\n            ')}
+          </div>
+          <p class="hfoot faded">*Kcal burn is an estimate using the MET method and should be used as a reference, not an exact measurement.</p>
+          <p class="hfoot faded">**Skipped</p>
+        </div>
       </div>
-      ${
-        expanded
-          ? `<div class="hbody" data-part="body" style="background:${pale.background};color:${pale.ink}">
-        <div class="hsummary">
-          ${stats.map(([ic, txt]) => `<div class="hstat">${svg(ic)}<span>${txt}</span></div>`).join('\n          ')}
-        </div>
-        <div class="hlifts">
-          ${lifts
-            .map(
-              ([n, sets, skipped]) =>
-                `<div class="hlift${skipped ? ' faded' : ''}"><span class="hliftname">${n}${skipped ? '**' : ''}</span><span class="hliftsets">${sets}</span></div>`,
-            )
-            .join('\n          ')}
-        </div>
-        <p class="hfoot faded">*Kcal burn is an estimate using the MET method and should be used as a reference, not an exact measurement.</p>
-        <p class="hfoot faded">**Skipped</p>
-      </div>`
-          : ''
-      }
     </div>`
   }
-
-  const tabIcons = ['WorkoutIcon', 'StatsIcon', 'SettingsIcon'].map((n) =>
-    ICONS.find((i) => i.name === n),
-  )
 
   return `
   <p class="lede">Every component below is drawn from the same tokens the app uses, at the
@@ -1040,8 +1102,15 @@ const componentSection = () => {
     tone the rest sweep paints during a workout, so the app has one idea of "this colour,
     deeper" rather than two. The body is a wash of the routine's own colour, with that colour
     as ink wherever it holds up.</p>
+  <div class="switcher">
+    <div class="seg" role="group" aria-label="Routine">
+      ${CANONICAL_ORDER.map(
+        (n, i) => `<button class="${i === 0 ? 'on' : ''}" data-cellroutine="${n}">${n}</button>`,
+      ).join('')}
+    </div>
+    <span class="hint">Tap the cell to open and shut it.</span>
+  </div>
   <div class="stage col spec" data-spec="light">
-    ${cell('full body', false)}
     ${cell('full body', true)}
   </div>
   <p class="hint">Skipped work and the calorie footnote sit at ${'0.76'} opacity — the point at
@@ -1049,25 +1118,41 @@ const componentSection = () => {
     here: the cell's ink sits at exactly 4.5 at full strength.</p>
 
   <h3>Buttons</h3>
-  <p>One shape: minimum height 52, fully rounded, ${SPACE[3]}px of horizontal padding, set in
-    <code>control</code> at ${TYPE.control.fontSize}px medium and sentence case. There is no
-    "primary" colour token — on a workout screen the routine's colour <em>is</em> the primary.</p>
-  <div class="stage spec" data-spec="light">
-    <button class="btn" data-btn-ink>See completed workouts</button>
-    <button class="btn quiet">See completed workouts</button>
+  <p>One shape: minimum height ${52}, fully rounded, ${SPACE[3]}px of horizontal padding, set in
+    <code>control</code> at ${TYPE.control.fontSize}px medium and sentence case. They are
+    <b>full width and stacked</b> with ${SPACE[2]}px between them, not laid side by side.</p>
+  <p>There is no "primary" colour token, because on the completion screen the routine
+    supplies both: the primary fills with the routine's <em>ink</em> and takes its colour as
+    the label, and the secondary fills with the <em>button wash</em> — the same translucent
+    token in the colour library — and takes ink as the label. Press one to see its pressed
+    state.</p>
+  <div class="switcher">
+    <div class="seg" role="group" aria-label="Routine">
+      ${CANONICAL_ORDER.map(
+        (n, i) => `<button class="${i === 0 ? 'on' : ''}" data-routine="${n}">${n}</button>`,
+      ).join('')}
+    </div>
+  </div>
+  <div class="stage col spec center btnstage" data-spec="light" data-btnstage>
+    <div class="actions">
+      <button class="btn" data-btn="primary">See completed workouts</button>
+      <button class="btn" data-btn="secondary">Do another workout</button>
+    </div>
   </div>
 
   <h3>Tab bar</h3>
   <p>Height ${NAV_HEIGHT}, fully rounded, ${4}px padding, items ${64} × ${44} with ${4}px between
     them. The edge is drawn over the bar rather than bordered — a border would come out of
-    the 52 and leave the items overflowing by two.</p>
+    the ${NAV_HEIGHT} and leave the items overflowing by two. Tap a tab: the pill slides
+    rather than reappearing, which is what makes the bar feel like one object.</p>
   <div class="stage center spec" data-spec="light">
-    <div class="tabbar">
-      ${tabIcons
-        .map(
-          (i, n) =>
-            `<span class="tabitem${n === 0 ? ' on' : ''}"><svg viewBox="0 0 24 24" aria-label="${i.name}">${i.shapes.join('')}</svg></span>`,
-        )
+    <div class="tabbar" data-tabbar>
+      <span class="tabpill" data-pill></span>
+      ${['WorkoutIcon', 'StatsIcon', 'SettingsIcon']
+        .map((n, i) => {
+          const ic = ICONS.find((x) => x.name === n)
+          return `<button class="tabitem${i === 0 ? ' on' : ''}" data-tab="${i}" aria-label="${n.replace(/Icon$/, '')}"><svg viewBox="0 0 24 24">${ic.shapes.join('')}</svg></button>`
+        })
         .join('\n      ')}
     </div>
   </div>
@@ -1225,13 +1310,13 @@ const page = `<title>Training Tracker — design system</title>
     ${NAV.map(
       ([group, items]) => `<div class="navgroup">
       <p>${group}</p>
-      ${items.map(([id, label]) => `<a href="#${id}">${label}</a>`).join('\n      ')}
+      ${items.map(([id, label]) => `<a href="#${id}" data-page="${id}">${label}</a>`).join('\n      ')}
     </div>`,
     ).join('\n    ')}
   </nav>
 
   <main>
-    <header class="top">
+    <header class="top" data-page-el="colour">
       <h1>The system behind the app</h1>
       <p>Every value on this page is read out of <code>src/theme</code>,
         <code>src/data/routineStyles.js</code> and the icon components when the page is
@@ -1274,6 +1359,7 @@ const page = `<title>Training Tracker — design system</title>
             tintInk: inkOn(restTintFor('light', n)),
             pale: paleFor('light', n).background,
             paleInk: paleFor('light', n).ink,
+            wash: washFor('light', n),
           },
           dark: {
             base: styleFor('dark', n).background,
@@ -1282,6 +1368,7 @@ const page = `<title>Training Tracker — design system</title>
             tintInk: inkOn(restTintFor('dark', n)),
             pale: paleFor('dark', n).background,
             paleInk: paleFor('dark', n).ink,
+            wash: washFor('dark', n),
           },
         },
       ]),
@@ -1299,6 +1386,8 @@ const page = `<title>Training Tracker — design system</title>
         c.style.background = r.base
         c.style.color = r.ink
       }
+      const chosenRoutine = document.querySelector('[data-routine].on')?.dataset.routine
+      if (chosenRoutine) setTimeout(() => paintButtons(chosenRoutine), 0)
       for (const cell of document.querySelectorAll('[data-cell]')) {
         const r = ROUTINE[cell.dataset.cell][mode]
         const head = cell.querySelector('[data-part="head"]')
@@ -1321,18 +1410,105 @@ const page = `<title>Training Tracker — design system</title>
     })
   }
 
-  // Mark the section being read.
-  const links = [...document.querySelectorAll('nav a')]
-  const spy = new IntersectionObserver(
-    (entries) => {
-      for (const e of entries) {
-        if (!e.isIntersecting) continue
-        for (const a of links) a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id)
-      }
-    },
-    { rootMargin: '-10% 0px -80% 0px' },
-  )
-  for (const s of document.querySelectorAll('section')) spy.observe(s)
+  // ── routing: one section at a time ─────────────────────────────────────
+  const pages = [...document.querySelectorAll('section')]
+  const links = [...document.querySelectorAll('nav a[data-page]')]
+  const header = document.querySelector('header.top')
+
+  function show(id) {
+    const target = pages.some((p) => p.id === id) ? id : pages[0].id
+    for (const p of pages) p.classList.toggle('on', p.id === target)
+    for (const a of links) a.classList.toggle('on', a.dataset.page === target)
+    if (header) header.hidden = target !== pages[0].id
+    document.querySelector('main').scrollTo?.({ top: 0 })
+    window.scrollTo({ top: 0 })
+  }
+  window.addEventListener('hashchange', () => show(location.hash.slice(1)))
+  show(location.hash.slice(1))
+
+  // ── tab bar: the pill slides ───────────────────────────────────────────
+  const STEP = 64 + 4
+  for (const bar of document.querySelectorAll('[data-tabbar]')) {
+    const pill = bar.querySelector('[data-pill]')
+    for (const item of bar.querySelectorAll('[data-tab]')) {
+      item.addEventListener('click', () => {
+        for (const o of bar.querySelectorAll('[data-tab]')) o.classList.toggle('on', o === item)
+        pill.style.transform = 'translateX(' + +item.dataset.tab * STEP + 'px)'
+      })
+    }
+  }
+
+  // ── history cell: open and shut ────────────────────────────────────────
+  for (const head of document.querySelectorAll('[data-cellhead]')) {
+    head.addEventListener('click', () => head.closest('.hcell').classList.toggle('open'))
+  }
+  for (const b of document.querySelectorAll('[data-cellroutine]')) {
+    b.addEventListener('click', () => {
+      for (const o of document.querySelectorAll('[data-cellroutine]')) o.classList.toggle('on', o === b)
+      paintCells(b.dataset.cellroutine)
+    })
+  }
+  function paintCells(name) {
+    const mode = document.querySelector('[data-scheme].on')?.dataset.scheme ?? 'light'
+    for (const cell of document.querySelectorAll('[data-cell]')) {
+      cell.dataset.cell = name
+      const r = ROUTINE[name][mode]
+      const head = cell.querySelector('[data-part="head"]')
+      head.style.background = r.base
+      head.style.color = r.ink
+      head.querySelector('.hname').textContent = name[0].toUpperCase() + name.slice(1)
+      const tag = cell.querySelector('[data-part="tag"]')
+      tag.style.background = r.tint
+      tag.style.color = r.tintInk
+      const body = cell.querySelector('[data-part="body"]')
+      body.style.background = r.pale
+      body.style.color = r.paleInk
+    }
+  }
+
+  // ── buttons: routine, and pressed state ────────────────────────────────
+  function paintButtons(name) {
+    const mode = document.querySelector('[data-scheme].on')?.dataset.scheme ?? 'light'
+    const r = ROUTINE[name][mode]
+    const stage = document.querySelector('[data-btnstage]')
+    if (stage) stage.style.background = r.base
+    const primary = document.querySelector('[data-btn="primary"]')
+    const secondary = document.querySelector('[data-btn="secondary"]')
+    if (primary) { primary.style.background = r.ink; primary.style.color = r.base }
+    if (secondary) { secondary.style.background = r.wash; secondary.style.color = r.ink }
+  }
+  for (const b of document.querySelectorAll('[data-routine]')) {
+    b.addEventListener('click', () => {
+      for (const o of document.querySelectorAll('[data-routine]')) o.classList.toggle('on', o === b)
+      paintButtons(b.dataset.routine)
+    })
+  }
+  paintButtons('${CANONICAL_ORDER[0]}')
+
+  // ── the controls behave like controls ──────────────────────────────────
+  for (const t of document.querySelectorAll('.track')) {
+    t.addEventListener('click', () => t.classList.toggle('on'))
+  }
+  for (const group of document.querySelectorAll('.choices')) {
+    for (const c of group.querySelectorAll('.choice')) {
+      c.addEventListener('click', () => {
+        for (const o of group.querySelectorAll('.choice')) o.classList.toggle('chosen', o === c)
+      })
+    }
+  }
+  // Cards cycle through the routines, so every colour can be seen at full size.
+  const ORDER = ${JSON.stringify(CANONICAL_ORDER)}
+  for (const c of document.querySelectorAll('[data-rc]')) {
+    c.addEventListener('click', () => {
+      const mode = document.querySelector('[data-scheme].on')?.dataset.scheme ?? 'light'
+      const next = ORDER[(ORDER.indexOf(c.dataset.rc) + 1) % ORDER.length]
+      c.dataset.rc = next
+      const r = ROUTINE[next][mode]
+      c.style.background = r.base
+      c.style.color = r.ink
+      c.querySelector('.rcard-name').textContent = next
+    })
+  }
 </script>
 `
 
