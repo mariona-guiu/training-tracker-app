@@ -36,6 +36,7 @@ import {
   restTintFor,
   paleFor,
   inkFor,
+  inkOn,
   washFor,
 } from '../src/data/routineStyles.js'
 
@@ -197,6 +198,18 @@ const readIcons = (file) => {
   if (!icons.length) throw new Error(`no icons parsed out of ${file} — the parser needs updating`)
   return icons
 }
+
+// The card's own size, read out of the component rather than restated. Node
+// cannot import a .jsx, so this is parsed the same way the icon shapes are, and
+// a missing constant is an error rather than a quietly wrong number.
+const readConst = (file, name) => {
+  const src = readFileSync(join(root, 'src/components', file), 'utf8')
+  const m = src.match(new RegExp(`export const ${name} = (\\d+)`))
+  if (!m) throw new Error(`${name} is no longer exported from ${file}`)
+  return +m[1]
+}
+const CARD_WIDTH = readConst('WorkoutStack.jsx', 'CARD_WIDTH')
+const CARD_HEIGHT = readConst('WorkoutStack.jsx', 'CARD_HEIGHT')
 
 const ICON_FILES = ['TabIcons.jsx', 'WorkoutIcons.jsx', 'HistoryIcons.jsx', 'StackIcon.jsx']
 const ICONS = ICON_FILES.flatMap((f) => readIcons(f).map((i) => ({ ...i, file: f })))
@@ -431,73 +444,176 @@ const css = `
   .hint { font-size: 12px; color: var(--dim); }
 
   /* ── the app's own components, rebuilt in HTML ─────────────────────── */
+  /* Sizes here are the app's own numbers, interpolated from the theme and the
+     components rather than chosen to look right on a web page. */
+
+  .scrollrow { overflow-x: auto; flex-wrap: nowrap; }
 
   .rcard {
-    width: 214px; height: 152px; border-radius: ${RADIUS.card}px;
-    padding: 16px; display: flex; flex-direction: column; justify-content: space-between;
-    box-shadow: 0 8px 22px var(--shadow);
+    width: ${CARD_WIDTH}px; height: ${CARD_HEIGHT}px; border-radius: ${RADIUS.card}px;
+    flex: none; position: relative; display: block;
   }
-  .rcard b {
-    font-family: ui-rounded, system-ui, sans-serif; font-weight: 400;
-    font-size: ${TYPE.routineCard.fontSize}px; text-transform: uppercase; line-height: 1.02;
+  .rcard-name {
+    position: absolute; top: 14px; left: ${SPACE[3]}px; right: ${SPACE[3]}px;
+    font-family: ui-rounded, system-ui, sans-serif;
+    font-weight: ${TYPE.routineCard.fontWeight}; font-size: ${TYPE.routineCard.fontSize}px;
+    text-transform: uppercase; text-align: center; line-height: ${SYSTEM_LINE};
   }
-  .rcard span {
+  .rcard-meta {
+    position: absolute; left: 0; right: 0; bottom: 20px;
+    display: flex; flex-direction: column; align-items: center; gap: ${SPACE[1]}px;
     font-family: ui-rounded, system-ui, sans-serif;
     font-size: ${TYPE.routineCardMeta.fontSize}px; text-transform: uppercase;
-    font-variant-numeric: tabular-nums; opacity: .82; display: block; line-height: 1.25;
+    font-variant-numeric: tabular-nums; line-height: ${SYSTEM_LINE};
   }
 
-  .btn {
-    border: 0; border-radius: ${RADIUS.pill}px; padding: 14px 26px; cursor: pointer;
-    font-family: -apple-system, system-ui, sans-serif;
-    font-size: ${TYPE.control.fontSize}px; font-weight: ${TYPE.control.fontWeight};
+  /* history cell */
+  .hcell { width: 100%; max-width: 420px; border-radius: ${RADIUS.card}px; overflow: hidden; }
+  .hhead {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: ${SPACE[2]}px; padding: ${SPACE[3]}px;
   }
-  .btn.ghost { background: transparent; border: 1px solid var(--s-line); color: var(--s-ink); }
-  .btn.quiet { background: var(--s-raised); color: var(--s-ink); }
-  .btn.danger { background: var(--s-danger); color: #fff; }
-
-  .tabbar {
-    position: relative; width: 246px; height: ${NAV_HEIGHT}px;
-    border-radius: ${NAV_HEIGHT / 2}px; overflow: hidden;
-    border: 1px solid var(--s-glass-edge);
-    background: linear-gradient(var(--s-glass-a), var(--s-glass-b));
-    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
-    display: flex; align-items: center; justify-content: space-around;
-  }
-  .tabbar .slot { width: 44px; height: 34px; display: grid; place-items: center; border-radius: ${RADIUS.pill}px; }
-  .tabbar .slot.on { background: var(--s-highlight); }
-  .tabbar svg { width: 22px; height: 22px; display: block; }
-
-  .switchctl { width: 51px; height: 31px; border-radius: ${RADIUS.pill}px; background: var(--s-track); position: relative; flex: none; }
-  .switchctl.on { background: var(--s-ink); }
-  .switchctl i { position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.28); transition: left .18s; }
-  .switchctl.on i { left: 22px; }
-
-  .row {
-    display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    padding: 13px 16px; background: var(--s-raised); border-radius: ${RADIUS.card}px; width: 100%;
-  }
-  .row .lbl {
+  .hheading { display: flex; flex-direction: column; gap: ${SPACE[2]}px; min-width: 0; flex: 1; }
+  .hname { font-family: ui-rounded, system-ui, sans-serif; font-weight: 700; font-size: ${TYPE.title.fontSize}px; }
+  .hwhen {
     font-size: ${TYPE.label.fontSize}px; font-weight: ${TYPE.label.fontWeight};
     letter-spacing: ${TYPE.label.letterSpacing}px; text-transform: uppercase;
   }
-
-  .hcell {
-    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
-    border-radius: ${RADIUS.card}px; width: 100%;
+  .htag {
+    align-self: center; flex-shrink: 1; margin-right: ${SPACE[2]}px;
+    padding: 5px 9px 7px; border-radius: ${RADIUS.chip}px; white-space: nowrap;
+    font-size: ${TYPE.label.fontSize}px; font-weight: ${TYPE.label.fontWeight};
+    letter-spacing: ${TYPE.label.letterSpacing}px; text-transform: uppercase;
   }
-  .hcell .dot { width: 34px; height: 34px; border-radius: 50%; flex: none; }
-  .hcell b { font-family: ui-rounded, system-ui, sans-serif; font-size: ${TYPE.title.fontSize}px; font-weight: 700; }
-  .hcell span { font-size: 12px; color: var(--s-dim); display: block; }
-
-  .chart { display: flex; align-items: flex-end; gap: 7px; height: 96px; }
-  .chart i { width: 22px; border-radius: ${RADIUS.chip}px ${RADIUS.chip}px 0 0; display: block; }
-
-  .icongrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; width: 100%; }
-  .icontile {
-    display: flex; flex-direction: column; align-items: center; gap: 9px;
-    padding: 16px 8px; border-radius: ${RADIUS.chip}px; text-align: center;
+  .hchev { width: 24px; height: 24px; align-self: center; flex: none; }
+  .hbody { padding: ${SPACE[4]}px ${SPACE[3]}px ${SPACE[3]}px; }
+  .hsummary { display: flex; flex-direction: column; gap: ${SPACE[1]}px; }
+  .hstat {
+    display: flex; align-items: center; gap: ${SPACE[2]}px;
+    font-size: ${TYPE.label.fontSize}px; font-weight: ${TYPE.label.fontWeight};
+    letter-spacing: ${TYPE.label.letterSpacing}px; text-transform: uppercase;
   }
+  .statico { width: 24px; height: 24px; flex: none; }
+  .hlifts { margin-top: ${SPACE[3]}px; }
+  .hlift {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: ${SPACE[3]}px; padding: ${SPACE[2]}px 0;
+  }
+  .hliftname {
+    flex-shrink: 1; font-size: ${TYPE.label.fontSize}px; font-weight: ${TYPE.label.fontWeight};
+    letter-spacing: ${TYPE.label.letterSpacing}px; text-transform: uppercase;
+  }
+  .hliftsets {
+    flex-shrink: 0; text-align: right; max-width: 60%;
+    font-size: ${TYPE.label.fontSize}px; font-weight: ${TYPE.label.fontWeight};
+    letter-spacing: ${TYPE.caption.letterSpacing}px;
+  }
+  .hfoot { font-size: ${TYPE.caption.fontSize}px; margin: ${SPACE[3]}px 0 0; max-width: none; }
+  .faded { opacity: 0.76; }
+
+  /* buttons */
+  .btn {
+    border: 0; border-radius: ${RADIUS.pill}px; min-height: 52px;
+    padding: ${SPACE[2]}px ${SPACE[3]}px; cursor: pointer;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: ${TYPE.control.fontSize}px; font-weight: ${TYPE.control.fontWeight};
+    background: var(--s-ink); color: var(--s-onink);
+  }
+  .btn.quiet { background: var(--s-raised); color: var(--s-ink); }
+
+  /* tab bar */
+  .tabbar {
+    position: relative; height: ${NAV_HEIGHT}px; padding: 4px; border-radius: ${RADIUS.pill}px;
+    display: flex; gap: 4px; overflow: hidden;
+    background: linear-gradient(var(--s-glass-a), var(--s-glass-b));
+    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    outline: 1px solid var(--s-glass-edge); outline-offset: -1px;
+  }
+  .tabitem {
+    width: 64px; height: 44px; border-radius: ${RADIUS.pill}px;
+    display: grid; place-items: center; color: var(--s-ink);
+  }
+  .tabitem.on { background: var(--s-highlight); }
+  .tabitem svg { width: 22px; height: 22px; display: block; }
+
+  /* settings */
+  .scard {
+    padding: ${SPACE[3]}px; border-radius: ${RADIUS.card}px; background: var(--s-raised);
+    width: 100%; max-width: 420px;
+  }
+  .scard.editing { outline: 1px solid var(--s-ink); outline-offset: -1px; }
+  .srow { display: flex; align-items: center; justify-content: space-between; gap: ${SPACE[3]}px; }
+  .slabel {
+    flex: 1; font-size: ${TYPE.label.fontSize}px; font-weight: ${TYPE.label.fontWeight};
+    letter-spacing: ${TYPE.label.letterSpacing}px; text-transform: uppercase; color: var(--s-ink);
+  }
+  .snote {
+    font-size: ${TYPE.caption.fontSize}px; line-height: 17px; color: var(--s-dim);
+    margin: ${SPACE[2]}px 0 0; max-width: none;
+  }
+  .track {
+    width: 46px; height: 28px; padding: 3px; border-radius: ${RADIUS.pill}px;
+    background: var(--s-track); flex: none; display: flex; align-items: center;
+    transition: background .15s;
+  }
+  .track.on { background: var(--s-ink); justify-content: flex-end; }
+  .track i { width: 22px; height: 22px; border-radius: ${RADIUS.pill}px; background: var(--s-onink); display: block; }
+
+  .choices { display: flex; gap: ${SPACE[2]}px; margin-top: ${SPACE[3]}px; }
+  .choice {
+    flex: 1; min-height: 90px; padding: ${SPACE[2]}px 0; border-radius: ${RADIUS.card}px;
+    display: grid; place-items: center; background: var(--s-onink); color: var(--s-dim);
+    font-family: ui-rounded, system-ui, sans-serif; font-weight: 700; font-size: ${TYPE.title.fontSize}px;
+  }
+  .choices.low .choice { min-height: 56px; }
+  .choice.chosen { background: var(--s-ink); color: var(--s-onink); }
+
+  .spreadrow {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: ${SPACE[2]}px 0; border-top: 1px solid var(--s-line);
+  }
+  .spreadrow:first-child { border-top: 0; }
+  .spreadof {
+    font-size: ${TYPE.label.fontSize}px; font-weight: ${TYPE.label.fontWeight};
+    letter-spacing: ${TYPE.label.letterSpacing}px; text-transform: uppercase; color: var(--s-dim);
+  }
+  .spreadsec {
+    font-size: ${TYPE.label.fontSize}px; font-weight: ${TYPE.label.fontWeight};
+    letter-spacing: ${TYPE.caption.letterSpacing}px; color: var(--s-ink);
+  }
+
+  .weightrow { display: flex; align-items: center; justify-content: space-between; }
+  .weightval {
+    display: flex; align-items: center;
+    font-family: ui-rounded, system-ui, sans-serif; font-weight: 700;
+    font-size: ${TYPE.screenTitle.fontSize}px; letter-spacing: ${TYPE.screenTitle.letterSpacing}px;
+    color: var(--s-ink);
+  }
+  .wunit.dim { opacity: 0.45; }
+  .caret { width: 3px; height: 24px; margin: 0 1px 0 2px; background: var(--s-ink); display: inline-block; }
+
+  /* routine colour panels, laid out like the Figma library */
+  .routinepanel { margin: 26px 0 30px; }
+  .rname {
+    font-family: ui-rounded, system-ui, sans-serif; text-transform: uppercase;
+    font-size: 15px; letter-spacing: 0.03em; margin: 0 0 10px;
+  }
+  .rband { position: relative; display: grid; grid-template-columns: 1fr 1fr 1fr; min-height: 150px; }
+  .rcol { padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+  .rrole { font-size: 11.5px; opacity: .95; }
+  .rval { font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  .rval b { font-weight: 600; }
+  .rwash {
+    position: absolute; left: 16%; top: 26px; width: 34%; height: 62%;
+    border-radius: ${RADIUS.card}px; padding: 10px 12px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  @media (max-width: 620px) {
+    .rwash { display: none; }
+  }
+
+  .icongrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; width: 100%; }
+  .icontile { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 16px 8px; border-radius: ${RADIUS.chip}px; text-align: center; }
   .icontile:hover { background: var(--s-raised); }
   .icontile svg { width: 26px; height: 26px; color: var(--s-ink); }
   .icontile em { font-style: normal; font-size: 10.5px; color: var(--s-dim); word-break: break-word; }
@@ -629,36 +745,51 @@ const colourSection = () => {
   <h3>Routine colours</h3>
   <p>A routine's colour is its identity: the same hue carries its card in the stack, the
     workout screen it opens into, and its days on the Stats calendar. These are the only
-    literal colours in the app, and the only saturation in it.</p>
-  <div class="scroll"><table>
-    <thead><tr><th>Routine</th><th>Card</th><th>Rest sweep</th><th>History cell</th><th>Button wash</th><th>Ink</th></tr></thead>
-    <tbody>
-      ${CANONICAL_ORDER.map((name) => {
-        const cell = (scheme) => {
-          const base = styleFor(scheme, name).background
-          const rest = restTintFor(scheme, name)
-          const pale = paleFor(scheme, name).background
-          const wash = washFor(scheme, name)
-          return { base, rest, pale, wash }
-        }
-        const l = cell('light')
-        const d = cell('dark')
-        const two = (a, b) =>
-          `<button class="copy" data-copy="${a}"><span class="chip" style="background:${a}"></span></button>` +
-          `<button class="copy" data-copy="${b}"><span class="chip" style="background:${b}"></span></button>`
-        return `<tr>
-        <td><b class="rounded" style="text-transform:uppercase;font-size:13px">${name}</b></td>
-        <td>${two(l.base, d.base)}</td>
-        <td>${two(l.rest, d.rest)}</td>
-        <td>${two(l.pale, d.pale)}</td>
-        <td>${two(over(l.wash, l.base), over(d.wash, d.base))}</td>
-        <td class="mono">${inkFor('light', name)}</td>
-      </tr>`
-      }).join('\n      ')}
-    </tbody>
-  </table></div>
-  <p class="hint">Each cell shows light then dark. The wash is drawn over its own colour at
-    partial opacity, so what is shown is the result, not the raw value.</p>`
+    literal colours in the app, and the only saturation in it. Laid out the way the Figma
+    library lays them out — three roles across, both schemes down, with the button wash
+    shown where it actually falls, over the sweep and the base.</p>
+
+  ${CANONICAL_ORDER.map((name) => {
+    const col = (scheme) => ({
+      sweep: restTintFor(scheme, name),
+      base: styleFor(scheme, name).background,
+      pale: paleFor(scheme, name).background,
+      wash: washFor(scheme, name),
+      ink: inkFor(scheme, name),
+    })
+    const band = (scheme, label) => {
+      const c = col(scheme)
+      const pct = Math.round(parseFloat(c.wash.match(/,\s*([0-9.]+)\)/)[1]) * 100)
+      const hex = over(c.wash, c.base)
+      return `<div class="rband">
+          <div class="rcol" style="background:${c.sweep};color:${inkOn(c.sweep)}">
+            <span class="rrole">Sweep ${label}</span>
+            <span class="rval"><b>${c.sweep.toUpperCase()}</b></span>
+          </div>
+          <div class="rcol" style="background:${c.base};color:${c.ink}">
+            <span class="rrole">Routine base ${label}</span>
+            <span class="rval"><b>${c.base.toUpperCase()}</b></span>
+          </div>
+          <div class="rcol" style="background:${c.pale};color:${paleFor(scheme, name).ink}">
+            <span class="rrole">History card ${label}</span>
+            <span class="rval"><b>${c.pale.toUpperCase()}</b></span>
+          </div>
+          <div class="rwash" style="background:${c.wash};color:${inkOn(hex)}">
+            <span class="rrole">Button wash</span>
+            <span class="rval"><b>${hex.toUpperCase()}</b> at ${pct}%</span>
+          </div>
+        </div>`
+    }
+    return `<div class="routinepanel">
+      <h4 class="rname">${name}</h4>
+      ${band('light', 'Light')}
+      ${band('dark', 'Dark')}
+    </div>`
+  }).join('\n  ')}
+
+  <p class="hint">Every value here is copied out of the app at build time. The wash is a
+    translucent layer, so it is labelled with the colour it resolves to over its own base
+    and the opacity it is drawn at.</p>`
 }
 
 const typeSection = () => {
@@ -816,13 +947,77 @@ const shapeSection = () => `
   </table></div>`
 
 const componentSection = () => {
-  const r = (name, scheme) => styleFor(scheme, name).background
-  const ink = (name) => inkFor('light', name)
-  const tabIcons = ICONS.filter((i) => i.file === 'TabIcons.jsx')
+  const card = (name, scheme) => {
+    const c = styleFor(scheme, name).background
+    const ink = inkFor(scheme, name)
+    return `<div class="rcard" data-rc="${name}" style="background:${c};color:${ink}">
+        <span class="rcard-name">${name}</span>
+        <span class="rcard-meta"><span>40 min</span><span>5 exercises</span></span>
+      </div>`
+  }
+
+  const cell = (name, expanded) => {
+    const base = styleFor('light', name).background
+    const ink = inkFor('light', name)
+    const tint = restTintFor('light', name)
+    const pale = paleFor('light', name)
+    const lifts = [
+      ['Squat', '4x 8x45kg', true],
+      ['Bench press', '4x 8x45kg', false],
+      ['Barbell row', '4x 8x45kg', false],
+      ['Overhead press', '4x 8x45kg', false],
+      ['Plank', '4x 8x45kg', false],
+    ]
+    const stats = [
+      ['ClockIcon', '56 min'],
+      ['DumbbellIcon', '5/5 exercises completed'],
+      ['RepeatIcon', '15/15 sets completed'],
+      ['BoltIcon', '~360 kcal*'],
+    ]
+    const svg = (n) => {
+      const i = ICONS.find((x) => x.name === n)
+      return i ? `<svg viewBox="0 0 24 24" class="statico">${i.shapes.join('')}</svg>` : ''
+    }
+    return `<div class="hcell" data-cell="${name}">
+      <div class="hhead" data-part="head" style="background:${base};color:${ink}">
+        <div class="hheading">
+          <span class="hname">${name[0].toUpperCase() + name.slice(1)}</span>
+          <span class="hwhen">Tuesday 12 August, 09:30</span>
+        </div>
+        <span class="htag" data-part="tag" style="background:${tint};color:${inkOn(tint)}">${expanded ? 'Advanced' : 'Ended early'}</span>
+        <svg viewBox="0 0 24 24" class="hchev" style="transform:rotate(${expanded ? 180 : 0}deg)">${
+          ICONS.find((x) => x.name === 'ChevronIcon')?.shapes.join('') ?? ''
+        }</svg>
+      </div>
+      ${
+        expanded
+          ? `<div class="hbody" data-part="body" style="background:${pale.background};color:${pale.ink}">
+        <div class="hsummary">
+          ${stats.map(([ic, txt]) => `<div class="hstat">${svg(ic)}<span>${txt}</span></div>`).join('\n          ')}
+        </div>
+        <div class="hlifts">
+          ${lifts
+            .map(
+              ([n, sets, skipped]) =>
+                `<div class="hlift${skipped ? ' faded' : ''}"><span class="hliftname">${n}${skipped ? '**' : ''}</span><span class="hliftsets">${sets}</span></div>`,
+            )
+            .join('\n          ')}
+        </div>
+        <p class="hfoot faded">*Kcal burn is an estimate using the MET method and should be used as a reference, not an exact measurement.</p>
+        <p class="hfoot faded">**Skipped</p>
+      </div>`
+          : ''
+      }
+    </div>`
+  }
+
+  const tabIcons = ['WorkoutIcon', 'StatsIcon', 'SettingsIcon'].map((n) =>
+    ICONS.find((i) => i.name === n),
+  )
+
   return `
-  <p class="lede">Rebuilt here in HTML from the same tokens the app uses, so a value that
-    changes in the theme changes on this page too. Use the Light / Dark control to inspect
-    either palette.</p>
+  <p class="lede">Every component below is drawn from the same tokens the app uses, at the
+    sizes the app uses. Where a number is stated it is the number in the source.</p>
 
   <div class="switcher">
     <div class="seg" role="group" aria-label="Specimen palette">
@@ -832,81 +1027,126 @@ const componentSection = () => {
   </div>
 
   <h3>Routine card</h3>
-  <p>The unit the whole app is built around. A slab of the routine's colour, its name in
-    rounded regular — the card is already emphatic and does not need the weight as well —
-    and two meta lines set in tabular figures so they hold their place as the stack is dragged.</p>
-  <div class="stage spec" data-spec="light">
-    ${['lower body', 'core', 'glutes']
-      .map(
-        (n) => `<div class="rcard" data-rc="${n}" style="background:${r(n, 'light')};color:${ink(n)}">
-      <b>${n}</b><div><span>50 min</span><span>6 exercises</span></div>
-    </div>`,
-      )
-      .join('\n    ')}
+  <p><b>${CARD_WIDTH} × ${CARD_HEIGHT}</b>, radius ${RADIUS.card}. The name is centred near the
+    top — positioned by its capitals rather than its line box, so it holds still if the
+    typeface changes — and the two meta lines are centred ${20}px from the bottom. Both are
+    uppercase by role, and the source strings stay in sentence case.</p>
+  <div class="stage spec scrollrow" data-spec="light">
+    ${CANONICAL_ORDER.map((n) => card(n, 'light')).join('\n    ')}
   </div>
 
+  <h3>History cell</h3>
+  <p>Shut, and open. The head takes the routine's base colour; the tag takes the same deeper
+    tone the rest sweep paints during a workout, so the app has one idea of "this colour,
+    deeper" rather than two. The body is a wash of the routine's own colour, with that colour
+    as ink wherever it holds up.</p>
+  <div class="stage col spec" data-spec="light">
+    ${cell('full body', false)}
+    ${cell('full body', true)}
+  </div>
+  <p class="hint">Skipped work and the calorie footnote sit at ${'0.76'} opacity — the point at
+    which the faintest of the six routines still clears 3:1. Not 4.5:1, which is unreachable
+    here: the cell's ink sits at exactly 4.5 at full strength.</p>
+
   <h3>Buttons</h3>
-  <p>One shape, fully rounded, set in <code>control</code> at ${TYPE.control.fontSize}px
-    medium and sentence case. The primary button takes the routine's colour, which is why
-    there is no single "primary" token — on a workout screen the colour <em>is</em> the routine.</p>
+  <p>One shape: minimum height 52, fully rounded, ${SPACE[3]}px of horizontal padding, set in
+    <code>control</code> at ${TYPE.control.fontSize}px medium and sentence case. There is no
+    "primary" colour token — on a workout screen the routine's colour <em>is</em> the primary.</p>
   <div class="stage spec" data-spec="light">
-    <button class="btn" data-btn style="background:${r('lower body', 'light')};color:${ink('lower body')}">Log set</button>
-    <button class="btn quiet">Skip</button>
-    <button class="btn ghost">End workout</button>
-    <button class="btn danger">Delete</button>
+    <button class="btn" data-btn-ink>See completed workouts</button>
+    <button class="btn quiet">See completed workouts</button>
   </div>
 
   <h3>Tab bar</h3>
-  <p>Blurred, washed and edged by hand. Each icon sits on its own compositing layer — Safari
-    would not reliably repaint what sat under the blur once a full-screen layer above it was
-    removed, and the icons stayed blank until something else made the bar redraw.</p>
+  <p>Height ${NAV_HEIGHT}, fully rounded, ${4}px padding, items ${64} × ${44} with ${4}px between
+    them. The edge is drawn over the bar rather than bordered — a border would come out of
+    the 52 and leave the items overflowing by two.</p>
   <div class="stage center spec" data-spec="light">
     <div class="tabbar">
       ${tabIcons
         .map(
           (i, n) =>
-            `<span class="slot${n === 0 ? ' on' : ''}"><svg viewBox="0 0 24 24" aria-label="${i.name}">${i.shapes.join('')}</svg></span>`,
+            `<span class="tabitem${n === 0 ? ' on' : ''}"><svg viewBox="0 0 24 24" aria-label="${i.name}">${i.shapes.join('')}</svg></span>`,
         )
         .join('\n      ')}
     </div>
   </div>
 
-  <h3>Rows and controls</h3>
+  <h3>Settings row</h3>
+  <p>A card at radius ${RADIUS.card} on the raised surface, ${SPACE[3]}px padding. The label is
+    <code>label</code>; the note under it is <code>caption</code> with its line height stated
+    at 17, the one place that role needs one. The switch track is 46 × 28 with a 22 × 22 knob.</p>
   <div class="stage col spec" data-spec="light">
-    <div class="row"><span class="lbl">Show rest time between sets</span><span class="switchctl on"><i></i></span></div>
-    <div class="row"><span class="lbl">Haptics</span><span class="switchctl"><i></i></span></div>
+    <div class="scard">
+      <div class="srow"><span class="slabel">Show rest time between sets</span><span class="track on"><i></i></span></div>
+      <p class="snote">When you turn Rest Time on, after logging a set you will see a countdown for your rest time between sets.</p>
+    </div>
+    <div class="scard">
+      <div class="srow"><span class="slabel">Show rest time between sets</span><span class="track"><i></i></span></div>
+    </div>
   </div>
 
-  <h3>History cell</h3>
-  <p>The routine's pale tone, so a glance down the list reads as colour before it reads as text.</p>
+  <h3>Segmented control</h3>
+  <p>Each option is a flexible cell at least 90 tall, radius ${RADIUS.card}, set in
+    <code>title</code>. The chosen one fills with ink and its label flips to
+    <code>onInk</code>; the rest step back to <code>textDim</code>, so the row reads as one
+    selection among several rather than several equal buttons.</p>
   <div class="stage col spec" data-spec="light">
-    ${['upper body', 'full body']
-      .map(
-        (n) => `<div class="hcell" data-hc="${n}" style="background:${paleFor('light', n).background}">
-      <span class="dot" style="background:${r(n, 'light')}"></span>
-      <span><b style="color:${LIGHT.text}">${n}</b><span>Tuesday · 48 min · 18 sets</span></span>
-    </div>`,
-      )
-      .join('\n    ')}
+    <div class="scard">
+      <div class="srow"><span class="slabel">Show rest time between sets</span><span class="track on"><i></i></span></div>
+      <div class="choices">
+        ${['20s', '60s', '120s', '180s']
+          .map((v, n) => `<span class="choice${n === 0 ? ' chosen' : ''}">${v}</span>`)
+          .join('\n        ')}
+      </div>
+    </div>
+    <div class="scard">
+      <span class="slabel">Appearance</span>
+      <div class="choices low">
+        ${['System', 'Light', 'Dark']
+          .map((v, n) => `<span class="choice${n === 1 ? ' chosen' : ''}">${v}</span>`)
+          .join('\n        ')}
+      </div>
+      <p class="snote">System follows your phone, switching with it when it changes.</p>
+    </div>
   </div>
 
-  <h3>Weekly chart</h3>
-  <p>Segments in each routine's colour, stacked by how much of the week went to it.</p>
-  <div class="stage center spec" data-spec="light">
-    <div class="chart">
-      ${[38, 62, 44, 88, 30, 70, 52]
-        .map((h, n) => {
-          const name = CANONICAL_ORDER[n % CANONICAL_ORDER.length]
-          return `<i data-bar="${name}" style="height:${h}%;background:${r(name, 'light')}"></i>`
-        })
+  <h3>Rest spread</h3>
+  <p>Hairline-separated rows: the routine in <code>label</code> stepped back, its seconds in
+    the same size and weight but mixed case with <code>caption</code>'s tracking — under
+    <code>label</code> alone, "120s" came out as "120S".</p>
+  <div class="stage col spec" data-spec="light">
+    <div class="scard">
+      ${[
+        ['Lower body', '20s'],
+        ['Upper body', '20s'],
+        ['Core', '20s'],
+        ['Mobility', '30s'],
+      ]
+        .map(([n, v]) => `<div class="spreadrow"><span class="spreadof">${n}</span><span class="spreadsec">${v}</span></div>`)
         .join('\n      ')}
     </div>
   </div>
 
+  <h3>Body weight</h3>
+  <p>The figure and its unit are one thing in one ink at rest, set in
+    <code>screenTitle</code> at ${TYPE.screenTitle.fontSize}px. While it is being typed the
+    card outlines itself so it is obvious which one the keypad belongs to, the unit steps
+    back to 0.45, and a drawn caret stands in for the cursor — the real field is parked
+    off-screen, focusable and never seen.</p>
+  <div class="stage col spec" data-spec="light">
+    <div class="scard">
+      <div class="weightrow"><span class="slabel">Body weight</span><span class="weightval">96<span class="wunit">kg</span></span></div>
+    </div>
+    <div class="scard editing">
+      <div class="weightrow"><span class="slabel">Body weight</span><span class="weightval">96<i class="caret"></i><span class="wunit dim">kg</span></span></div>
+    </div>
+  </div>
+
   <h3>Icons</h3>
-  <p>${ICONS.length} icons, drawn rather than shipped as images so the ink is a prop and there
-    is nothing to re-export at another size or density. The shapes below are read out of the
-    component source when this page is built.</p>
+  <p>${ICONS.length} icons, drawn rather than shipped as images so the ink is a prop. The
+    shapes below are read out of the component source when this page is built; icons with a
+    selected state are shown at rest.</p>
   <div class="stage spec" data-spec="light">
     <div class="icongrid">
       ${ICONS.map(
@@ -1027,36 +1267,47 @@ const page = `<title>Training Tracker — design system</title>
       CANONICAL_ORDER.map((n) => [
         n,
         {
-          light: styleFor('light', n).background,
-          dark: styleFor('dark', n).background,
-          paleLight: paleFor('light', n).background,
-          paleDark: paleFor('dark', n).background,
-          inkLight: inkFor('light', n),
-          inkDark: inkFor('dark', n),
+          light: {
+            base: styleFor('light', n).background,
+            ink: inkFor('light', n),
+            tint: restTintFor('light', n),
+            tintInk: inkOn(restTintFor('light', n)),
+            pale: paleFor('light', n).background,
+            paleInk: paleFor('light', n).ink,
+          },
+          dark: {
+            base: styleFor('dark', n).background,
+            ink: inkFor('dark', n),
+            tint: restTintFor('dark', n),
+            tintInk: inkOn(restTintFor('dark', n)),
+            pale: paleFor('dark', n).background,
+            paleInk: paleFor('dark', n).ink,
+          },
         },
       ]),
     ),
   )}
-  const TEXT = { light: '${LIGHT.text}', dark: '${DARK.text}' }
 
   for (const seg of document.querySelectorAll('[data-scheme]')) {
     seg.addEventListener('click', () => {
       const mode = seg.dataset.scheme
       for (const b of document.querySelectorAll('[data-scheme]')) b.classList.toggle('on', b === seg)
       for (const stage of document.querySelectorAll('.stage.spec')) stage.dataset.spec = mode
+
       for (const c of document.querySelectorAll('[data-rc]')) {
-        c.style.background = ROUTINE[c.dataset.rc][mode]
-        c.style.color = ROUTINE[c.dataset.rc][mode === 'dark' ? 'inkDark' : 'inkLight']
+        const r = ROUTINE[c.dataset.rc][mode]
+        c.style.background = r.base
+        c.style.color = r.ink
       }
-      for (const c of document.querySelectorAll('[data-hc]')) {
-        c.style.background = ROUTINE[c.dataset.hc][mode === 'dark' ? 'paleDark' : 'paleLight']
-        c.querySelector('.dot').style.background = ROUTINE[c.dataset.hc][mode]
-        c.querySelector('b').style.color = TEXT[mode]
+      for (const cell of document.querySelectorAll('[data-cell]')) {
+        const r = ROUTINE[cell.dataset.cell][mode]
+        const head = cell.querySelector('[data-part="head"]')
+        if (head) { head.style.background = r.base; head.style.color = r.ink }
+        const tag = cell.querySelector('[data-part="tag"]')
+        if (tag) { tag.style.background = r.tint; tag.style.color = r.tintInk }
+        const body = cell.querySelector('[data-part="body"]')
+        if (body) { body.style.background = r.pale; body.style.color = r.paleInk }
       }
-      for (const b of document.querySelectorAll('[data-bar]')) b.style.background = ROUTINE[b.dataset.bar][mode]
-      const btn = document.querySelector('[data-btn]')
-      btn.style.background = ROUTINE['lower body'][mode]
-      btn.style.color = ROUTINE['lower body'][mode === 'dark' ? 'inkDark' : 'inkLight']
     })
   }
 

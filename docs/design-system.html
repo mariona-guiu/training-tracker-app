@@ -224,73 +224,176 @@
   .hint { font-size: 12px; color: var(--dim); }
 
   /* ── the app's own components, rebuilt in HTML ─────────────────────── */
+  /* Sizes here are the app's own numbers, interpolated from the theme and the
+     components rather than chosen to look right on a web page. */
+
+  .scrollrow { overflow-x: auto; flex-wrap: nowrap; }
 
   .rcard {
-    width: 214px; height: 152px; border-radius: 12px;
-    padding: 16px; display: flex; flex-direction: column; justify-content: space-between;
-    box-shadow: 0 8px 22px var(--shadow);
+    width: 280px; height: 360px; border-radius: 12px;
+    flex: none; position: relative; display: block;
   }
-  .rcard b {
-    font-family: ui-rounded, system-ui, sans-serif; font-weight: 400;
-    font-size: 30px; text-transform: uppercase; line-height: 1.02;
+  .rcard-name {
+    position: absolute; top: 14px; left: 16px; right: 16px;
+    font-family: ui-rounded, system-ui, sans-serif;
+    font-weight: 400; font-size: 30px;
+    text-transform: uppercase; text-align: center; line-height: 1.1777;
   }
-  .rcard span {
+  .rcard-meta {
+    position: absolute; left: 0; right: 0; bottom: 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
     font-family: ui-rounded, system-ui, sans-serif;
     font-size: 16px; text-transform: uppercase;
-    font-variant-numeric: tabular-nums; opacity: .82; display: block; line-height: 1.25;
+    font-variant-numeric: tabular-nums; line-height: 1.1777;
   }
 
-  .btn {
-    border: 0; border-radius: 999px; padding: 14px 26px; cursor: pointer;
-    font-family: -apple-system, system-ui, sans-serif;
-    font-size: 16px; font-weight: 500;
+  /* history cell */
+  .hcell { width: 100%; max-width: 420px; border-radius: 12px; overflow: hidden; }
+  .hhead {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 8px; padding: 16px;
   }
-  .btn.ghost { background: transparent; border: 1px solid var(--s-line); color: var(--s-ink); }
-  .btn.quiet { background: var(--s-raised); color: var(--s-ink); }
-  .btn.danger { background: var(--s-danger); color: #fff; }
-
-  .tabbar {
-    position: relative; width: 246px; height: 52px;
-    border-radius: 26px; overflow: hidden;
-    border: 1px solid var(--s-glass-edge);
-    background: linear-gradient(var(--s-glass-a), var(--s-glass-b));
-    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
-    display: flex; align-items: center; justify-content: space-around;
-  }
-  .tabbar .slot { width: 44px; height: 34px; display: grid; place-items: center; border-radius: 999px; }
-  .tabbar .slot.on { background: var(--s-highlight); }
-  .tabbar svg { width: 22px; height: 22px; display: block; }
-
-  .switchctl { width: 51px; height: 31px; border-radius: 999px; background: var(--s-track); position: relative; flex: none; }
-  .switchctl.on { background: var(--s-ink); }
-  .switchctl i { position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.28); transition: left .18s; }
-  .switchctl.on i { left: 22px; }
-
-  .row {
-    display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    padding: 13px 16px; background: var(--s-raised); border-radius: 12px; width: 100%;
-  }
-  .row .lbl {
+  .hheading { display: flex; flex-direction: column; gap: 8px; min-width: 0; flex: 1; }
+  .hname { font-family: ui-rounded, system-ui, sans-serif; font-weight: 700; font-size: 20px; }
+  .hwhen {
     font-size: 12px; font-weight: 500;
     letter-spacing: 0.12px; text-transform: uppercase;
   }
-
-  .hcell {
-    display: flex; align-items: center; gap: 12px; padding: 12px 14px;
-    border-radius: 12px; width: 100%;
+  .htag {
+    align-self: center; flex-shrink: 1; margin-right: 8px;
+    padding: 5px 9px 7px; border-radius: 4px; white-space: nowrap;
+    font-size: 12px; font-weight: 500;
+    letter-spacing: 0.12px; text-transform: uppercase;
   }
-  .hcell .dot { width: 34px; height: 34px; border-radius: 50%; flex: none; }
-  .hcell b { font-family: ui-rounded, system-ui, sans-serif; font-size: 20px; font-weight: 700; }
-  .hcell span { font-size: 12px; color: var(--s-dim); display: block; }
-
-  .chart { display: flex; align-items: flex-end; gap: 7px; height: 96px; }
-  .chart i { width: 22px; border-radius: 4px 4px 0 0; display: block; }
-
-  .icongrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; width: 100%; }
-  .icontile {
-    display: flex; flex-direction: column; align-items: center; gap: 9px;
-    padding: 16px 8px; border-radius: 4px; text-align: center;
+  .hchev { width: 24px; height: 24px; align-self: center; flex: none; }
+  .hbody { padding: 24px 16px 16px; }
+  .hsummary { display: flex; flex-direction: column; gap: 4px; }
+  .hstat {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 500;
+    letter-spacing: 0.12px; text-transform: uppercase;
   }
+  .statico { width: 24px; height: 24px; flex: none; }
+  .hlifts { margin-top: 16px; }
+  .hlift {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; padding: 8px 0;
+  }
+  .hliftname {
+    flex-shrink: 1; font-size: 12px; font-weight: 500;
+    letter-spacing: 0.12px; text-transform: uppercase;
+  }
+  .hliftsets {
+    flex-shrink: 0; text-align: right; max-width: 60%;
+    font-size: 12px; font-weight: 500;
+    letter-spacing: 0px;
+  }
+  .hfoot { font-size: 12px; margin: 16px 0 0; max-width: none; }
+  .faded { opacity: 0.76; }
+
+  /* buttons */
+  .btn {
+    border: 0; border-radius: 999px; min-height: 52px;
+    padding: 8px 16px; cursor: pointer;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 16px; font-weight: 500;
+    background: var(--s-ink); color: var(--s-onink);
+  }
+  .btn.quiet { background: var(--s-raised); color: var(--s-ink); }
+
+  /* tab bar */
+  .tabbar {
+    position: relative; height: 52px; padding: 4px; border-radius: 999px;
+    display: flex; gap: 4px; overflow: hidden;
+    background: linear-gradient(var(--s-glass-a), var(--s-glass-b));
+    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    outline: 1px solid var(--s-glass-edge); outline-offset: -1px;
+  }
+  .tabitem {
+    width: 64px; height: 44px; border-radius: 999px;
+    display: grid; place-items: center; color: var(--s-ink);
+  }
+  .tabitem.on { background: var(--s-highlight); }
+  .tabitem svg { width: 22px; height: 22px; display: block; }
+
+  /* settings */
+  .scard {
+    padding: 16px; border-radius: 12px; background: var(--s-raised);
+    width: 100%; max-width: 420px;
+  }
+  .scard.editing { outline: 1px solid var(--s-ink); outline-offset: -1px; }
+  .srow { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .slabel {
+    flex: 1; font-size: 12px; font-weight: 500;
+    letter-spacing: 0.12px; text-transform: uppercase; color: var(--s-ink);
+  }
+  .snote {
+    font-size: 12px; line-height: 17px; color: var(--s-dim);
+    margin: 8px 0 0; max-width: none;
+  }
+  .track {
+    width: 46px; height: 28px; padding: 3px; border-radius: 999px;
+    background: var(--s-track); flex: none; display: flex; align-items: center;
+    transition: background .15s;
+  }
+  .track.on { background: var(--s-ink); justify-content: flex-end; }
+  .track i { width: 22px; height: 22px; border-radius: 999px; background: var(--s-onink); display: block; }
+
+  .choices { display: flex; gap: 8px; margin-top: 16px; }
+  .choice {
+    flex: 1; min-height: 90px; padding: 8px 0; border-radius: 12px;
+    display: grid; place-items: center; background: var(--s-onink); color: var(--s-dim);
+    font-family: ui-rounded, system-ui, sans-serif; font-weight: 700; font-size: 20px;
+  }
+  .choices.low .choice { min-height: 56px; }
+  .choice.chosen { background: var(--s-ink); color: var(--s-onink); }
+
+  .spreadrow {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 8px 0; border-top: 1px solid var(--s-line);
+  }
+  .spreadrow:first-child { border-top: 0; }
+  .spreadof {
+    font-size: 12px; font-weight: 500;
+    letter-spacing: 0.12px; text-transform: uppercase; color: var(--s-dim);
+  }
+  .spreadsec {
+    font-size: 12px; font-weight: 500;
+    letter-spacing: 0px; color: var(--s-ink);
+  }
+
+  .weightrow { display: flex; align-items: center; justify-content: space-between; }
+  .weightval {
+    display: flex; align-items: center;
+    font-family: ui-rounded, system-ui, sans-serif; font-weight: 700;
+    font-size: 32px; letter-spacing: -0.32px;
+    color: var(--s-ink);
+  }
+  .wunit.dim { opacity: 0.45; }
+  .caret { width: 3px; height: 24px; margin: 0 1px 0 2px; background: var(--s-ink); display: inline-block; }
+
+  /* routine colour panels, laid out like the Figma library */
+  .routinepanel { margin: 26px 0 30px; }
+  .rname {
+    font-family: ui-rounded, system-ui, sans-serif; text-transform: uppercase;
+    font-size: 15px; letter-spacing: 0.03em; margin: 0 0 10px;
+  }
+  .rband { position: relative; display: grid; grid-template-columns: 1fr 1fr 1fr; min-height: 150px; }
+  .rcol { padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+  .rrole { font-size: 11.5px; opacity: .95; }
+  .rval { font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  .rval b { font-weight: 600; }
+  .rwash {
+    position: absolute; left: 16%; top: 26px; width: 34%; height: 62%;
+    border-radius: 12px; padding: 10px 12px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  @media (max-width: 620px) {
+    .rwash { display: none; }
+  }
+
+  .icongrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; width: 100%; }
+  .icontile { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 16px 8px; border-radius: 4px; text-align: center; }
   .icontile:hover { background: var(--s-raised); }
   .icontile svg { width: 26px; height: 26px; color: var(--s-ink); }
   .icontile em { font-style: normal; font-size: 10.5px; color: var(--s-dim); word-break: break-word; }
@@ -559,62 +662,248 @@
   <h3>Routine colours</h3>
   <p>A routine's colour is its identity: the same hue carries its card in the stack, the
     workout screen it opens into, and its days on the Stats calendar. These are the only
-    literal colours in the app, and the only saturation in it.</p>
-  <div class="scroll"><table>
-    <thead><tr><th>Routine</th><th>Card</th><th>Rest sweep</th><th>History cell</th><th>Button wash</th><th>Ink</th></tr></thead>
-    <tbody>
-      <tr>
-        <td><b class="rounded" style="text-transform:uppercase;font-size:13px">glutes</b></td>
-        <td><button class="copy" data-copy="#FCD22E"><span class="chip" style="background:#FCD22E"></span></button><button class="copy" data-copy="#F5B000"><span class="chip" style="background:#F5B000"></span></button></td>
-        <td><button class="copy" data-copy="#F7C319"><span class="chip" style="background:#F7C319"></span></button><button class="copy" data-copy="#EBA400"><span class="chip" style="background:#EBA400"></span></button></td>
-        <td><button class="copy" data-copy="#FFE373"><span class="chip" style="background:#FFE373"></span></button><button class="copy" data-copy="#FFCE53"><span class="chip" style="background:#FFCE53"></span></button></td>
-        <td><button class="copy" data-copy="#e5b920"><span class="chip" style="background:#e5b920"></span></button><button class="copy" data-copy="#da9805"><span class="chip" style="background:#da9805"></span></button></td>
-        <td class="mono">#0a0a0a</td>
-      </tr>
-      <tr>
-        <td><b class="rounded" style="text-transform:uppercase;font-size:13px">full body</b></td>
-        <td><button class="copy" data-copy="#EC1C22"><span class="chip" style="background:#EC1C22"></span></button><button class="copy" data-copy="#DD0004"><span class="chip" style="background:#DD0004"></span></button></td>
-        <td><button class="copy" data-copy="#C41419"><span class="chip" style="background:#C41419"></span></button><button class="copy" data-copy="#AD0003"><span class="chip" style="background:#AD0003"></span></button></td>
-        <td><button class="copy" data-copy="#FF7175"><span class="chip" style="background:#FF7175"></span></button><button class="copy" data-copy="#F26163"><span class="chip" style="background:#F26163"></span></button></td>
-        <td><button class="copy" data-copy="#de191f"><span class="chip" style="background:#de191f"></span></button><button class="copy" data-copy="#c70003"><span class="chip" style="background:#c70003"></span></button></td>
-        <td class="mono">#ffffff</td>
-      </tr>
-      <tr>
-        <td><b class="rounded" style="text-transform:uppercase;font-size:13px">core</b></td>
-        <td><button class="copy" data-copy="#FBCEDF"><span class="chip" style="background:#FBCEDF"></span></button><button class="copy" data-copy="#F3ABC5"><span class="chip" style="background:#F3ABC5"></span></button></td>
-        <td><button class="copy" data-copy="#FFBDD6"><span class="chip" style="background:#FFBDD6"></span></button><button class="copy" data-copy="#F292B3"><span class="chip" style="background:#F292B3"></span></button></td>
-        <td><button class="copy" data-copy="#FCDEE9"><span class="chip" style="background:#FCDEE9"></span></button><button class="copy" data-copy="#FFC3D9"><span class="chip" style="background:#FFC3D9"></span></button></td>
-        <td><button class="copy" data-copy="#f4b8d1"><span class="chip" style="background:#f4b8d1"></span></button><button class="copy" data-copy="#e190b1"><span class="chip" style="background:#e190b1"></span></button></td>
-        <td class="mono">#0a0a0a</td>
-      </tr>
-      <tr>
-        <td><b class="rounded" style="text-transform:uppercase;font-size:13px">upper body</b></td>
-        <td><button class="copy" data-copy="#F37500"><span class="chip" style="background:#F37500"></span></button><button class="copy" data-copy="#EB7100"><span class="chip" style="background:#EB7100"></span></button></td>
-        <td><button class="copy" data-copy="#E46C1B"><span class="chip" style="background:#E46C1B"></span></button><button class="copy" data-copy="#DF6316"><span class="chip" style="background:#DF6316"></span></button></td>
-        <td><button class="copy" data-copy="#FFBF83"><span class="chip" style="background:#FFBF83"></span></button><button class="copy" data-copy="#FFA65D"><span class="chip" style="background:#FFA65D"></span></button></td>
-        <td><button class="copy" data-copy="#ce5d08"><span class="chip" style="background:#ce5d08"></span></button><button class="copy" data-copy="#ca5b04"><span class="chip" style="background:#ca5b04"></span></button></td>
-        <td class="mono">#0a0a0a</td>
-      </tr>
-      <tr>
-        <td><b class="rounded" style="text-transform:uppercase;font-size:13px">mobility</b></td>
-        <td><button class="copy" data-copy="#D7ED00"><span class="chip" style="background:#D7ED00"></span></button><button class="copy" data-copy="#BFD200"><span class="chip" style="background:#BFD200"></span></button></td>
-        <td><button class="copy" data-copy="#C5D716"><span class="chip" style="background:#C5D716"></span></button><button class="copy" data-copy="#AEBF00"><span class="chip" style="background:#AEBF00"></span></button></td>
-        <td><button class="copy" data-copy="#EBF86D"><span class="chip" style="background:#EBF86D"></span></button><button class="copy" data-copy="#E0EE5A"><span class="chip" style="background:#E0EE5A"></span></button></td>
-        <td><button class="copy" data-copy="#c0d20a"><span class="chip" style="background:#c0d20a"></span></button><button class="copy" data-copy="#a2b600"><span class="chip" style="background:#a2b600"></span></button></td>
-        <td class="mono">#0a0a0a</td>
-      </tr>
-      <tr>
-        <td><b class="rounded" style="text-transform:uppercase;font-size:13px">lower body</b></td>
-        <td><button class="copy" data-copy="#00ADF0"><span class="chip" style="background:#00ADF0"></span></button><button class="copy" data-copy="#0081BC"><span class="chip" style="background:#0081BC"></span></button></td>
-        <td><button class="copy" data-copy="#0096DB"><span class="chip" style="background:#0096DB"></span></button><button class="copy" data-copy="#0067A3"><span class="chip" style="background:#0067A3"></span></button></td>
-        <td><button class="copy" data-copy="#87D7F6"><span class="chip" style="background:#87D7F6"></span></button><button class="copy" data-copy="#69C1EA"><span class="chip" style="background:#69C1EA"></span></button></td>
-        <td><button class="copy" data-copy="#0490cf"><span class="chip" style="background:#0490cf"></span></button><button class="copy" data-copy="#0679b7"><span class="chip" style="background:#0679b7"></span></button></td>
-        <td class="mono">#0a0a0a</td>
-      </tr>
-    </tbody>
-  </table></div>
-  <p class="hint">Each cell shows light then dark. The wash is drawn over its own colour at
-    partial opacity, so what is shown is the result, not the raw value.</p>
+    literal colours in the app, and the only saturation in it. Laid out the way the Figma
+    library lays them out — three roles across, both schemes down, with the button wash
+    shown where it actually falls, over the sweep and the base.</p>
+
+  <div class="routinepanel">
+      <h4 class="rname">glutes</h4>
+      <div class="rband">
+          <div class="rcol" style="background:#F7C319;color:#0a0a0a">
+            <span class="rrole">Sweep Light</span>
+            <span class="rval"><b>#F7C319</b></span>
+          </div>
+          <div class="rcol" style="background:#FCD22E;color:#0a0a0a">
+            <span class="rrole">Routine base Light</span>
+            <span class="rval"><b>#FCD22E</b></span>
+          </div>
+          <div class="rcol" style="background:#FFE373;color:#0a0a0a">
+            <span class="rrole">History card Light</span>
+            <span class="rval"><b>#FFE373</b></span>
+          </div>
+          <div class="rwash" style="background:rgba(179, 128, 0, 0.31);color:#0a0a0a">
+            <span class="rrole">Button wash</span>
+            <span class="rval"><b>#E5B920</b> at 31%</span>
+          </div>
+        </div>
+      <div class="rband">
+          <div class="rcol" style="background:#EBA400;color:#0a0a0a">
+            <span class="rrole">Sweep Dark</span>
+            <span class="rval"><b>#EBA400</b></span>
+          </div>
+          <div class="rcol" style="background:#F5B000;color:#0a0a0a">
+            <span class="rrole">Routine base Dark</span>
+            <span class="rval"><b>#F5B000</b></span>
+          </div>
+          <div class="rcol" style="background:#FFCE53;color:#0a0a0a">
+            <span class="rrole">History card Dark</span>
+            <span class="rval"><b>#FFCE53</b></span>
+          </div>
+          <div class="rwash" style="background:rgba(184, 123, 10, 0.45);color:#0a0a0a">
+            <span class="rrole">Button wash</span>
+            <span class="rval"><b>#DA9805</b> at 45%</span>
+          </div>
+        </div>
+    </div>
+  <div class="routinepanel">
+      <h4 class="rname">full body</h4>
+      <div class="rband">
+          <div class="rcol" style="background:#C41419;color:#ffffff">
+            <span class="rrole">Sweep Light</span>
+            <span class="rval"><b>#C41419</b></span>
+          </div>
+          <div class="rcol" style="background:#EC1C22;color:#ffffff">
+            <span class="rrole">Routine base Light</span>
+            <span class="rval"><b>#EC1C22</b></span>
+          </div>
+          <div class="rcol" style="background:#FF7175;color:#0a0a0a">
+            <span class="rrole">History card Light</span>
+            <span class="rval"><b>#FF7175</b></span>
+          </div>
+          <div class="rwash" style="background:rgba(196, 20, 25, 0.36);color:#ffffff">
+            <span class="rrole">Button wash</span>
+            <span class="rval"><b>#DE191F</b> at 36%</span>
+          </div>
+        </div>
+      <div class="rband">
+          <div class="rcol" style="background:#AD0003;color:#ffffff">
+            <span class="rrole">Sweep Dark</span>
+            <span class="rval"><b>#AD0003</b></span>
+          </div>
+          <div class="rcol" style="background:#DD0004;color:#ffffff">
+            <span class="rrole">Routine base Dark</span>
+            <span class="rval"><b>#DD0004</b></span>
+          </div>
+          <div class="rcol" style="background:#F26163;color:#0a0a0a">
+            <span class="rrole">History card Dark</span>
+            <span class="rval"><b>#F26163</b></span>
+          </div>
+          <div class="rwash" style="background:rgba(138, 0, 2, 0.27);color:#ffffff">
+            <span class="rrole">Button wash</span>
+            <span class="rval"><b>#C70003</b> at 27%</span>
+          </div>
+        </div>
+    </div>
+  <div class="routinepanel">
+      <h4 class="rname">core</h4>
+      <div class="rband">
+          <div class="rcol" style="background:#FFBDD6;color:#0a0a0a">
+            <span class="rrole">Sweep Light</span>
+            <span class="rval"><b>#FFBDD6</b></span>
+          </div>
+          <div class="rcol" style="background:#FBCEDF;color:#0a0a0a">
+            <span class="rrole">Routine base Light</span>
+            <span class="rval"><b>#FBCEDF</b></span>
+          </div>
+          <div class="rcol" style="background:#FCDEE9;color:#0a0a0a">
+            <span class="rrole">History card Light</span>
+            <span class="rval"><b>#FCDEE9</b></span>
+          </div>
+          <div class="rwash" style="background:rgba(217, 99, 157, 0.21);color:#0a0a0a">
+            <span class="rrole">Button wash</span>
+            <span class="rval"><b>#F4B8D1</b> at 21%</span>
+          </div>
+        </div>
+      <div class="rband">
+          <div class="rcol" style="background:#F292B3;color:#0a0a0a">
+            <span class="rrole">Sweep Dark</span>
+            <span class="rval"><b>#F292B3</b></span>
+          </div>
+          <div class="rcol" style="background:#F3ABC5;color:#0a0a0a">
+            <span class="rrole">Routine base Dark</span>
+            <span class="rval"><b>#F3ABC5</b></span>
+          </div>
+          <div class="rcol" style="background:#FFC3D9;color:#0a0a0a">
+            <span class="rrole">History card Dark</span>
+            <span class="rval"><b>#FFC3D9</b></span>
+          </div>
+          <div class="rwash" style="background:rgba(166, 58, 112, 0.24);color:#0a0a0a">
+            <span class="rrole">Button wash</span>
+            <span class="rval"><b>#E190B1</b> at 24%</span>
+          </div>
+        </div>
+    </div>
+  <div class="routinepanel">
+      <h4 class="rname">upper body</h4>
+      <div class="rband">
+          <div class="rcol" style="background:#E46C1B;color:#ffffff">
+            <span class="rrole">Sweep Light</span>
+            <span class="rval"><b>#E46C1B</b></span>
+          </div>
+          <div class="rcol" style="background:#F37500;color:#0a0a0a">
+            <span class="rrole">Routine base Light</span>
+            <span class="rval"><b>#F37500</b></span>
+          </div>
+          <div class="rcol" style="background:#FFBF83;color:#0a0a0a">
+            <span class="rrole">History card Light</span>
+            <span class="rval"><b>#FFBF83</b></span>
+          </div>
+          <div class="rwash" style="background:rgba(162, 65, 17, 0.46);color:#ffffff">
+            <span class="rrole">Button wash</span>
+            <span class="rval"><b>#CE5D08</b> at 46%</span>
+          </div>
+        </div>
+      <div class="rband">
+          <div class="rcol" style="background:#DF6316;color:#ffffff">
+            <span class="rrole">Sweep Dark</span>
+            <span class="rval"><b>#DF6316</b></span>
+          </div>
+          <div class="rcol" style="background:#EB7100;color:#0a0a0a">
+            <span class="rrole">Routine base Dark</span>
+            <span class="rval"><b>#EB7100</b></span>
+          </div>
+          <div class="rcol" style="background:#FFA65D;color:#0a0a0a">
+            <span class="rrole">History card Dark</span>
+            <span class="rval"><b>#FFA65D</b></span>
+          </div>
+          <div class="rwash" style="background:rgba(135, 47, 13, 0.33);color:#ffffff">
+            <span class="rrole">Button wash</span>
+            <span class="rval"><b>#CA5B04</b> at 33%</span>
+          </div>
+        </div>
+    </div>
+  <div class="routinepanel">
+      <h4 class="rname">mobility</h4>
+      <div class="rband">
+          <div class="rcol" style="background:#C5D716;color:#0a0a0a">
+            <span class="rrole">Sweep Light</span>
+            <span class="rval"><b>#C5D716</b></span>
+          </div>
+          <div class="rcol" style="background:#D7ED00;color:#0a0a0a">
+            <span class="rrole">Routine base Light</span>
+            <span class="rval"><b>#D7ED00</b></span>
+          </div>
+          <div class="rcol" style="background:#EBF86D;color:#0a0a0a">
+            <span class="rrole">History card Light</span>
+            <span class="rval"><b>#EBF86D</b></span>
+          </div>
+          <div class="rwash" style="background:rgba(136, 144, 35, 0.29);color:#0a0a0a">
+            <span class="rrole">Button wash</span>
+            <span class="rval"><b>#C0D20A</b> at 29%</span>
+          </div>
+        </div>
+      <div class="rband">
+          <div class="rcol" style="background:#AEBF00;color:#0a0a0a">
+            <span class="rrole">Sweep Dark</span>
+            <span class="rval"><b>#AEBF00</b></span>
+          </div>
+          <div class="rcol" style="background:#BFD200;color:#0a0a0a">
+            <span class="rrole">Routine base Dark</span>
+            <span class="rval"><b>#BFD200</b></span>
+          </div>
+          <div class="rcol" style="background:#E0EE5A;color:#0a0a0a">
+            <span class="rrole">History card Dark</span>
+            <span class="rval"><b>#E0EE5A</b></span>
+          </div>
+          <div class="rwash" style="background:rgba(52, 77, 0, 0.21);color:#0a0a0a">
+            <span class="rrole">Button wash</span>
+            <span class="rval"><b>#A2B600</b> at 21%</span>
+          </div>
+        </div>
+    </div>
+  <div class="routinepanel">
+      <h4 class="rname">lower body</h4>
+      <div class="rband">
+          <div class="rcol" style="background:#0096DB;color:#ffffff">
+            <span class="rrole">Sweep Light</span>
+            <span class="rval"><b>#0096DB</b></span>
+          </div>
+          <div class="rcol" style="background:#00ADF0;color:#0a0a0a">
+            <span class="rrole">Routine base Light</span>
+            <span class="rval"><b>#00ADF0</b></span>
+          </div>
+          <div class="rcol" style="background:#87D7F6;color:#0a0a0a">
+            <span class="rrole">History card Light</span>
+            <span class="rval"><b>#87D7F6</b></span>
+          </div>
+          <div class="rwash" style="background:rgba(15, 64, 117, 0.27);color:#ffffff">
+            <span class="rrole">Button wash</span>
+            <span class="rval"><b>#0490CF</b> at 27%</span>
+          </div>
+        </div>
+      <div class="rband">
+          <div class="rcol" style="background:#0067A3;color:#ffffff">
+            <span class="rrole">Sweep Dark</span>
+            <span class="rval"><b>#0067A3</b></span>
+          </div>
+          <div class="rcol" style="background:#0081BC;color:#ffffff">
+            <span class="rrole">Routine base Dark</span>
+            <span class="rval"><b>#0081BC</b></span>
+          </div>
+          <div class="rcol" style="background:#69C1EA;color:#0a0a0a">
+            <span class="rrole">History card Dark</span>
+            <span class="rval"><b>#69C1EA</b></span>
+          </div>
+          <div class="rwash" style="background:rgba(20, 102, 173, 0.31);color:#ffffff">
+            <span class="rrole">Button wash</span>
+            <span class="rval"><b>#0679B7</b> at 31%</span>
+          </div>
+        </div>
+    </div>
+
+  <p class="hint">Every value here is copied out of the app at build time. The wash is a
+    translucent layer, so it is labelled with the colour it resolves to over its own base
+    and the opacity it is drawn at.</p>
       </div>
     </section>
 
@@ -858,9 +1147,8 @@
         <p class="eyebrow">04 — Library</p>
         <h2>Components</h2>
         
-  <p class="lede">Rebuilt here in HTML from the same tokens the app uses, so a value that
-    changes in the theme changes on this page too. Use the Light / Dark control to inspect
-    either palette.</p>
+  <p class="lede">Every component below is drawn from the same tokens the app uses, at the
+    sizes the app uses. Where a number is stated it is the number in the source.</p>
 
   <div class="switcher">
     <div class="seg" role="group" aria-label="Specimen palette">
@@ -870,81 +1158,179 @@
   </div>
 
   <h3>Routine card</h3>
-  <p>The unit the whole app is built around. A slab of the routine's colour, its name in
-    rounded regular — the card is already emphatic and does not need the weight as well —
-    and two meta lines set in tabular figures so they hold their place as the stack is dragged.</p>
-  <div class="stage spec" data-spec="light">
-    <div class="rcard" data-rc="lower body" style="background:#00ADF0;color:#0a0a0a">
-      <b>lower body</b><div><span>50 min</span><span>6 exercises</span></div>
-    </div>
-    <div class="rcard" data-rc="core" style="background:#FBCEDF;color:#0a0a0a">
-      <b>core</b><div><span>50 min</span><span>6 exercises</span></div>
-    </div>
+  <p><b>280 × 360</b>, radius 12. The name is centred near the
+    top — positioned by its capitals rather than its line box, so it holds still if the
+    typeface changes — and the two meta lines are centred 20px from the bottom. Both are
+    uppercase by role, and the source strings stay in sentence case.</p>
+  <div class="stage spec scrollrow" data-spec="light">
     <div class="rcard" data-rc="glutes" style="background:#FCD22E;color:#0a0a0a">
-      <b>glutes</b><div><span>50 min</span><span>6 exercises</span></div>
-    </div>
-  </div>
-
-  <h3>Buttons</h3>
-  <p>One shape, fully rounded, set in <code>control</code> at 16px
-    medium and sentence case. The primary button takes the routine's colour, which is why
-    there is no single "primary" token — on a workout screen the colour <em>is</em> the routine.</p>
-  <div class="stage spec" data-spec="light">
-    <button class="btn" data-btn style="background:#00ADF0;color:#0a0a0a">Log set</button>
-    <button class="btn quiet">Skip</button>
-    <button class="btn ghost">End workout</button>
-    <button class="btn danger">Delete</button>
-  </div>
-
-  <h3>Tab bar</h3>
-  <p>Blurred, washed and edged by hand. Each icon sits on its own compositing layer — Safari
-    would not reliably repaint what sat under the blur once a full-screen layer above it was
-    removed, and the icons stayed blank until something else made the bar redraw.</p>
-  <div class="stage center spec" data-spec="light">
-    <div class="tabbar">
-      <span class="slot on"><svg viewBox="0 0 24 24" aria-label="WorkoutIcon"><rect x="13.6189" y="5.52948" width="2.67" height="9.58846" rx="1" transform="rotate(-30 13.6189 5.52948)" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="3.29" y="11.49" width="2.67" height="9.58846" rx="1" transform="rotate(-30 3.29 11.49)" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.98389 14.3187L16.0159 9.68136" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.9587 4.66083L21.8353 9.64313" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.16455 14.357L5.04109 19.3393" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      <span class="slot"><svg viewBox="0 0 24 24" aria-label="StatsIcon"><path d="M18 20V10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 20V4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 20V14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      <span class="slot"><svg viewBox="0 0 24 24" aria-label="SettingsIcon"><path d="M12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.0545 14.4545C17.9456 14.7013 17.9131 14.9751 17.9613 15.2405C18.0094 15.5059 18.1359 15.7508 18.3245 15.9436L18.3736 15.9927C18.5258 16.1447 18.6465 16.3252 18.7288 16.5238C18.8112 16.7225 18.8536 16.9354 18.8536 17.1505C18.8536 17.3655 18.8112 17.5784 18.7288 17.7771C18.6465 17.9757 18.5258 18.1562 18.3736 18.3082C18.2217 18.4603 18.0412 18.581 17.8425 18.6634C17.6439 18.7457 17.431 18.7881 17.2159 18.7881C17.0009 18.7881 16.7879 18.7457 16.5893 18.6634C16.3906 18.581 16.2102 18.4603 16.0582 18.3082L16.0091 18.2591C15.8163 18.0705 15.5714 17.9439 15.3059 17.8958C15.0405 17.8477 14.7668 17.8802 14.52 17.9891C14.278 18.0928 14.0716 18.265 13.9263 18.4845C13.7809 18.704 13.7029 18.9613 13.7018 19.2245V19.3636C13.7018 19.7976 13.5294 20.2138 13.2225 20.5207C12.9157 20.8276 12.4994 21 12.0655 21C11.6315 21 11.2152 20.8276 10.9084 20.5207C10.6015 20.2138 10.4291 19.7976 10.4291 19.3636V19.29C10.4228 19.0192 10.3351 18.7565 10.1775 18.5362C10.0199 18.3159 9.79969 18.1481 9.54545 18.0545C9.29868 17.9456 9.02493 17.9131 8.75952 17.9613C8.4941 18.0094 8.24919 18.1359 8.05636 18.3245L8.00727 18.3736C7.8553 18.5258 7.67483 18.6465 7.47617 18.7288C7.27752 18.8112 7.06459 18.8536 6.84955 18.8536C6.6345 18.8536 6.42157 18.8112 6.22292 18.7288C6.02426 18.6465 5.84379 18.5258 5.69182 18.3736C5.53967 18.2217 5.41898 18.0412 5.33663 17.8425C5.25428 17.6439 5.21189 17.431 5.21189 17.2159C5.21189 17.0009 5.25428 16.7879 5.33663 16.5893C5.41898 16.3906 5.53967 16.2102 5.69182 16.0582L5.74091 16.0091C5.92953 15.8163 6.05606 15.5714 6.10419 15.3059C6.15231 15.0405 6.11982 14.7668 6.01091 14.52C5.90719 14.278 5.73498 14.0716 5.51547 13.9263C5.29596 13.7809 5.03873 13.7029 4.77545 13.7018H4.63636C4.20237 13.7018 3.78616 13.5294 3.47928 13.2225C3.1724 12.9157 3 12.4994 3 12.0655C3 11.6315 3.1724 11.2152 3.47928 10.9084C3.78616 10.6015 4.20237 10.4291 4.63636 10.4291H4.71C4.98081 10.4228 5.24346 10.3351 5.46379 10.1775C5.68412 10.0199 5.85195 9.79969 5.94545 9.54545C6.05437 9.29868 6.08686 9.02493 6.03873 8.75952C5.99061 8.4941 5.86408 8.24919 5.67545 8.05636L5.62636 8.00727C5.47422 7.8553 5.35352 7.67483 5.27118 7.47617C5.18883 7.27752 5.14644 7.06459 5.14644 6.84955C5.14644 6.6345 5.18883 6.42157 5.27118 6.22292C5.35352 6.02426 5.47422 5.84379 5.62636 5.69182C5.77834 5.53967 5.95881 5.41898 6.15746 5.33663C6.35611 5.25428 6.56905 5.21189 6.78409 5.21189C6.99913 5.21189 7.21207 5.25428 7.41072 5.33663C7.60937 5.41898 7.78984 5.53967 7.94182 5.69182L7.99091 5.74091C8.18374 5.92953 8.42865 6.05606 8.69406 6.10419C8.95948 6.15231 9.23322 6.11982 9.48 6.01091H9.54545C9.78745 5.90719 9.99383 5.73498 10.1392 5.51547C10.2846 5.29596 10.3626 5.03873 10.3636 4.77545V4.63636C10.3636 4.20237 10.536 3.78616 10.8429 3.47928C11.1498 3.1724 11.566 3 12 3C12.434 3 12.8502 3.1724 13.1571 3.47928C13.464 3.78616 13.6364 4.20237 13.6364 4.63636V4.71C13.6374 4.97328 13.7154 5.23051 13.8608 5.45002C14.0062 5.66953 14.2126 5.84174 14.4545 5.94545C14.7013 6.05437 14.9751 6.08686 15.2405 6.03873C15.5059 5.99061 15.7508 5.86408 15.9436 5.67545L15.9927 5.62636C16.1447 5.47422 16.3252 5.35352 16.5238 5.27118C16.7225 5.18883 16.9354 5.14644 17.1505 5.14644C17.3655 5.14644 17.5784 5.18883 17.7771 5.27118C17.9757 5.35352 18.1562 5.47422 18.3082 5.62636C18.4603 5.77834 18.581 5.95881 18.6634 6.15746C18.7457 6.35611 18.7881 6.56905 18.7881 6.78409C18.7881 6.99913 18.7457 7.21207 18.6634 7.41072C18.581 7.60937 18.4603 7.78984 18.3082 7.94182L18.2591 7.99091C18.0705 8.18374 17.9439 8.42865 17.8958 8.69406C17.8477 8.95948 17.8802 9.23322 17.9891 9.48V9.54545C18.0928 9.78745 18.265 9.99383 18.4845 10.1392C18.704 10.2846 18.9613 10.3626 19.2245 10.3636H19.3636C19.7976 10.3636 20.2138 10.536 20.5207 10.8429C20.8276 11.1498 21 11.566 21 12C21 12.434 20.8276 12.8502 20.5207 13.1571C20.2138 13.464 19.7976 13.6364 19.3636 13.6364H19.29C19.0267 13.6374 18.7695 13.7154 18.55 13.8608C18.3305 14.0062 18.1583 14.2126 18.0545 14.4545Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-    </div>
-  </div>
-
-  <h3>Rows and controls</h3>
-  <div class="stage col spec" data-spec="light">
-    <div class="row"><span class="lbl">Show rest time between sets</span><span class="switchctl on"><i></i></span></div>
-    <div class="row"><span class="lbl">Haptics</span><span class="switchctl"><i></i></span></div>
+        <span class="rcard-name">glutes</span>
+        <span class="rcard-meta"><span>40 min</span><span>5 exercises</span></span>
+      </div>
+    <div class="rcard" data-rc="full body" style="background:#EC1C22;color:#ffffff">
+        <span class="rcard-name">full body</span>
+        <span class="rcard-meta"><span>40 min</span><span>5 exercises</span></span>
+      </div>
+    <div class="rcard" data-rc="core" style="background:#FBCEDF;color:#0a0a0a">
+        <span class="rcard-name">core</span>
+        <span class="rcard-meta"><span>40 min</span><span>5 exercises</span></span>
+      </div>
+    <div class="rcard" data-rc="upper body" style="background:#F37500;color:#0a0a0a">
+        <span class="rcard-name">upper body</span>
+        <span class="rcard-meta"><span>40 min</span><span>5 exercises</span></span>
+      </div>
+    <div class="rcard" data-rc="mobility" style="background:#D7ED00;color:#0a0a0a">
+        <span class="rcard-name">mobility</span>
+        <span class="rcard-meta"><span>40 min</span><span>5 exercises</span></span>
+      </div>
+    <div class="rcard" data-rc="lower body" style="background:#00ADF0;color:#0a0a0a">
+        <span class="rcard-name">lower body</span>
+        <span class="rcard-meta"><span>40 min</span><span>5 exercises</span></span>
+      </div>
   </div>
 
   <h3>History cell</h3>
-  <p>The routine's pale tone, so a glance down the list reads as colour before it reads as text.</p>
+  <p>Shut, and open. The head takes the routine's base colour; the tag takes the same deeper
+    tone the rest sweep paints during a workout, so the app has one idea of "this colour,
+    deeper" rather than two. The body is a wash of the routine's own colour, with that colour
+    as ink wherever it holds up.</p>
   <div class="stage col spec" data-spec="light">
-    <div class="hcell" data-hc="upper body" style="background:#FFBF83">
-      <span class="dot" style="background:#F37500"></span>
-      <span><b style="color:#191919">upper body</b><span>Tuesday · 48 min · 18 sets</span></span>
+    <div class="hcell" data-cell="full body">
+      <div class="hhead" data-part="head" style="background:#EC1C22;color:#ffffff">
+        <div class="hheading">
+          <span class="hname">Full body</span>
+          <span class="hwhen">Tuesday 12 August, 09:30</span>
+        </div>
+        <span class="htag" data-part="tag" style="background:#C41419;color:#ffffff">Ended early</span>
+        <svg viewBox="0 0 24 24" class="hchev" style="transform:rotate(0deg)"><path d="M6 9l6 6 6-6" fill="none"/></svg>
+      </div>
+      
     </div>
-    <div class="hcell" data-hc="full body" style="background:#FF7175">
-      <span class="dot" style="background:#EC1C22"></span>
-      <span><b style="color:#191919">full body</b><span>Tuesday · 48 min · 18 sets</span></span>
+    <div class="hcell" data-cell="full body">
+      <div class="hhead" data-part="head" style="background:#EC1C22;color:#ffffff">
+        <div class="hheading">
+          <span class="hname">Full body</span>
+          <span class="hwhen">Tuesday 12 August, 09:30</span>
+        </div>
+        <span class="htag" data-part="tag" style="background:#C41419;color:#ffffff">Advanced</span>
+        <svg viewBox="0 0 24 24" class="hchev" style="transform:rotate(180deg)"><path d="M6 9l6 6 6-6" fill="none"/></svg>
+      </div>
+      <div class="hbody" data-part="body" style="background:#FF7175;color:#0a0a0a">
+        <div class="hsummary">
+          <div class="hstat"><svg viewBox="0 0 24 24" class="statico"><path d="M12 7v5l3.5 2" fill="none"/></svg><span>56 min</span></div>
+          <div class="hstat"><svg viewBox="0 0 24 24" class="statico"><path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10" fill="none"/></svg><span>5/5 exercises completed</span></div>
+          <div class="hstat"><svg viewBox="0 0 24 24" class="statico"><path d="M16 3l3.5 3.5L16 10M20 6.5H7.5A3.5 3.5 0 004 10v1.5M8 21l-3.5-3.5L8 14M4 17.5h12.5a3.5 3.5 0 003.5-3.5v-1.5" fill="none"/></svg><span>15/15 sets completed</span></div>
+          <div class="hstat"><svg viewBox="0 0 24 24" class="statico"><path d="M13 3L5 13h6l-1 8 8-10h-6l1-8z" fill="none"/></svg><span>~360 kcal*</span></div>
+        </div>
+        <div class="hlifts">
+          <div class="hlift faded"><span class="hliftname">Squat**</span><span class="hliftsets">4x 8x45kg</span></div>
+          <div class="hlift"><span class="hliftname">Bench press</span><span class="hliftsets">4x 8x45kg</span></div>
+          <div class="hlift"><span class="hliftname">Barbell row</span><span class="hliftsets">4x 8x45kg</span></div>
+          <div class="hlift"><span class="hliftname">Overhead press</span><span class="hliftsets">4x 8x45kg</span></div>
+          <div class="hlift"><span class="hliftname">Plank</span><span class="hliftsets">4x 8x45kg</span></div>
+        </div>
+        <p class="hfoot faded">*Kcal burn is an estimate using the MET method and should be used as a reference, not an exact measurement.</p>
+        <p class="hfoot faded">**Skipped</p>
+      </div>
+    </div>
+  </div>
+  <p class="hint">Skipped work and the calorie footnote sit at 0.76 opacity — the point at
+    which the faintest of the six routines still clears 3:1. Not 4.5:1, which is unreachable
+    here: the cell's ink sits at exactly 4.5 at full strength.</p>
+
+  <h3>Buttons</h3>
+  <p>One shape: minimum height 52, fully rounded, 16px of horizontal padding, set in
+    <code>control</code> at 16px medium and sentence case. There is no
+    "primary" colour token — on a workout screen the routine's colour <em>is</em> the primary.</p>
+  <div class="stage spec" data-spec="light">
+    <button class="btn" data-btn-ink>See completed workouts</button>
+    <button class="btn quiet">See completed workouts</button>
+  </div>
+
+  <h3>Tab bar</h3>
+  <p>Height 52, fully rounded, 4px padding, items 64 × 44 with 4px between
+    them. The edge is drawn over the bar rather than bordered — a border would come out of
+    the 52 and leave the items overflowing by two.</p>
+  <div class="stage center spec" data-spec="light">
+    <div class="tabbar">
+      <span class="tabitem on"><svg viewBox="0 0 24 24" aria-label="WorkoutIcon"><rect x="13.6189" y="5.52948" width="2.67" height="9.58846" rx="1" transform="rotate(-30 13.6189 5.52948)" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="3.29" y="11.49" width="2.67" height="9.58846" rx="1" transform="rotate(-30 3.29 11.49)" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7.98389 14.3187L16.0159 9.68136" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.9587 4.66083L21.8353 9.64313" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.16455 14.357L5.04109 19.3393" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="tabitem"><svg viewBox="0 0 24 24" aria-label="StatsIcon"><path d="M18 20V10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 20V4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 20V14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="tabitem"><svg viewBox="0 0 24 24" aria-label="SettingsIcon"><path d="M12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.0545 14.4545C17.9456 14.7013 17.9131 14.9751 17.9613 15.2405C18.0094 15.5059 18.1359 15.7508 18.3245 15.9436L18.3736 15.9927C18.5258 16.1447 18.6465 16.3252 18.7288 16.5238C18.8112 16.7225 18.8536 16.9354 18.8536 17.1505C18.8536 17.3655 18.8112 17.5784 18.7288 17.7771C18.6465 17.9757 18.5258 18.1562 18.3736 18.3082C18.2217 18.4603 18.0412 18.581 17.8425 18.6634C17.6439 18.7457 17.431 18.7881 17.2159 18.7881C17.0009 18.7881 16.7879 18.7457 16.5893 18.6634C16.3906 18.581 16.2102 18.4603 16.0582 18.3082L16.0091 18.2591C15.8163 18.0705 15.5714 17.9439 15.3059 17.8958C15.0405 17.8477 14.7668 17.8802 14.52 17.9891C14.278 18.0928 14.0716 18.265 13.9263 18.4845C13.7809 18.704 13.7029 18.9613 13.7018 19.2245V19.3636C13.7018 19.7976 13.5294 20.2138 13.2225 20.5207C12.9157 20.8276 12.4994 21 12.0655 21C11.6315 21 11.2152 20.8276 10.9084 20.5207C10.6015 20.2138 10.4291 19.7976 10.4291 19.3636V19.29C10.4228 19.0192 10.3351 18.7565 10.1775 18.5362C10.0199 18.3159 9.79969 18.1481 9.54545 18.0545C9.29868 17.9456 9.02493 17.9131 8.75952 17.9613C8.4941 18.0094 8.24919 18.1359 8.05636 18.3245L8.00727 18.3736C7.8553 18.5258 7.67483 18.6465 7.47617 18.7288C7.27752 18.8112 7.06459 18.8536 6.84955 18.8536C6.6345 18.8536 6.42157 18.8112 6.22292 18.7288C6.02426 18.6465 5.84379 18.5258 5.69182 18.3736C5.53967 18.2217 5.41898 18.0412 5.33663 17.8425C5.25428 17.6439 5.21189 17.431 5.21189 17.2159C5.21189 17.0009 5.25428 16.7879 5.33663 16.5893C5.41898 16.3906 5.53967 16.2102 5.69182 16.0582L5.74091 16.0091C5.92953 15.8163 6.05606 15.5714 6.10419 15.3059C6.15231 15.0405 6.11982 14.7668 6.01091 14.52C5.90719 14.278 5.73498 14.0716 5.51547 13.9263C5.29596 13.7809 5.03873 13.7029 4.77545 13.7018H4.63636C4.20237 13.7018 3.78616 13.5294 3.47928 13.2225C3.1724 12.9157 3 12.4994 3 12.0655C3 11.6315 3.1724 11.2152 3.47928 10.9084C3.78616 10.6015 4.20237 10.4291 4.63636 10.4291H4.71C4.98081 10.4228 5.24346 10.3351 5.46379 10.1775C5.68412 10.0199 5.85195 9.79969 5.94545 9.54545C6.05437 9.29868 6.08686 9.02493 6.03873 8.75952C5.99061 8.4941 5.86408 8.24919 5.67545 8.05636L5.62636 8.00727C5.47422 7.8553 5.35352 7.67483 5.27118 7.47617C5.18883 7.27752 5.14644 7.06459 5.14644 6.84955C5.14644 6.6345 5.18883 6.42157 5.27118 6.22292C5.35352 6.02426 5.47422 5.84379 5.62636 5.69182C5.77834 5.53967 5.95881 5.41898 6.15746 5.33663C6.35611 5.25428 6.56905 5.21189 6.78409 5.21189C6.99913 5.21189 7.21207 5.25428 7.41072 5.33663C7.60937 5.41898 7.78984 5.53967 7.94182 5.69182L7.99091 5.74091C8.18374 5.92953 8.42865 6.05606 8.69406 6.10419C8.95948 6.15231 9.23322 6.11982 9.48 6.01091H9.54545C9.78745 5.90719 9.99383 5.73498 10.1392 5.51547C10.2846 5.29596 10.3626 5.03873 10.3636 4.77545V4.63636C10.3636 4.20237 10.536 3.78616 10.8429 3.47928C11.1498 3.1724 11.566 3 12 3C12.434 3 12.8502 3.1724 13.1571 3.47928C13.464 3.78616 13.6364 4.20237 13.6364 4.63636V4.71C13.6374 4.97328 13.7154 5.23051 13.8608 5.45002C14.0062 5.66953 14.2126 5.84174 14.4545 5.94545C14.7013 6.05437 14.9751 6.08686 15.2405 6.03873C15.5059 5.99061 15.7508 5.86408 15.9436 5.67545L15.9927 5.62636C16.1447 5.47422 16.3252 5.35352 16.5238 5.27118C16.7225 5.18883 16.9354 5.14644 17.1505 5.14644C17.3655 5.14644 17.5784 5.18883 17.7771 5.27118C17.9757 5.35352 18.1562 5.47422 18.3082 5.62636C18.4603 5.77834 18.581 5.95881 18.6634 6.15746C18.7457 6.35611 18.7881 6.56905 18.7881 6.78409C18.7881 6.99913 18.7457 7.21207 18.6634 7.41072C18.581 7.60937 18.4603 7.78984 18.3082 7.94182L18.2591 7.99091C18.0705 8.18374 17.9439 8.42865 17.8958 8.69406C17.8477 8.95948 17.8802 9.23322 17.9891 9.48V9.54545C18.0928 9.78745 18.265 9.99383 18.4845 10.1392C18.704 10.2846 18.9613 10.3626 19.2245 10.3636H19.3636C19.7976 10.3636 20.2138 10.536 20.5207 10.8429C20.8276 11.1498 21 11.566 21 12C21 12.434 20.8276 12.8502 20.5207 13.1571C20.2138 13.464 19.7976 13.6364 19.3636 13.6364H19.29C19.0267 13.6374 18.7695 13.7154 18.55 13.8608C18.3305 14.0062 18.1583 14.2126 18.0545 14.4545Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </div>
   </div>
 
-  <h3>Weekly chart</h3>
-  <p>Segments in each routine's colour, stacked by how much of the week went to it.</p>
-  <div class="stage center spec" data-spec="light">
-    <div class="chart">
-      <i data-bar="glutes" style="height:38%;background:#FCD22E"></i>
-      <i data-bar="full body" style="height:62%;background:#EC1C22"></i>
-      <i data-bar="core" style="height:44%;background:#FBCEDF"></i>
-      <i data-bar="upper body" style="height:88%;background:#F37500"></i>
-      <i data-bar="mobility" style="height:30%;background:#D7ED00"></i>
-      <i data-bar="lower body" style="height:70%;background:#00ADF0"></i>
-      <i data-bar="glutes" style="height:52%;background:#FCD22E"></i>
+  <h3>Settings row</h3>
+  <p>A card at radius 12 on the raised surface, 16px padding. The label is
+    <code>label</code>; the note under it is <code>caption</code> with its line height stated
+    at 17, the one place that role needs one. The switch track is 46 × 28 with a 22 × 22 knob.</p>
+  <div class="stage col spec" data-spec="light">
+    <div class="scard">
+      <div class="srow"><span class="slabel">Show rest time between sets</span><span class="track on"><i></i></span></div>
+      <p class="snote">When you turn Rest Time on, after logging a set you will see a countdown for your rest time between sets.</p>
+    </div>
+    <div class="scard">
+      <div class="srow"><span class="slabel">Show rest time between sets</span><span class="track"><i></i></span></div>
+    </div>
+  </div>
+
+  <h3>Segmented control</h3>
+  <p>Each option is a flexible cell at least 90 tall, radius 12, set in
+    <code>title</code>. The chosen one fills with ink and its label flips to
+    <code>onInk</code>; the rest step back to <code>textDim</code>, so the row reads as one
+    selection among several rather than several equal buttons.</p>
+  <div class="stage col spec" data-spec="light">
+    <div class="scard">
+      <div class="srow"><span class="slabel">Show rest time between sets</span><span class="track on"><i></i></span></div>
+      <div class="choices">
+        <span class="choice chosen">20s</span>
+        <span class="choice">60s</span>
+        <span class="choice">120s</span>
+        <span class="choice">180s</span>
+      </div>
+    </div>
+    <div class="scard">
+      <span class="slabel">Appearance</span>
+      <div class="choices low">
+        <span class="choice">System</span>
+        <span class="choice chosen">Light</span>
+        <span class="choice">Dark</span>
+      </div>
+      <p class="snote">System follows your phone, switching with it when it changes.</p>
+    </div>
+  </div>
+
+  <h3>Rest spread</h3>
+  <p>Hairline-separated rows: the routine in <code>label</code> stepped back, its seconds in
+    the same size and weight but mixed case with <code>caption</code>'s tracking — under
+    <code>label</code> alone, "120s" came out as "120S".</p>
+  <div class="stage col spec" data-spec="light">
+    <div class="scard">
+      <div class="spreadrow"><span class="spreadof">Lower body</span><span class="spreadsec">20s</span></div>
+      <div class="spreadrow"><span class="spreadof">Upper body</span><span class="spreadsec">20s</span></div>
+      <div class="spreadrow"><span class="spreadof">Core</span><span class="spreadsec">20s</span></div>
+      <div class="spreadrow"><span class="spreadof">Mobility</span><span class="spreadsec">30s</span></div>
+    </div>
+  </div>
+
+  <h3>Body weight</h3>
+  <p>The figure and its unit are one thing in one ink at rest, set in
+    <code>screenTitle</code> at 32px. While it is being typed the
+    card outlines itself so it is obvious which one the keypad belongs to, the unit steps
+    back to 0.45, and a drawn caret stands in for the cursor — the real field is parked
+    off-screen, focusable and never seen.</p>
+  <div class="stage col spec" data-spec="light">
+    <div class="scard">
+      <div class="weightrow"><span class="slabel">Body weight</span><span class="weightval">96<span class="wunit">kg</span></span></div>
+    </div>
+    <div class="scard editing">
+      <div class="weightrow"><span class="slabel">Body weight</span><span class="weightval">96<i class="caret"></i><span class="wunit dim">kg</span></span></div>
     </div>
   </div>
 
   <h3>Icons</h3>
-  <p>17 icons, drawn rather than shipped as images so the ink is a prop and there
-    is nothing to re-export at another size or density. The shapes below are read out of the
-    component source when this page is built.</p>
+  <p>17 icons, drawn rather than shipped as images so the ink is a prop. The
+    shapes below are read out of the component source when this page is built; icons with a
+    selected state are shown at rest.</p>
   <div class="stage spec" data-spec="light">
     <div class="icongrid">
       <div class="icontile">
@@ -1076,27 +1462,28 @@
   }
 
   // The specimen palette, pinned independently of the page's own theme.
-  const ROUTINE = {"glutes":{"light":"#FCD22E","dark":"#F5B000","paleLight":"#FFE373","paleDark":"#FFCE53","inkLight":"#0a0a0a","inkDark":"#0a0a0a"},"full body":{"light":"#EC1C22","dark":"#DD0004","paleLight":"#FF7175","paleDark":"#F26163","inkLight":"#ffffff","inkDark":"#ffffff"},"core":{"light":"#FBCEDF","dark":"#F3ABC5","paleLight":"#FCDEE9","paleDark":"#FFC3D9","inkLight":"#0a0a0a","inkDark":"#0a0a0a"},"upper body":{"light":"#F37500","dark":"#EB7100","paleLight":"#FFBF83","paleDark":"#FFA65D","inkLight":"#0a0a0a","inkDark":"#0a0a0a"},"mobility":{"light":"#D7ED00","dark":"#BFD200","paleLight":"#EBF86D","paleDark":"#E0EE5A","inkLight":"#0a0a0a","inkDark":"#0a0a0a"},"lower body":{"light":"#00ADF0","dark":"#0081BC","paleLight":"#87D7F6","paleDark":"#69C1EA","inkLight":"#0a0a0a","inkDark":"#ffffff"}}
-  const TEXT = { light: '#191919', dark: '#f2f2ef' }
+  const ROUTINE = {"glutes":{"light":{"base":"#FCD22E","ink":"#0a0a0a","tint":"#F7C319","tintInk":"#0a0a0a","pale":"#FFE373","paleInk":"#0a0a0a"},"dark":{"base":"#F5B000","ink":"#0a0a0a","tint":"#EBA400","tintInk":"#0a0a0a","pale":"#FFCE53","paleInk":"#0a0a0a"}},"full body":{"light":{"base":"#EC1C22","ink":"#ffffff","tint":"#C41419","tintInk":"#ffffff","pale":"#FF7175","paleInk":"#0a0a0a"},"dark":{"base":"#DD0004","ink":"#ffffff","tint":"#AD0003","tintInk":"#ffffff","pale":"#F26163","paleInk":"#0a0a0a"}},"core":{"light":{"base":"#FBCEDF","ink":"#0a0a0a","tint":"#FFBDD6","tintInk":"#0a0a0a","pale":"#FCDEE9","paleInk":"#0a0a0a"},"dark":{"base":"#F3ABC5","ink":"#0a0a0a","tint":"#F292B3","tintInk":"#0a0a0a","pale":"#FFC3D9","paleInk":"#0a0a0a"}},"upper body":{"light":{"base":"#F37500","ink":"#0a0a0a","tint":"#E46C1B","tintInk":"#ffffff","pale":"#FFBF83","paleInk":"#0a0a0a"},"dark":{"base":"#EB7100","ink":"#0a0a0a","tint":"#DF6316","tintInk":"#ffffff","pale":"#FFA65D","paleInk":"#0a0a0a"}},"mobility":{"light":{"base":"#D7ED00","ink":"#0a0a0a","tint":"#C5D716","tintInk":"#0a0a0a","pale":"#EBF86D","paleInk":"#0a0a0a"},"dark":{"base":"#BFD200","ink":"#0a0a0a","tint":"#AEBF00","tintInk":"#0a0a0a","pale":"#E0EE5A","paleInk":"#0a0a0a"}},"lower body":{"light":{"base":"#00ADF0","ink":"#0a0a0a","tint":"#0096DB","tintInk":"#ffffff","pale":"#87D7F6","paleInk":"#0a0a0a"},"dark":{"base":"#0081BC","ink":"#ffffff","tint":"#0067A3","tintInk":"#ffffff","pale":"#69C1EA","paleInk":"#0a0a0a"}}}
 
   for (const seg of document.querySelectorAll('[data-scheme]')) {
     seg.addEventListener('click', () => {
       const mode = seg.dataset.scheme
       for (const b of document.querySelectorAll('[data-scheme]')) b.classList.toggle('on', b === seg)
       for (const stage of document.querySelectorAll('.stage.spec')) stage.dataset.spec = mode
+
       for (const c of document.querySelectorAll('[data-rc]')) {
-        c.style.background = ROUTINE[c.dataset.rc][mode]
-        c.style.color = ROUTINE[c.dataset.rc][mode === 'dark' ? 'inkDark' : 'inkLight']
+        const r = ROUTINE[c.dataset.rc][mode]
+        c.style.background = r.base
+        c.style.color = r.ink
       }
-      for (const c of document.querySelectorAll('[data-hc]')) {
-        c.style.background = ROUTINE[c.dataset.hc][mode === 'dark' ? 'paleDark' : 'paleLight']
-        c.querySelector('.dot').style.background = ROUTINE[c.dataset.hc][mode]
-        c.querySelector('b').style.color = TEXT[mode]
+      for (const cell of document.querySelectorAll('[data-cell]')) {
+        const r = ROUTINE[cell.dataset.cell][mode]
+        const head = cell.querySelector('[data-part="head"]')
+        if (head) { head.style.background = r.base; head.style.color = r.ink }
+        const tag = cell.querySelector('[data-part="tag"]')
+        if (tag) { tag.style.background = r.tint; tag.style.color = r.tintInk }
+        const body = cell.querySelector('[data-part="body"]')
+        if (body) { body.style.background = r.pale; body.style.color = r.paleInk }
       }
-      for (const b of document.querySelectorAll('[data-bar]')) b.style.background = ROUTINE[b.dataset.bar][mode]
-      const btn = document.querySelector('[data-btn]')
-      btn.style.background = ROUTINE['lower body'][mode]
-      btn.style.color = ROUTINE['lower body'][mode === 'dark' ? 'inkDark' : 'inkLight']
     })
   }
 
