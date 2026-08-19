@@ -15,7 +15,8 @@
 //   2. CONSTANT_CASE names in backticks exist somewhere in the source.
 //   3. Everything the theme exports is consumed by something.
 //   4. No credential, personal address or LAN address is in any commit.
-//   5. docs/design-tokens.html matches what the generator would produce.
+//   5. Every class used in a generated page has a CSS rule.
+//   6. docs/design-tokens.html matches what the generator would produce.
 //
 // Check 4 is the one with teeth now that this repo is public: it reads all of
 // history, because that is what a public repo actually serves.
@@ -204,6 +205,47 @@ if (grepHistory(SECRETS.map(([, re]) => re.source).join('|')).length > 0) {
 for (const f of tracked) {
   if (/(^|\/)\.env(\.|$)/.test(f) || /\.(pem|p12|keystore|jks)$/.test(f)) {
     fail(f, 'is tracked, and files of this kind carry credentials')
+  }
+}
+
+// ── 5. every class in a generated page has a rule ─────────────────────────
+//
+// The generated pages carry their own stylesheet, and it is edited by replacing
+// ranges of text. Three times in one afternoon a range that ended at a landmark
+// swallowed every rule added after it — the paging rules went, so all five
+// pages rendered at once; the canvas lost `overflow: hidden`, so the cards
+// landed on the prose; `.glassstage` lost `position: relative`, so its gradient
+// positioned against the viewport and covered the page.
+//
+// Nothing caught any of it. A missing rule is not a parse error, the page still
+// matches its generator, and the tags still balance — the markup simply falls
+// back to browser defaults. This is the check that would have.
+//
+// Direction matters: markup → stylesheet. A rule with no markup is dead weight
+// and harmless; markup with no rule is a component drawn wrong.
+
+for (const page of ['docs/design-system.html', 'docs/design-tokens.html']) {
+  const html = readFileSync(join(root, page), 'utf8')
+  const style = html.slice(0, html.indexOf('</style>'))
+  // Every class named anywhere in a selector, so compound and grouped ones
+  // count: `.stage.holds` covers `holds`, `.hreveal, .sreveal` covers both.
+  const styled = new Set([...style.matchAll(/\.([A-Za-z][\w-]*)/g)].map((m) => m[1]))
+  const used = new Set()
+  for (const m of html.slice(html.indexOf('</style>')).matchAll(/class="([^"]+)"/g)) {
+    for (const c of m[1].trim().split(/\s+/)) used.add(c)
+  }
+  // Classes that carry no styling by design. Each is either a flag the script
+  // reads, or a hook it toggles visibility on through the hidden attribute —
+  // never something whose appearance depends on a rule existing.
+  const HOOKS = new Set([
+    'open', // the history cell's state, read by the script; the height is animated in JS
+    'act', // the selected icon, shown and hidden through the hidden attribute
+    'rest', // and its resting counterpart
+    'splabel', // the signpost's label, which takes its type from .signpost
+  ])
+  const orphans = [...used].filter((c) => !styled.has(c) && !HOOKS.has(c)).sort()
+  if (orphans.length) {
+    fail(page, `uses ${orphans.length} class${orphans.length === 1 ? '' : 'es'} with no rule: ${orphans.join(', ')}`)
   }
 }
 

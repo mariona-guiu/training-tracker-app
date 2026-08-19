@@ -134,11 +134,19 @@ sentence describes. Edit the generator, never the page. The icon shapes are
 parsed out of `src/components/*Icons.jsx` at build time, and an icon the parser
 cannot read is an error rather than a silent omission.
 
-`npm run doctor` checks four things that have exactly one right answer: paths
+`npm run doctor` checks things that have exactly one right answer: paths
 named in this file and the README resolve, `CONSTANT_CASE` names in backticks
 exist in the source, every exported token is used somewhere, and the tokens page
-matches what the generator produces. It reports nothing else on purpose — a
-check that flags things which might be fine teaches you to skim past it.
+matches what the generator produces, and **every class used in a generated
+page has a CSS rule**. It reports nothing else on purpose — a check that flags
+things which might be fine teaches you to skim past it.
+
+That last one exists because the stylesheet is edited by replacing ranges of
+text, and three times in one afternoon a range ending at a landmark swallowed
+every rule added after it. Nothing else noticed: a missing rule is not a parse
+error, the page still matches its generator, and the tags still balance — the
+markup just falls back to browser defaults. Classes that carry no styling by
+design are listed in the check with a reason each.
 
 It cannot check prose. Seven comments in this repo were wrong on one day, each
 accurate when written; the code moved and the sentence did not. Those still
@@ -156,6 +164,35 @@ Agreed with the user on 2026-08-08, after the set-edit panel's keyboard
 stagger took six attempts and several other bugs took three or four. The cost
 is real — it is slow, and it is taxing for the person having to be the test
 harness every round.
+
+**Re-agreed on 2026-08-19, after the button-wash swatch took eight.** Each round
+was a different theory about what the app renders — a white tint, a bare
+backdrop-filter, no material, expo-blur's web CSS — and the user reviewed every
+one. The screenshots that settled it had been available since the first round.
+
+So the trigger is now explicit and it is **one**:
+
+> **One failed attempt at a visual problem is the stop signal.** Do not offer a
+> second theory. Measure, or say what would need measuring and ask for it.
+
+`npm run sample` is the measuring tool, and it exists so this is never the slow
+option again:
+
+```bash
+npm run sample -- <image> 15,80 80,80          # points, as % of width,height
+npm run sample -- <image> --scan-y 20 88,95    # where the colour changes
+```
+
+It reads real pixels out of a screenshot — 8- or 16-bit, either way. Sample a
+known flat area first: if it comes back as the exact palette value, the reading
+is sound, and if it does not, nothing measured from that image can be trusted.
+
+Two things that would have ended the loop on round two. **Say what cannot be
+done** — CSS has no equivalent of iOS's blur material, which was true from the
+start and went unsaid while the guessing continued. And **when the request has
+two readings, ask once, early, naming both**; six rounds were spent alternating
+between them, and the question was answered in a sentence when it was finally
+put.
 
 **The shape of the trap.** Nothing here can see the screen. Every visual or
 motion problem needs the user as the sensor, so the loop is: change something,

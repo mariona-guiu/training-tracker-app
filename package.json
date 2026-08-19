@@ -36,7 +36,8 @@
     "audit": "node scripts/audit-contrast.mjs",
     "tokens": "node scripts/generate-tokens.mjs",
     "doctor": "node scripts/doctor.mjs",
-    "design-system": "node scripts/generate-design-system.mjs"
+    "design-system": "node scripts/generate-design-system.mjs",
+    "sample": "node scripts/sample-pixels.mjs"
   },
   "private": true,
   "overrides": {
