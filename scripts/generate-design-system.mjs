@@ -111,26 +111,28 @@ const HUE = {
 // which is what makes them trustworthy; core's screenshot carried a small
 // colour-profile shift and was corrected by its own ground delta.
 //
-// Light scheme only — every screenshot was light. Dark falls back to the wash
-// composited over its ground, which is the token's own meaning.
+// Both schemes, twelve pairs, measured the same way. Every ground in the twelve
+// screenshots matched the palette exactly bar one channel of one, which is what
+// makes them trustworthy — a shifted ground would have meant a shifted button.
 const DEVICE_BUTTON = {
-  'upper body': ['#D65F16', '#DF6303'],
-  'lower body': ['#008DD6', '#009DE4'],
-  'glutes': ['#EDB303', '#EEBD12'],
-  'core': ['#FFADD0', '#FCBAD5'],
-  'full body': ['#B81015', '#CE1218'],
-  'mobility': ['#B8C90A', '#C3D800'],
+  'upper body': { light: ['#D65F16', '#DF6303'], dark: ['#D85A13', '#DF6300'] },
+  'lower body': { light: ['#008DD6', '#009DE4'], dark: ['#005A97', '#0068A4'] },
+  'glutes': { light: ['#EDB303', '#EEBD12'], dark: ['#DF9700', '#E49D00'] },
+  'core': { light: ['#FFADD0', '#FCBAD5'], dark: ['#F182AC', '#ED93B7'] },
+  'full body': { light: ['#B81015', '#CE1218'], dark: ['#9B0002', '#BA0002'] },
+  'mobility': { light: ['#B8C90A', '#C3D800'], dark: ['#9BB100', '#A7BE00'] },
 }
 
-// The swatch sits across the seam — 9.3% from the row's left edge, 29.2% wide,
-// with the sweep column ending at 23.98% — so the split lands just past halfway.
-const SEAM = ((270 / 1126) * 100 - 9.3) / 29.2 * 100
 const washSurface = (scheme, name, c) => {
   const [onSweep, onBase] =
-    scheme === 'light' && DEVICE_BUTTON[name]
-      ? DEVICE_BUTTON[name]
-      : [over(c.wash, c.sweep), over(c.wash, c.base)]
-  return `background:linear-gradient(to right,${onSweep} 0 ${SEAM.toFixed(2)}%,${onBase} ${SEAM.toFixed(2)}% 100%)`
+    DEVICE_BUTTON[name]?.[scheme] ?? [over(c.wash, c.sweep), over(c.wash, c.base)]
+  // Smooth, not a hard stop. The blur dissolves the seam entirely: scanning
+  // across the sweep's edge *inside* the button on the device shows no step at
+  // all — #005E9B to #0064A0 over 28px with nothing discontinuous at the
+  // boundary — while the same edge outside the button is a hard step. So the
+  // two measurements are the far ends of one gradient, and the value near the
+  // seam falls halfway between them, which is what a blurred edge looks like.
+  return `background:linear-gradient(to right,${onSweep},${onBase})`
 }
 
 const rawHex = (rgba) => {
@@ -758,39 +760,151 @@ const css = `
   .wunit.dim { opacity: 0.45; }
   .caret { width: 3px; height: 24px; margin: 0 1px 0 2px; background: var(--s-ink); display: inline-block; }
 
-  /* Routine colour panels, at the Figma library's own proportions: a
-     1126 x 567 row split 270 / 619 / 237, and the wash inset 329 x 228 at
-     radius 20, 105 across and 164 down. */
+  /* routine colour panels, laid out like the Figma library */
   .routinepanel { margin: 26px 0 30px; }
   .rname {
     font-family: ui-rounded, system-ui, sans-serif; text-transform: uppercase;
     font-size: 15px; letter-spacing: 0.03em; margin: 0 0 10px;
   }
-  .rband {
-    position: relative; display: grid;
-    grid-template-columns: 270fr 619fr 237fr;
-    aspect-ratio: 1126 / 567;
-  }
-  .rcol {
-    padding: 3.4% 2.6%; min-width: 0;
-    display: flex; flex-direction: column; justify-content: space-between;
-  }
-  .rrole { font-size: 12px; }
-  .rval { font-size: 12px; font-variant-numeric: tabular-nums; }
-  .rtoken { display: block; }
+  .rband { position: relative; display: grid; grid-template-columns: 1fr 1fr 1fr; min-height: 150px; }
+  .rcol { padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+  .rrole { font-size: 11.5px; opacity: .95; }
+  .rval { font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  .rval b { font-weight: 600; }
+  /* The wash is not a flat tint in the app: it is a blurred surface with the
+     wash laid over it, which is why it reads as a material rather than a
+     colour. Same construction here. */
   .rwash {
-    position: absolute; left: 9.3%; top: 28.9%; width: 29.2%; height: 40.2%;
-    border-radius: 20px; padding: 3.4% 2.6%;
+    position: absolute; left: 16%; top: 26px; width: 34%; height: 62%;
+    border-radius: ${RADIUS.pill}px; padding: 10px 12px;
     display: flex; flex-direction: column; justify-content: space-between;
+    -webkit-backdrop-filter: blur(14px) saturate(1.3);
+    backdrop-filter: blur(14px) saturate(1.3);
   }
-  .rwash .rrole, .rwash .rval { font-size: 12px; position: relative; z-index: 1; }
-  /* The wash View, which Glass renders inside the BlurView — above its tint,
-     below the label. */
-  .rwashfill { position: absolute; inset: 0; border-radius: inherit; }
-  @media (max-width: 700px) {
-    .rband { aspect-ratio: auto; grid-template-rows: repeat(3, 90px); grid-template-columns: 1fr; }
+  @media (max-width: 620px) {
     .rwash { display: none; }
   }
+
+  /* one section at a time */
+  section { display: none; }
+  section.on { display: block; animation: pagein .18s ease-out; }
+  @keyframes pagein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { section.on { animation: none; } }
+
+  /* buttons, as the completion screen stacks them */
+  .btnstage { align-items: center; }
+  .btnstage .actions { margin: 0 auto; }
+  .actions { display: flex; flex-direction: column; gap: ${SPACE[2]}px; width: 100%; max-width: 340px; }
+  .btn {
+    width: 100%; border: 0; border-radius: ${RADIUS.pill}px; min-height: 52px;
+    padding: ${SPACE[2]}px ${SPACE[3]}px; cursor: pointer;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: ${TYPE.control.fontSize}px; font-weight: ${TYPE.control.fontWeight};
+    transition: opacity .12s, transform .12s;
+  }
+  .btn:active, .btn.pressed { opacity: .82; transform: scale(.98); }
+  .btn.quiet { background: var(--s-raised); color: var(--s-ink); }
+
+  /* The pill and the reveals are driven by a spring in JS, so nothing here
+     transitions them — a CSS transition on top would fight the integrator. */
+  .tabpill {
+    position: absolute; left: 4px; top: 4px; width: 64px; height: 44px;
+    border-radius: ${RADIUS.pill}px; background: var(--s-highlight);
+    will-change: transform;
+  }
+  .tabitem { background: none; border: 0; cursor: pointer; position: relative; z-index: 1; }
+
+  /* the cell, and the settings card, open and shut on their own springs */
+  .hhead { width: 100%; border: 0; cursor: pointer; text-align: left; font: inherit; display: flex; align-items: flex-start; justify-content: space-between; gap: ${SPACE[2]}px; }
+  .hreveal, .sreveal { height: 0; overflow: hidden; will-change: height; }
+  .hchev { will-change: transform; }
+
+  /* The stage keeps its size while the component inside it changes, so the page
+     does not reflow around a component being opened. */
+  /* Fixed, not minimum: a component opening inside must not resize the frame
+     around it, or the page reflows every time you tap something. */
+  /* Height is measured once at load from the component's *tallest* state, so a
+     frame neither grows when something opens nor clips it. Guessing a number
+     here either scrolled or cut the content off. */
+  .stage.holds, .stage.holds-s { align-content: flex-start; overflow: visible; }
+
+  .settingsblock { width: 100%; max-width: 420px; }
+  .snote.outside { margin: ${SPACE[2]}px 0 0; padding: 0 ${SPACE[3]}px; }
+  .sinner { padding-top: ${SPACE[3]}px; }
+  .pacename {
+    margin: ${SPACE[4]}px 0 0; font-size: ${TYPE.label.fontSize}px; font-weight: ${TYPE.label.fontWeight};
+    letter-spacing: ${TYPE.label.letterSpacing}px; text-transform: uppercase; color: var(--s-ink);
+  }
+  .pacedesc { margin: ${SPACE[2]}px 0 0; font-size: ${TYPE.body.fontSize}px; color: var(--s-ink); max-width: none; }
+  .spread { margin-top: ${SPACE[4]}px; }
+  .weightcard { display: block; width: 100%; border: 0; text-align: left; font: inherit; cursor: pointer; }
+  .weightcard .caret { display: none; }
+  .weightcard.editing { outline: 1px solid var(--s-ink); outline-offset: -1px; }
+  .weightcard.editing .caret { display: inline-block; animation: blink 1.06s steps(1) infinite; }
+  .weightcard.editing .wunit { opacity: .45; }
+  @keyframes blink { 0%, 50% { opacity: 1 } 50.01%, 100% { opacity: 0 } }
+
+  /* workout buttons */
+  .btn.workout { background: var(--s-wash, rgba(0,0,0,.1)); color: var(--s-btnink, var(--s-ink)); }
+  .signposts { display: flex; justify-content: space-between; gap: ${SPACE[3]}px; margin-top: ${SPACE[3]}px; }
+  .signpost {
+    display: flex; align-items: center; gap: ${SPACE[2]}px; background: none; border: 0;
+    cursor: pointer; font: inherit; font-size: 14px; line-height: 21.6px; max-width: 46%;
+    text-align: left; padding: 0;
+  }
+  .signpost.right { text-align: right; margin-left: auto; }
+  /* Kept in the layout when there is no previous exercise, exactly as the app
+     keeps an empty View there — otherwise the remaining one slides across. */
+  .signpost.empty { visibility: hidden; pointer-events: none; }
+  .signpost svg { width: 24px; height: 24px; display: block; }
+  .sparrow { flex: none; }
+
+  .track, .choice, .tabitem, .rcard { cursor: pointer; }
+  .choice { border: 0; font: inherit; }
+  .seg button[data-routine], .seg button[data-cellroutine] { text-transform: capitalize; }
+
+  /* The whole page is set in the app's two families, so the design system is
+     branded in the system it documents. ui-rounded is what the app asks iOS for
+     and what Safari and Chrome resolve to SF Pro Rounded on a Mac. */
+  h1, h2, h3, h4, .rname, .brand b { font-family: ui-rounded, -apple-system, system-ui, sans-serif; }
+
+  /* the stack's canvas */
+  .canvasstage { padding: 0; overflow: hidden; }
+  .canvas {
+    position: relative; width: 100%;
+    /* Tall enough for the whole stack at its own spacing: the top offset, five
+       peeks, and a card. On the phone this is the screen and the lower cards
+       sit below the fold; here they should all be reachable. */
+    height: ${STACK.STACK_TOP + (CANONICAL_ORDER.length - 1) * STACK.PEEK_STEP + CARD_HEIGHT + 24}px;
+    background: var(--s-bg); border-radius: ${RADIUS.card}px; touch-action: none;
+    overflow: hidden;
+  }
+  .canvas .rcard {
+    position: absolute; will-change: transform; cursor: grab;
+    user-select: none; -webkit-user-select: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,.13);
+  }
+  .canvas .rcard.held { cursor: grabbing; }
+  .restack {
+    position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
+    z-index: 99; border: 0; cursor: pointer; border-radius: ${RADIUS.pill}px;
+    padding: 12px ${SPACE[4]}px; background: var(--s-ink); color: var(--s-onink);
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: ${TYPE.control.fontSize}px; font-weight: ${TYPE.control.fontWeight};
+  }
+
+  /* something behind the bar, so the blur has something to blur */
+  .glassstage { position: relative; overflow: hidden; }
+  .glassstage::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 18% 30%, var(--g1) 0 22%, transparent 55%),
+      radial-gradient(circle at 62% 70%, var(--g2) 0 20%, transparent 52%),
+      radial-gradient(circle at 85% 25%, var(--g3) 0 18%, transparent 50%),
+      linear-gradient(120deg, var(--g4), var(--g5));
+    opacity: .9;
+  }
+  .glassstage > * { position: relative; z-index: 1; }
 
   .icongrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; width: 100%; }
   .icontile {
@@ -834,6 +948,140 @@ const css = `
     header.top { padding: 40px 20px 30px; }
     .inner { padding: 0 20px; }
   }
+
+  /* ── Routine colour panels, redrawn to the Figma library's geometry ──
+     Appended rather than swapped in place: replacing a range that ends at
+     a landmark has now twice swallowed every rule added after it. Later
+     rules win in CSS, so overriding is the safe way to change these. */
+  /* Routine colour panels, at the Figma library's own proportions: a
+     1126 x 567 row split 270 / 619 / 237, and the wash inset 329 x 228 at
+     radius 20, 105 across and 164 down. */
+  .routinepanel { margin: 26px 0 30px; }
+  .rname {
+    font-family: ui-rounded, system-ui, sans-serif; text-transform: uppercase;
+    font-size: 15px; letter-spacing: 0.03em; margin: 0 0 10px;
+  }
+  .rband {
+    position: relative; display: grid;
+    grid-template-columns: 270fr 619fr 237fr;
+    aspect-ratio: 1126 / 567;
+  }
+  .rcol {
+    padding: 3.4% 2.6%; min-width: 0;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .rrole { font-size: 12px; }
+  .rval { font-size: 12px; font-variant-numeric: tabular-nums; }
+  .rtoken { display: block; }
+  .rwash {
+    position: absolute; left: 9.3%; top: 28.9%; width: 29.2%; height: 40.2%;
+    border-radius: 20px; padding: 3.4% 2.6%;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .rwash .rrole, .rwash .rval { font-size: 12px; position: relative; z-index: 1; }
+  /* The wash View, which Glass renders inside the BlurView — above its tint,
+     below the label. */
+  .rwashfill { position: absolute; inset: 0; border-radius: inherit; }
+  @media (max-width: 700px) {
+    .rband { aspect-ratio: auto; grid-template-rows: repeat(3, 90px); grid-template-columns: 1fr; }
+    .rwash { display: none; }
+  }
+
+  @keyframes pagein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { section.on { animation: none; } }
+
+  /* One section at a time. Without these two rules the router still adds and
+     removes its class, and every page renders at once as one long scroll —
+     which is exactly what happened when a CSS range edit swallowed them. */
+  section { display: none; }
+  section.on { display: block; animation: pagein .18s ease-out; }
+  @keyframes pagein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { section.on { animation: none; } }
+
+  /* The canvas the stack is dragged inside. It clips, so a card thrown at the
+     edge stays in its frame instead of landing on the prose below. */
+  .canvas {
+    position: relative; width: 100%;
+    height: ${STACK.STACK_TOP + (CANONICAL_ORDER.length - 1) * STACK.PEEK_STEP + CARD_HEIGHT + 24}px;
+    background: var(--s-bg); border-radius: ${RADIUS.card}px; touch-action: none;
+    overflow: hidden;
+  }
+
+  /* buttons, as the completion screen stacks them */
+  .btnstage { align-items: center; }
+  .btnstage .actions { margin: 0 auto; }
+  .actions { display: flex; flex-direction: column; gap: ${SPACE[2]}px; width: 100%; max-width: 340px; }
+  .btn:active, .btn.pressed { opacity: .82; transform: scale(.98); }
+  /* The pill and the reveals are driven by a spring in JS, so nothing here
+     transitions them — a CSS transition on top would fight the integrator. */
+  .tabpill {
+    position: absolute; left: 4px; top: 4px; width: 64px; height: 44px;
+    border-radius: ${RADIUS.pill}px; background: var(--s-highlight);
+    will-change: transform;
+  }
+  /* the cell, and the settings card, open and shut on their own springs */
+  /* The stage keeps its size while the component inside it changes, so the page
+     does not reflow around a component being opened. */
+  /* Fixed, not minimum: a component opening inside must not resize the frame
+     around it, or the page reflows every time you tap something. */
+  /* Height is measured once at load from the component's *tallest* state, so a
+     frame neither grows when something opens nor clips it. Guessing a number
+     here either scrolled or cut the content off. */
+  .settingsblock { width: 100%; max-width: 420px; }
+  .snote.outside { margin: ${SPACE[2]}px 0 0; padding: 0 ${SPACE[3]}px; }
+  .sinner { padding-top: ${SPACE[3]}px; }
+  .weightcard { display: block; width: 100%; border: 0; text-align: left; font: inherit; cursor: pointer; }
+  .weightcard .caret { display: none; }
+  .weightcard.editing { outline: 1px solid var(--s-ink); outline-offset: -1px; }
+  .weightcard.editing .caret { display: inline-block; animation: blink 1.06s steps(1) infinite; }
+  .weightcard.editing .wunit { opacity: .45; }
+  @keyframes blink { 0%, 50% { opacity: 1 } 50.01%, 100% { opacity: 0 } }
+
+  /* workout buttons */
+  .btn.workout { background: var(--s-wash, rgba(0,0,0,.1)); color: var(--s-btnink, var(--s-ink)); }
+  .signposts { display: flex; justify-content: space-between; gap: ${SPACE[3]}px; margin-top: ${SPACE[3]}px; }
+  .signpost.right { text-align: right; margin-left: auto; }
+  /* Kept in the layout when there is no previous exercise, exactly as the app
+     keeps an empty View there — otherwise the remaining one slides across. */
+  .signpost.empty { visibility: hidden; pointer-events: none; }
+  .signpost svg { width: 24px; height: 24px; display: block; }
+  .sparrow { flex: none; }
+
+  .track, .choice, .tabitem, .rcard { cursor: pointer; }
+  .seg button[data-routine], .seg button[data-cellroutine] { text-transform: capitalize; }
+
+  /* The whole page is set in the app's two families, so the design system is
+     branded in the system it documents. ui-rounded is what the app asks iOS for
+     and what Safari and Chrome resolve to SF Pro Rounded on a Mac. */
+  h1, h2, h3, h4, .rname, .brand b { font-family: ui-rounded, -apple-system, system-ui, sans-serif; }
+
+  /* the stack's canvas */
+  .canvasstage { padding: 0; overflow: hidden; }
+  .canvas .rcard {
+    position: absolute; will-change: transform; cursor: grab;
+    user-select: none; -webkit-user-select: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,.13);
+  }
+  .canvas .rcard.held { cursor: grabbing; }
+  .restack {
+    position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
+    z-index: 99; border: 0; cursor: pointer; border-radius: ${RADIUS.pill}px;
+    padding: 12px ${SPACE[4]}px; background: var(--s-ink); color: var(--s-onink);
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: ${TYPE.control.fontSize}px; font-weight: ${TYPE.control.fontWeight};
+  }
+
+  /* something behind the bar, so the blur has something to blur */
+  .glassstage::before {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 18% 30%, var(--g1) 0 22%, transparent 55%),
+      radial-gradient(circle at 62% 70%, var(--g2) 0 20%, transparent 52%),
+      radial-gradient(circle at 85% 25%, var(--g3) 0 18%, transparent 50%),
+      linear-gradient(120deg, var(--g4), var(--g5));
+    opacity: .9;
+  }
+  .glassstage > * { position: relative; z-index: 1; }
 `
 
 // ── section builders ──────────────────────────────────────────────────────
@@ -1704,6 +1952,18 @@ const page = `<title>Training Tracker — design system</title>
   document.fonts?.ready.then(fixStageHeights)
   window.addEventListener('resize', fixStageHeights)
 
+  // Everything measurable has to be measured while it is on screen. Sections
+  // start display:none, so at load a hidden canvas reports clientWidth 0 — cards
+  // were being centred at (0 - 280) / 2 and landing outside their frame, and the
+  // reveals measured to nothing. Re-run it whenever a page is shown.
+  function relayout() {
+    for (const c of document.querySelectorAll('[data-card]')) c.__place?.()
+    for (const cell of document.querySelectorAll('.hcell.open')) {
+      cell.querySelector('.hreveal').style.height = 'auto'
+    }
+    fixStageHeights()
+  }
+
   // ── routing: one section at a time ─────────────────────────────────────
   const pages = [...document.querySelectorAll('section')]
   const links = [...document.querySelectorAll('nav a[data-page]')]
@@ -1715,6 +1975,8 @@ const page = `<title>Training Tracker — design system</title>
     for (const a of links) a.classList.toggle('on', a.dataset.page === target)
     if (header) header.hidden = target !== pages[0].id
     window.scrollTo({ top: 0 })
+    // After the section is visible, never before — see relayout().
+    requestAnimationFrame(relayout)
   }
   window.addEventListener('hashchange', () => show(location.hash.slice(1)))
   show(location.hash.slice(1))
@@ -1897,7 +2159,8 @@ const page = `<title>Training Tracker — design system</title>
         return { left, top: t }
       }
       let base = place()
-      window.addEventListener('resize', () => { base = place() })
+      card.__place = () => { base = place() }
+      window.addEventListener('resize', card.__place)
 
       const draw = () => {
         card.style.transform =
