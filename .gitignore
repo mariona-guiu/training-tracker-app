@@ -41,3 +41,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Personal path guard — machine-specific, and about this Mac's filesystem
+# rather than the app. The rule it enforces is documented in CLAUDE.md so it
+# can be rebuilt after a fresh clone.
+.claude/settings.local.json
+.claude/guard-paths.sh

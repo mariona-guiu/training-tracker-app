@@ -61,6 +61,35 @@ Both a finished workout and one walked out of are `completed`, so History can
 list everything in one query and label the difference. Sessions predating that
 flag have no `endedEarly` — treat it as unknown rather than assuming either way.
 
+## Stay inside the project
+
+Four roots, and nothing else without asking: this project, the memory directory,
+the session scratchpad, and `~/Hobby/training-tracker/components` for the Figma
+exports — that last one read only.
+
+A PreToolUse hook on Bash enforces it — `.claude/guard-paths.sh`, wired up in
+`.claude/settings.local.json`. A hook rather than a deny rule because
+permissions match a tool's path argument and Bash has none: the path hides in a
+command string, where a glob, a variable or a subshell can reach anywhere. It
+exits 2 on any absolute path outside those roots, and the same file adds deny
+rules covering the file tools.
+
+**Both are gitignored**, deliberately. They are absolute paths true only on the
+author's Mac, they protect that filesystem rather than this codebase, and a
+clone elsewhere has nothing of theirs to reach into. This note is the part that
+travels: after a fresh clone the guard is gone until it is rebuilt from here.
+
+To rebuild it: a script that reads the command off stdin, pulls out every token
+beginning `/` or `~` (only where one *starts* a token — the slash inside
+`scripts/doctor.mjs` is not a path), and exits 2 unless the token sits under one
+of the four roots. Allow `/usr`, `/opt/homebrew`, `/dev/null` and similar so
+`npm` and `git` still work. Prove it both ways before trusting it: that it
+blocks `~/Library`, and that it lets `node scripts/doctor.mjs` through.
+
+If a file is needed from outside, **ask for the path** rather than searching for
+it, and do not route around the hook with a relative path or a variable. The
+boundary is the rule, not its spelling.
+
 ## Commands
 
 ```bash

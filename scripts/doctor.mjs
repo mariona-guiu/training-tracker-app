@@ -23,7 +23,7 @@
 // What it deliberately does not check: prose. "The frost reinforces the ground"
 // is either true or not and no script can tell. Those still need reading.
 
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -67,6 +67,11 @@ for (const doc of ['CLAUDE.md', 'README.md']) {
   for (const raw of new Set(text.match(/`([\w./[\]()-]+\.(?:jsx?|mjs|json|md|html))`/g) ?? [])) {
     const path = raw.slice(1, -1)
     if (tracked.some((f) => f === path || f.endsWith('/' + path))) continue
+    // A file can be real and deliberately untracked — the path guard is
+    // gitignored on purpose, being about this machine rather than the app. What
+    // this check is for is a name that points at nothing, so existing on disk
+    // counts even when git does not carry it.
+    if (existsSync(join(root, path))) continue
     // the sentence it appears in, so tense can be read
     const at = text.indexOf(raw)
     const sentence = text.slice(Math.max(0, at - 200), at + 200).replace(/\n/g, ' ')

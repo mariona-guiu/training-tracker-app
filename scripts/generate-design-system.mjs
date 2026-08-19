@@ -92,16 +92,45 @@ const HUE = {
 //
 // expo-blur's 0-100 intensity has no exact CSS equivalent; a quarter of it in
 // pixels is the closest honest match.
-const BLUR_INTENSITY = 40
-const washSurface = (wash, ink) => {
-  const tint = lstar(ink) > 50 ? '0, 0, 0' : '255, 255, 255'
-  const a = ((BLUR_INTENSITY / 100) * 0.5).toFixed(2)
-  return (
-    `background-image:linear-gradient(${wash},${wash}),` +
-    `linear-gradient(rgba(${tint},${a}),rgba(${tint},${a}));` +
-    `-webkit-backdrop-filter:blur(${BLUR_INTENSITY / 4}px);` +
-    `backdrop-filter:blur(${BLUR_INTENSITY / 4}px)`
-  )
+// What the button actually renders on the device, measured from screenshots of
+// all six workouts rather than derived.
+//
+// Deriving it does not work, and it is worth writing down why so nobody tries
+// again. The button is a BlurView at intensity 40 with the wash painted inside
+// it, so the obvious model is "wash composited over the ground". The device
+// disagrees: on upper body's base a plain wash gives #CE5816 and the phone
+// shows #DF6303 — higher in red and green, *lower* in blue. No neutral tint
+// produces that in either layer order; solving per channel gives contradictory
+// alphas. iOS's material does saturation work that CSS has no equivalent of,
+// and three attempts at approximating it (a white film, a bare backdrop-filter,
+// expo-blur's own web CSS) each went wrong differently.
+//
+// So these are measurements. Two per routine, because the button spans the seam
+// where the rest sweep meets the base and reads differently on each side. The
+// grounds in the screenshots matched the palette exactly for five of the six,
+// which is what makes them trustworthy; core's screenshot carried a small
+// colour-profile shift and was corrected by its own ground delta.
+//
+// Light scheme only — every screenshot was light. Dark falls back to the wash
+// composited over its ground, which is the token's own meaning.
+const DEVICE_BUTTON = {
+  'upper body': ['#D65F16', '#DF6303'],
+  'lower body': ['#008DD6', '#009DE4'],
+  'glutes': ['#EDB303', '#EEBD12'],
+  'core': ['#FFADD0', '#FCBAD5'],
+  'full body': ['#B81015', '#CE1218'],
+  'mobility': ['#B8C90A', '#C3D800'],
+}
+
+// The swatch sits across the seam — 9.3% from the row's left edge, 29.2% wide,
+// with the sweep column ending at 23.98% — so the split lands just past halfway.
+const SEAM = ((270 / 1126) * 100 - 9.3) / 29.2 * 100
+const washSurface = (scheme, name, c) => {
+  const [onSweep, onBase] =
+    scheme === 'light' && DEVICE_BUTTON[name]
+      ? DEVICE_BUTTON[name]
+      : [over(c.wash, c.sweep), over(c.wash, c.base)]
+  return `background:linear-gradient(to right,${onSweep} 0 ${SEAM.toFixed(2)}%,${onBase} ${SEAM.toFixed(2)}% 100%)`
 }
 
 const rawHex = (rgba) => {
@@ -754,7 +783,10 @@ const css = `
     border-radius: 20px; padding: 3.4% 2.6%;
     display: flex; flex-direction: column; justify-content: space-between;
   }
-  .rwash .rrole, .rwash .rval { font-size: 12px; }
+  .rwash .rrole, .rwash .rval { font-size: 12px; position: relative; z-index: 1; }
+  /* The wash View, which Glass renders inside the BlurView — above its tint,
+     below the label. */
+  .rwashfill { position: absolute; inset: 0; border-radius: inherit; }
   @media (max-width: 700px) {
     .rband { aspect-ratio: auto; grid-template-rows: repeat(3, 90px); grid-template-columns: 1fr; }
     .rwash { display: none; }
@@ -936,7 +968,7 @@ const colourSection = () => {
           ${cell(c.sweep, inkOn(c.sweep), 'Sweep', step.sweep, c.sweep.toUpperCase())}
           ${cell(c.base, c.ink, 'Routine base', step.base, c.base.toUpperCase())}
           ${cell(c.pale, paleFor(scheme, name).ink, 'History card', step.card, c.pale.toUpperCase())}
-          <div class="rwash" style="${washSurface(c.wash, c.ink)};color:${c.ink}">
+          <div class="rwash" style="${washSurface(scheme, name, c)};color:${c.ink}">
             <span class="rrole">Button wash</span>
             <span class="rval"><span class="rtoken">${hue} ${step.wash}</span>${rawHex(c.wash)} @ ${pct}%</span>
           </div>

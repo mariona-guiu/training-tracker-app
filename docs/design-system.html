@@ -404,7 +404,10 @@
     border-radius: 20px; padding: 3.4% 2.6%;
     display: flex; flex-direction: column; justify-content: space-between;
   }
-  .rwash .rrole, .rwash .rval { font-size: 12px; }
+  .rwash .rrole, .rwash .rval { font-size: 12px; position: relative; z-index: 1; }
+  /* The wash View, which Glass renders inside the BlurView — above its tint,
+     below the label. */
+  .rwashfill { position: absolute; inset: 0; border-radius: inherit; }
   @media (max-width: 700px) {
     .rband { aspect-ratio: auto; grid-template-rows: repeat(3, 90px); grid-template-columns: 1fr; }
     .rwash { display: none; }
@@ -712,7 +715,7 @@
             <span class="rrole">History card Light</span>
             <span class="rval"><span class="rtoken">Yellow 200</span>#FFE373</span>
           </div>
-          <div class="rwash" style="background-image:linear-gradient(rgba(179, 128, 0, 0.31),rgba(179, 128, 0, 0.31)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
+          <div class="rwash" style="background:linear-gradient(to right,#EDB303 0 50.27%,#EEBD12 50.27% 100%);color:#0a0a0a">
             <span class="rrole">Button wash</span>
             <span class="rval"><span class="rtoken">Yellow 900</span>#B38000 @ 31%</span>
           </div>
@@ -730,7 +733,7 @@
             <span class="rrole">History card Dark</span>
             <span class="rval"><span class="rtoken">Yellow 300</span>#FFCE53</span>
           </div>
-          <div class="rwash" style="background-image:linear-gradient(rgba(184, 123, 10, 0.45),rgba(184, 123, 10, 0.45)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
+          <div class="rwash" style="background:linear-gradient(to right,#d49205 0 50.27%,#da9805 50.27% 100%);color:#0a0a0a">
             <span class="rrole">Button wash</span>
             <span class="rval"><span class="rtoken">Yellow 950</span>#B87B0A @ 45%</span>
           </div>
@@ -751,7 +754,7 @@
             <span class="rrole">History card Light</span>
             <span class="rval"><span class="rtoken">Red 200</span>#FF7175</span>
           </div>
-          <div class="rwash" style="background-image:linear-gradient(rgba(196, 20, 25, 0.36),rgba(196, 20, 25, 0.36)),linear-gradient(rgba(0, 0, 0,0.20),rgba(0, 0, 0,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#ffffff">
+          <div class="rwash" style="background:linear-gradient(to right,#B81015 0 50.27%,#CE1218 50.27% 100%);color:#ffffff">
             <span class="rrole">Button wash</span>
             <span class="rval"><span class="rtoken">Red 900</span>#C41419 @ 36%</span>
           </div>
@@ -769,7 +772,7 @@
             <span class="rrole">History card Dark</span>
             <span class="rval"><span class="rtoken">Red 300</span>#F26163</span>
           </div>
-          <div class="rwash" style="background-image:linear-gradient(rgba(138, 0, 2, 0.27),rgba(138, 0, 2, 0.27)),linear-gradient(rgba(0, 0, 0,0.20),rgba(0, 0, 0,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#ffffff">
+          <div class="rwash" style="background:linear-gradient(to right,#a40003 0 50.27%,#c70003 50.27% 100%);color:#ffffff">
             <span class="rrole">Button wash</span>
             <span class="rval"><span class="rtoken">Red 950</span>#8A0002 @ 27%</span>
           </div>
@@ -790,7 +793,7 @@
             <span class="rrole">History card Light</span>
             <span class="rval"><span class="rtoken">Pink 200</span>#FCDEE9</span>
           </div>
-          <div class="rwash" style="background-image:linear-gradient(rgba(217, 99, 157, 0.21),rgba(217, 99, 157, 0.21)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
+          <div class="rwash" style="background:linear-gradient(to right,#FFADD0 0 50.27%,#FCBAD5 50.27% 100%);color:#0a0a0a">
             <span class="rrole">Button wash</span>
             <span class="rval"><span class="rtoken">Pink 900</span>#D9639D @ 21%</span>
           </div>
@@ -808,7 +811,7 @@
             <span class="rrole">History card Dark</span>
             <span class="rval"><span class="rtoken">Pink 300</span>#FFC3D9</span>
           </div>
-          <div class="rwash" style="background-image:linear-gradient(rgba(166, 58, 112, 0.24),rgba(166, 58, 112, 0.24)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
+          <div class="rwash" style="background:linear-gradient(to right,#e07da3 0 50.27%,#e190b1 50.27% 100%);color:#0a0a0a">
             <span class="rrole">Button wash</span>
             <span class="rval"><span class="rtoken">Pink 950</span>#A63A70 @ 24%</span>
           </div>
@@ -829,7 +832,7 @@
             <span class="rrole">History card Light</span>
             <span class="rval"><span class="rtoken">Orange 200</span>#FFBF83</span>
           </div>
-          <div class="rwash" style="background-image:linear-gradient(rgba(162, 65, 17, 0.46),rgba(162, 65, 17, 0.46)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
+          <div class="rwash" style="background:linear-gradient(to right,#D65F16 0 50.27%,#DF6303 50.27% 100%);color:#0a0a0a">
             <span class="rrole">Button wash</span>
             <span class="rval"><span class="rtoken">Orange 900</span>#A24111 @ 46%</span>
           </div>
@@ -847,7 +850,7 @@
             <span class="rrole">History card Dark</span>
             <span class="rval"><span class="rtoken">Orange 300</span>#FFA65D</span>
           </div>
-          <div class="rwash" style="background-image:linear-gradient(rgba(135, 47, 13, 0.33),rgba(135, 47, 13, 0.33)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
+          <div class="rwash" style="background:linear-gradient(to right,#c25213 0 50.27%,#ca5b04 50.27% 100%);color:#0a0a0a">
             <span class="rrole">Button wash</span>
             <span class="rval"><span class="rtoken">Orange 950</span>#872F0D @ 33%</span>
           </div>
@@ -868,7 +871,7 @@
             <span class="rrole">History card Light</span>
             <span class="rval"><span class="rtoken">Lime 200</span>#EBF86D</span>
           </div>
-          <div class="rwash" style="background-image:linear-gradient(rgba(136, 144, 35, 0.29),rgba(136, 144, 35, 0.29)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
+          <div class="rwash" style="background:linear-gradient(to right,#B8C90A 0 50.27%,#C3D800 50.27% 100%);color:#0a0a0a">
             <span class="rrole">Button wash</span>
             <span class="rval"><span class="rtoken">Lime 900</span>#889023 @ 29%</span>
           </div>
@@ -886,7 +889,7 @@
             <span class="rrole">History card Dark</span>
             <span class="rval"><span class="rtoken">Lime 300</span>#E0EE5A</span>
           </div>
-          <div class="rwash" style="background-image:linear-gradient(rgba(52, 77, 0, 0.21),rgba(52, 77, 0, 0.21)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
+          <div class="rwash" style="background:linear-gradient(to right,#94a700 0 50.27%,#a2b600 50.27% 100%);color:#0a0a0a">
             <span class="rrole">Button wash</span>
             <span class="rval"><span class="rtoken">Lime 950</span>#344D00 @ 21%</span>
           </div>
@@ -907,7 +910,7 @@
             <span class="rrole">History card Light</span>
             <span class="rval"><span class="rtoken">Blue 200</span>#87D7F6</span>
           </div>
-          <div class="rwash" style="background-image:linear-gradient(rgba(15, 64, 117, 0.27),rgba(15, 64, 117, 0.27)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
+          <div class="rwash" style="background:linear-gradient(to right,#008DD6 0 50.27%,#009DE4 50.27% 100%);color:#0a0a0a">
             <span class="rrole">Button wash</span>
             <span class="rval"><span class="rtoken">Blue 900</span>#0F4075 @ 27%</span>
           </div>
@@ -925,7 +928,7 @@
             <span class="rrole">History card Dark</span>
             <span class="rval"><span class="rtoken">Blue 300</span>#69C1EA</span>
           </div>
-          <div class="rwash" style="background-image:linear-gradient(rgba(20, 102, 173, 0.31),rgba(20, 102, 173, 0.31)),linear-gradient(rgba(0, 0, 0,0.20),rgba(0, 0, 0,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#ffffff">
+          <div class="rwash" style="background:linear-gradient(to right,#0667a6 0 50.27%,#0679b7 50.27% 100%);color:#ffffff">
             <span class="rrole">Button wash</span>
             <span class="rval"><span class="rtoken">Blue 950</span>#1466AD @ 31%</span>
           </div>
