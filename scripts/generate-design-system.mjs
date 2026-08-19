@@ -660,7 +660,7 @@ const css = `
 
   .choices { display: flex; gap: ${SPACE[2]}px; margin-top: ${SPACE[3]}px; }
   .choice {
-    flex: 1; min-height: 90px; padding: ${SPACE[2]}px 0; border-radius: ${RADIUS.card}px;
+    flex: 1; min-height: 90px; padding: ${SPACE[2]}px 0; border-radius: ${RADIUS.control}px;
     display: grid; place-items: center; background: var(--s-onink); color: var(--s-dim);
     font-family: ui-rounded, system-ui, sans-serif; font-weight: 700; font-size: ${TYPE.title.fontSize}px;
   }
@@ -1147,7 +1147,9 @@ const shapeSection = () => `
   </table></div>
 
   <h3>Radius</h3>
-  <p>Three shapes, which is all this app turns out to need.</p>
+  <p>Four shapes, which is all this app turns out to need. <code>control</code> is the only
+    one that sits inside another: a rounded rect nested in a ${RADIUS.card} wants a smaller
+    radius than its container, or the two curves fight.</p>
   <div class="stage center spec" data-spec="light">
     ${Object.entries(RADIUS)
       .map(
@@ -1405,7 +1407,8 @@ const componentSection = () => {
   </div>
 
   <h3>Appearance</h3>
-  <p>Each option is a flexible cell at least 90 tall, radius ${RADIUS.card}, set in
+  <p>Each option is a flexible cell at least 90 tall, radius ${RADIUS.control} — the nested
+    shape, smaller than the ${RADIUS.card} of the card it sits in so the two curves agree — set in
     <code>title</code>. The chosen one fills with ink and its label flips to
     <code>onInk</code>; the rest step back to <code>textDim</code>, so the row reads as one
     selection among three rather than three equal buttons.</p>

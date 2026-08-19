@@ -348,7 +348,7 @@
 
   .choices { display: flex; gap: 8px; margin-top: 16px; }
   .choice {
-    flex: 1; min-height: 90px; padding: 8px 0; border-radius: 12px;
+    flex: 1; min-height: 90px; padding: 8px 0; border-radius: 8px;
     display: grid; place-items: center; background: var(--s-onink); color: var(--s-dim);
     font-family: ui-rounded, system-ui, sans-serif; font-weight: 700; font-size: 20px;
   }
@@ -1246,11 +1246,17 @@
   </table></div>
 
   <h3>Radius</h3>
-  <p>Three shapes, which is all this app turns out to need.</p>
+  <p>Four shapes, which is all this app turns out to need. <code>control</code> is the only
+    one that sits inside another: a rounded rect nested in a 12 wants a smaller
+    radius than its container, or the two curves fight.</p>
   <div class="stage center spec" data-spec="light">
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
         <div style="width:96px;height:72px;background:var(--s-raised);border:1px solid var(--s-line);border-radius:4px"></div>
         <div style="font-size:12px"><b>chip</b> <span style="color:var(--s-dim)">4px</span></div>
+      </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="width:96px;height:72px;background:var(--s-raised);border:1px solid var(--s-line);border-radius:8px"></div>
+        <div style="font-size:12px"><b>control</b> <span style="color:var(--s-dim)">8px</span></div>
       </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
         <div style="width:96px;height:72px;background:var(--s-raised);border:1px solid var(--s-line);border-radius:12px"></div>
@@ -1499,7 +1505,8 @@
   </div>
 
   <h3>Appearance</h3>
-  <p>Each option is a flexible cell at least 90 tall, radius 12, set in
+  <p>Each option is a flexible cell at least 90 tall, radius 8 — the nested
+    shape, smaller than the 12 of the card it sits in so the two curves agree — set in
     <code>title</code>. The chosen one fills with ink and its label flips to
     <code>onInk</code>; the rest step back to <code>textDim</code>, so the row reads as one
     selection among three rather than three equal buttons.</p>

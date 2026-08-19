@@ -627,7 +627,8 @@ const CHOICE = {
   // Only reached once the label outgrows the 90, which is where a fixed height
   // would have clipped it instead.
   paddingVertical: SPACE[2],
-  borderRadius: RADIUS.card,
+  // Nested inside a card at RADIUS.card, so it takes the smaller of the two.
+  borderRadius: RADIUS.control,
   alignItems: 'center',
   justifyContent: 'center',
 }

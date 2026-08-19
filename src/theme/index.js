@@ -360,15 +360,19 @@ export const CAP = {
 
 export const SPACE = { 1: 4, 2: 8, 3: 16, 4: 24, 5: 32, 6: 48 }
 
-// Three shapes, which is all this app turns out to need: a chip, a card, and
-// anything fully rounded. The app had twelve radius values, several of them
-// one shape written four ways — see docs/design-system.html.
+// Four shapes, which is all this app turns out to need: a chip, a control, a
+// card, and anything fully rounded. The app had twelve radius values, several
+// of them one shape written four ways — see docs/design-system.html.
 //
-// Not every literal has moved onto these yet. What is left is the set where
-// adopting the token would *change* the shape (a history cell at 8, the chart
-// card at 16, the tab bar's 27 and 35), and those are a visible change rather
-// than a rename, so they go one at a time with a look on the device.
-export const RADIUS = { chip: 4, card: 12, pill: 999 }
+// `control` is 8 because it is the only shape that sits *inside* another. A
+// rounded rect nested in a 12 wants a smaller radius than its container, or the
+// two curves fight; the segmented options on Settings sit inside a card at
+// `card`, so they take this. Nothing outside a card should use it.
+//
+// Every literal has now moved onto these — the last of them, a history cell at
+// 8, is what this token was named for. The only radius still written as a
+// number anywhere is a 1, on the caret.
+export const RADIUS = { chip: 4, control: 8, card: 12, pill: 999 }
 
 export const NAV_HEIGHT = 52
 // Breathing room between the floating tab bar and the system's bottom inset
