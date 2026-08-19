@@ -379,151 +379,36 @@
   .wunit.dim { opacity: 0.45; }
   .caret { width: 3px; height: 24px; margin: 0 1px 0 2px; background: var(--s-ink); display: inline-block; }
 
-  /* routine colour panels, laid out like the Figma library */
+  /* Routine colour panels, at the Figma library's own proportions: a
+     1126 x 567 row split 270 / 619 / 237, and the wash inset 329 x 228 at
+     radius 20, 105 across and 164 down. */
   .routinepanel { margin: 26px 0 30px; }
   .rname {
     font-family: ui-rounded, system-ui, sans-serif; text-transform: uppercase;
     font-size: 15px; letter-spacing: 0.03em; margin: 0 0 10px;
   }
-  .rband { position: relative; display: grid; grid-template-columns: 1fr 1fr 1fr; min-height: 150px; }
-  .rcol { padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
-  .rrole { font-size: 11.5px; opacity: .95; }
-  .rval { font-size: 11.5px; font-variant-numeric: tabular-nums; }
-  .rval b { font-weight: 600; }
-  /* The wash is not a flat tint in the app: it is a blurred surface with the
-     wash laid over it, which is why it reads as a material rather than a
-     colour. Same construction here. */
-  .rwash {
-    position: absolute; left: 16%; top: 26px; width: 34%; height: 62%;
-    border-radius: 999px; padding: 10px 12px;
-    display: flex; flex-direction: column; justify-content: space-between;
-    -webkit-backdrop-filter: blur(14px) saturate(1.3);
-    backdrop-filter: blur(14px) saturate(1.3);
+  .rband {
+    position: relative; display: grid;
+    grid-template-columns: 270fr 619fr 237fr;
+    aspect-ratio: 1126 / 567;
   }
-  @media (max-width: 620px) {
+  .rcol {
+    padding: 3.4% 2.6%; min-width: 0;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .rrole { font-size: 12px; }
+  .rval { font-size: 12px; font-variant-numeric: tabular-nums; }
+  .rtoken { display: block; }
+  .rwash {
+    position: absolute; left: 9.3%; top: 28.9%; width: 29.2%; height: 40.2%;
+    border-radius: 20px; padding: 3.4% 2.6%;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .rwash .rrole, .rwash .rval { font-size: 12px; }
+  @media (max-width: 700px) {
+    .rband { aspect-ratio: auto; grid-template-rows: repeat(3, 90px); grid-template-columns: 1fr; }
     .rwash { display: none; }
   }
-
-  /* one section at a time */
-  section { display: none; }
-  section.on { display: block; animation: pagein .18s ease-out; }
-  @keyframes pagein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) { section.on { animation: none; } }
-
-  /* buttons, as the completion screen stacks them */
-  .btnstage { align-items: center; }
-  .btnstage .actions { margin: 0 auto; }
-  .actions { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 340px; }
-  .btn {
-    width: 100%; border: 0; border-radius: 999px; min-height: 52px;
-    padding: 8px 16px; cursor: pointer;
-    font-family: -apple-system, system-ui, sans-serif;
-    font-size: 16px; font-weight: 500;
-    transition: opacity .12s, transform .12s;
-  }
-  .btn:active, .btn.pressed { opacity: .82; transform: scale(.98); }
-  .btn.quiet { background: var(--s-raised); color: var(--s-ink); }
-
-  /* The pill and the reveals are driven by a spring in JS, so nothing here
-     transitions them — a CSS transition on top would fight the integrator. */
-  .tabpill {
-    position: absolute; left: 4px; top: 4px; width: 64px; height: 44px;
-    border-radius: 999px; background: var(--s-highlight);
-    will-change: transform;
-  }
-  .tabitem { background: none; border: 0; cursor: pointer; position: relative; z-index: 1; }
-
-  /* the cell, and the settings card, open and shut on their own springs */
-  .hhead { width: 100%; border: 0; cursor: pointer; text-align: left; font: inherit; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-  .hreveal, .sreveal { height: 0; overflow: hidden; will-change: height; }
-  .hchev { will-change: transform; }
-
-  /* The stage keeps its size while the component inside it changes, so the page
-     does not reflow around a component being opened. */
-  /* Fixed, not minimum: a component opening inside must not resize the frame
-     around it, or the page reflows every time you tap something. */
-  /* Height is measured once at load from the component's *tallest* state, so a
-     frame neither grows when something opens nor clips it. Guessing a number
-     here either scrolled or cut the content off. */
-  .stage.holds, .stage.holds-s { align-content: flex-start; overflow: visible; }
-
-  .settingsblock { width: 100%; max-width: 420px; }
-  .snote.outside { margin: 8px 0 0; padding: 0 16px; }
-  .sinner { padding-top: 16px; }
-  .pacename {
-    margin: 24px 0 0; font-size: 12px; font-weight: 500;
-    letter-spacing: 0.12px; text-transform: uppercase; color: var(--s-ink);
-  }
-  .pacedesc { margin: 8px 0 0; font-size: 16px; color: var(--s-ink); max-width: none; }
-  .spread { margin-top: 24px; }
-  .weightcard { display: block; width: 100%; border: 0; text-align: left; font: inherit; cursor: pointer; }
-  .weightcard .caret { display: none; }
-  .weightcard.editing { outline: 1px solid var(--s-ink); outline-offset: -1px; }
-  .weightcard.editing .caret { display: inline-block; animation: blink 1.06s steps(1) infinite; }
-  .weightcard.editing .wunit { opacity: .45; }
-  @keyframes blink { 0%, 50% { opacity: 1 } 50.01%, 100% { opacity: 0 } }
-
-  /* workout buttons */
-  .btn.workout { background: var(--s-wash, rgba(0,0,0,.1)); color: var(--s-btnink, var(--s-ink)); }
-  .signposts { display: flex; justify-content: space-between; gap: 16px; margin-top: 16px; }
-  .signpost {
-    display: flex; align-items: center; gap: 8px; background: none; border: 0;
-    cursor: pointer; font: inherit; font-size: 14px; line-height: 21.6px; max-width: 46%;
-    text-align: left; padding: 0;
-  }
-  .signpost.right { text-align: right; margin-left: auto; }
-  /* Kept in the layout when there is no previous exercise, exactly as the app
-     keeps an empty View there — otherwise the remaining one slides across. */
-  .signpost.empty { visibility: hidden; pointer-events: none; }
-  .signpost svg { width: 24px; height: 24px; display: block; }
-  .sparrow { flex: none; }
-
-  .track, .choice, .tabitem, .rcard { cursor: pointer; }
-  .choice { border: 0; font: inherit; }
-  .seg button[data-routine], .seg button[data-cellroutine] { text-transform: capitalize; }
-
-  /* The whole page is set in the app's two families, so the design system is
-     branded in the system it documents. ui-rounded is what the app asks iOS for
-     and what Safari and Chrome resolve to SF Pro Rounded on a Mac. */
-  h1, h2, h3, h4, .rname, .brand b { font-family: ui-rounded, -apple-system, system-ui, sans-serif; }
-
-  /* the stack's canvas */
-  .canvasstage { padding: 0; overflow: hidden; }
-  .canvas {
-    position: relative; width: 100%;
-    /* Tall enough for the whole stack at its own spacing: the top offset, five
-       peeks, and a card. On the phone this is the screen and the lower cards
-       sit below the fold; here they should all be reachable. */
-    height: 814px;
-    background: var(--s-bg); border-radius: 12px; touch-action: none;
-    overflow: hidden;
-  }
-  .canvas .rcard {
-    position: absolute; will-change: transform; cursor: grab;
-    user-select: none; -webkit-user-select: none;
-    box-shadow: 0 10px 30px rgba(0,0,0,.13);
-  }
-  .canvas .rcard.held { cursor: grabbing; }
-  .restack {
-    position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
-    z-index: 99; border: 0; cursor: pointer; border-radius: 999px;
-    padding: 12px 24px; background: var(--s-ink); color: var(--s-onink);
-    font-family: -apple-system, system-ui, sans-serif;
-    font-size: 16px; font-weight: 500;
-  }
-
-  /* something behind the bar, so the blur has something to blur */
-  .glassstage { position: relative; overflow: hidden; }
-  .glassstage::before {
-    content: ''; position: absolute; inset: 0;
-    background:
-      radial-gradient(circle at 18% 30%, var(--g1) 0 22%, transparent 55%),
-      radial-gradient(circle at 62% 70%, var(--g2) 0 20%, transparent 52%),
-      radial-gradient(circle at 85% 25%, var(--g3) 0 18%, transparent 50%),
-      linear-gradient(120deg, var(--g4), var(--g5));
-    opacity: .9;
-  }
-  .glassstage > * { position: relative; z-index: 1; }
 
   .icongrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; width: 100%; }
   .icontile {
@@ -817,37 +702,37 @@
       <div class="rband">
           <div class="rcol" style="background:#F7C319;color:#0a0a0a">
             <span class="rrole">Sweep Light</span>
-            <span class="rval"><b>#F7C319</b></span>
+            <span class="rval"><span class="rtoken">Yellow 700</span>#F7C319</span>
           </div>
           <div class="rcol" style="background:#FCD22E;color:#0a0a0a">
             <span class="rrole">Routine base Light</span>
-            <span class="rval"><b>#FCD22E</b></span>
+            <span class="rval"><span class="rtoken">Yellow 500</span>#FCD22E</span>
           </div>
           <div class="rcol" style="background:#FFE373;color:#0a0a0a">
             <span class="rrole">History card Light</span>
-            <span class="rval"><b>#FFE373</b></span>
+            <span class="rval"><span class="rtoken">Yellow 200</span>#FFE373</span>
           </div>
-          <div class="rwash" style="background:rgba(179, 128, 0, 0.31);color:#0a0a0a">
+          <div class="rwash" style="background-image:linear-gradient(rgba(179, 128, 0, 0.31),rgba(179, 128, 0, 0.31)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
             <span class="rrole">Button wash</span>
-            <span class="rval"><b>#E5B920</b> at 31%</span>
+            <span class="rval"><span class="rtoken">Yellow 900</span>#B38000 @ 31%</span>
           </div>
         </div>
       <div class="rband">
           <div class="rcol" style="background:#EBA400;color:#0a0a0a">
             <span class="rrole">Sweep Dark</span>
-            <span class="rval"><b>#EBA400</b></span>
+            <span class="rval"><span class="rtoken">Yellow 800</span>#EBA400</span>
           </div>
           <div class="rcol" style="background:#F5B000;color:#0a0a0a">
             <span class="rrole">Routine base Dark</span>
-            <span class="rval"><b>#F5B000</b></span>
+            <span class="rval"><span class="rtoken">Yellow 600</span>#F5B000</span>
           </div>
           <div class="rcol" style="background:#FFCE53;color:#0a0a0a">
             <span class="rrole">History card Dark</span>
-            <span class="rval"><b>#FFCE53</b></span>
+            <span class="rval"><span class="rtoken">Yellow 300</span>#FFCE53</span>
           </div>
-          <div class="rwash" style="background:rgba(184, 123, 10, 0.45);color:#0a0a0a">
+          <div class="rwash" style="background-image:linear-gradient(rgba(184, 123, 10, 0.45),rgba(184, 123, 10, 0.45)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
             <span class="rrole">Button wash</span>
-            <span class="rval"><b>#DA9805</b> at 45%</span>
+            <span class="rval"><span class="rtoken">Yellow 950</span>#B87B0A @ 45%</span>
           </div>
         </div>
     </div>
@@ -856,37 +741,37 @@
       <div class="rband">
           <div class="rcol" style="background:#C41419;color:#ffffff">
             <span class="rrole">Sweep Light</span>
-            <span class="rval"><b>#C41419</b></span>
+            <span class="rval"><span class="rtoken">Red 700</span>#C41419</span>
           </div>
           <div class="rcol" style="background:#EC1C22;color:#ffffff">
             <span class="rrole">Routine base Light</span>
-            <span class="rval"><b>#EC1C22</b></span>
+            <span class="rval"><span class="rtoken">Red 500</span>#EC1C22</span>
           </div>
           <div class="rcol" style="background:#FF7175;color:#0a0a0a">
             <span class="rrole">History card Light</span>
-            <span class="rval"><b>#FF7175</b></span>
+            <span class="rval"><span class="rtoken">Red 200</span>#FF7175</span>
           </div>
-          <div class="rwash" style="background:rgba(196, 20, 25, 0.36);color:#ffffff">
+          <div class="rwash" style="background-image:linear-gradient(rgba(196, 20, 25, 0.36),rgba(196, 20, 25, 0.36)),linear-gradient(rgba(0, 0, 0,0.20),rgba(0, 0, 0,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#ffffff">
             <span class="rrole">Button wash</span>
-            <span class="rval"><b>#DE191F</b> at 36%</span>
+            <span class="rval"><span class="rtoken">Red 900</span>#C41419 @ 36%</span>
           </div>
         </div>
       <div class="rband">
           <div class="rcol" style="background:#AD0003;color:#ffffff">
             <span class="rrole">Sweep Dark</span>
-            <span class="rval"><b>#AD0003</b></span>
+            <span class="rval"><span class="rtoken">Red 800</span>#AD0003</span>
           </div>
           <div class="rcol" style="background:#DD0004;color:#ffffff">
             <span class="rrole">Routine base Dark</span>
-            <span class="rval"><b>#DD0004</b></span>
+            <span class="rval"><span class="rtoken">Red 600</span>#DD0004</span>
           </div>
           <div class="rcol" style="background:#F26163;color:#0a0a0a">
             <span class="rrole">History card Dark</span>
-            <span class="rval"><b>#F26163</b></span>
+            <span class="rval"><span class="rtoken">Red 300</span>#F26163</span>
           </div>
-          <div class="rwash" style="background:rgba(138, 0, 2, 0.27);color:#ffffff">
+          <div class="rwash" style="background-image:linear-gradient(rgba(138, 0, 2, 0.27),rgba(138, 0, 2, 0.27)),linear-gradient(rgba(0, 0, 0,0.20),rgba(0, 0, 0,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#ffffff">
             <span class="rrole">Button wash</span>
-            <span class="rval"><b>#C70003</b> at 27%</span>
+            <span class="rval"><span class="rtoken">Red 950</span>#8A0002 @ 27%</span>
           </div>
         </div>
     </div>
@@ -895,37 +780,37 @@
       <div class="rband">
           <div class="rcol" style="background:#FFBDD6;color:#0a0a0a">
             <span class="rrole">Sweep Light</span>
-            <span class="rval"><b>#FFBDD6</b></span>
+            <span class="rval"><span class="rtoken">Pink 700</span>#FFBDD6</span>
           </div>
           <div class="rcol" style="background:#FBCEDF;color:#0a0a0a">
             <span class="rrole">Routine base Light</span>
-            <span class="rval"><b>#FBCEDF</b></span>
+            <span class="rval"><span class="rtoken">Pink 500</span>#FBCEDF</span>
           </div>
           <div class="rcol" style="background:#FCDEE9;color:#0a0a0a">
             <span class="rrole">History card Light</span>
-            <span class="rval"><b>#FCDEE9</b></span>
+            <span class="rval"><span class="rtoken">Pink 200</span>#FCDEE9</span>
           </div>
-          <div class="rwash" style="background:rgba(217, 99, 157, 0.21);color:#0a0a0a">
+          <div class="rwash" style="background-image:linear-gradient(rgba(217, 99, 157, 0.21),rgba(217, 99, 157, 0.21)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
             <span class="rrole">Button wash</span>
-            <span class="rval"><b>#F4B8D1</b> at 21%</span>
+            <span class="rval"><span class="rtoken">Pink 900</span>#D9639D @ 21%</span>
           </div>
         </div>
       <div class="rband">
           <div class="rcol" style="background:#F292B3;color:#0a0a0a">
             <span class="rrole">Sweep Dark</span>
-            <span class="rval"><b>#F292B3</b></span>
+            <span class="rval"><span class="rtoken">Pink 800</span>#F292B3</span>
           </div>
           <div class="rcol" style="background:#F3ABC5;color:#0a0a0a">
             <span class="rrole">Routine base Dark</span>
-            <span class="rval"><b>#F3ABC5</b></span>
+            <span class="rval"><span class="rtoken">Pink 600</span>#F3ABC5</span>
           </div>
           <div class="rcol" style="background:#FFC3D9;color:#0a0a0a">
             <span class="rrole">History card Dark</span>
-            <span class="rval"><b>#FFC3D9</b></span>
+            <span class="rval"><span class="rtoken">Pink 300</span>#FFC3D9</span>
           </div>
-          <div class="rwash" style="background:rgba(166, 58, 112, 0.24);color:#0a0a0a">
+          <div class="rwash" style="background-image:linear-gradient(rgba(166, 58, 112, 0.24),rgba(166, 58, 112, 0.24)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
             <span class="rrole">Button wash</span>
-            <span class="rval"><b>#E190B1</b> at 24%</span>
+            <span class="rval"><span class="rtoken">Pink 950</span>#A63A70 @ 24%</span>
           </div>
         </div>
     </div>
@@ -934,37 +819,37 @@
       <div class="rband">
           <div class="rcol" style="background:#E46C1B;color:#ffffff">
             <span class="rrole">Sweep Light</span>
-            <span class="rval"><b>#E46C1B</b></span>
+            <span class="rval"><span class="rtoken">Orange 700</span>#E46C1B</span>
           </div>
           <div class="rcol" style="background:#F37500;color:#0a0a0a">
             <span class="rrole">Routine base Light</span>
-            <span class="rval"><b>#F37500</b></span>
+            <span class="rval"><span class="rtoken">Orange 500</span>#F37500</span>
           </div>
           <div class="rcol" style="background:#FFBF83;color:#0a0a0a">
             <span class="rrole">History card Light</span>
-            <span class="rval"><b>#FFBF83</b></span>
+            <span class="rval"><span class="rtoken">Orange 200</span>#FFBF83</span>
           </div>
-          <div class="rwash" style="background:rgba(162, 65, 17, 0.46);color:#ffffff">
+          <div class="rwash" style="background-image:linear-gradient(rgba(162, 65, 17, 0.46),rgba(162, 65, 17, 0.46)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
             <span class="rrole">Button wash</span>
-            <span class="rval"><b>#CE5D08</b> at 46%</span>
+            <span class="rval"><span class="rtoken">Orange 900</span>#A24111 @ 46%</span>
           </div>
         </div>
       <div class="rband">
           <div class="rcol" style="background:#DF6316;color:#ffffff">
             <span class="rrole">Sweep Dark</span>
-            <span class="rval"><b>#DF6316</b></span>
+            <span class="rval"><span class="rtoken">Orange 800</span>#DF6316</span>
           </div>
           <div class="rcol" style="background:#EB7100;color:#0a0a0a">
             <span class="rrole">Routine base Dark</span>
-            <span class="rval"><b>#EB7100</b></span>
+            <span class="rval"><span class="rtoken">Orange 600</span>#EB7100</span>
           </div>
           <div class="rcol" style="background:#FFA65D;color:#0a0a0a">
             <span class="rrole">History card Dark</span>
-            <span class="rval"><b>#FFA65D</b></span>
+            <span class="rval"><span class="rtoken">Orange 300</span>#FFA65D</span>
           </div>
-          <div class="rwash" style="background:rgba(135, 47, 13, 0.33);color:#ffffff">
+          <div class="rwash" style="background-image:linear-gradient(rgba(135, 47, 13, 0.33),rgba(135, 47, 13, 0.33)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
             <span class="rrole">Button wash</span>
-            <span class="rval"><b>#CA5B04</b> at 33%</span>
+            <span class="rval"><span class="rtoken">Orange 950</span>#872F0D @ 33%</span>
           </div>
         </div>
     </div>
@@ -973,37 +858,37 @@
       <div class="rband">
           <div class="rcol" style="background:#C5D716;color:#0a0a0a">
             <span class="rrole">Sweep Light</span>
-            <span class="rval"><b>#C5D716</b></span>
+            <span class="rval"><span class="rtoken">Lime 700</span>#C5D716</span>
           </div>
           <div class="rcol" style="background:#D7ED00;color:#0a0a0a">
             <span class="rrole">Routine base Light</span>
-            <span class="rval"><b>#D7ED00</b></span>
+            <span class="rval"><span class="rtoken">Lime 500</span>#D7ED00</span>
           </div>
           <div class="rcol" style="background:#EBF86D;color:#0a0a0a">
             <span class="rrole">History card Light</span>
-            <span class="rval"><b>#EBF86D</b></span>
+            <span class="rval"><span class="rtoken">Lime 200</span>#EBF86D</span>
           </div>
-          <div class="rwash" style="background:rgba(136, 144, 35, 0.29);color:#0a0a0a">
+          <div class="rwash" style="background-image:linear-gradient(rgba(136, 144, 35, 0.29),rgba(136, 144, 35, 0.29)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
             <span class="rrole">Button wash</span>
-            <span class="rval"><b>#C0D20A</b> at 29%</span>
+            <span class="rval"><span class="rtoken">Lime 900</span>#889023 @ 29%</span>
           </div>
         </div>
       <div class="rband">
           <div class="rcol" style="background:#AEBF00;color:#0a0a0a">
             <span class="rrole">Sweep Dark</span>
-            <span class="rval"><b>#AEBF00</b></span>
+            <span class="rval"><span class="rtoken">Lime 800</span>#AEBF00</span>
           </div>
           <div class="rcol" style="background:#BFD200;color:#0a0a0a">
             <span class="rrole">Routine base Dark</span>
-            <span class="rval"><b>#BFD200</b></span>
+            <span class="rval"><span class="rtoken">Lime 600</span>#BFD200</span>
           </div>
           <div class="rcol" style="background:#E0EE5A;color:#0a0a0a">
             <span class="rrole">History card Dark</span>
-            <span class="rval"><b>#E0EE5A</b></span>
+            <span class="rval"><span class="rtoken">Lime 300</span>#E0EE5A</span>
           </div>
-          <div class="rwash" style="background:rgba(52, 77, 0, 0.21);color:#0a0a0a">
+          <div class="rwash" style="background-image:linear-gradient(rgba(52, 77, 0, 0.21),rgba(52, 77, 0, 0.21)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
             <span class="rrole">Button wash</span>
-            <span class="rval"><b>#A2B600</b> at 21%</span>
+            <span class="rval"><span class="rtoken">Lime 950</span>#344D00 @ 21%</span>
           </div>
         </div>
     </div>
@@ -1012,37 +897,37 @@
       <div class="rband">
           <div class="rcol" style="background:#0096DB;color:#ffffff">
             <span class="rrole">Sweep Light</span>
-            <span class="rval"><b>#0096DB</b></span>
+            <span class="rval"><span class="rtoken">Blue 700</span>#0096DB</span>
           </div>
           <div class="rcol" style="background:#00ADF0;color:#0a0a0a">
             <span class="rrole">Routine base Light</span>
-            <span class="rval"><b>#00ADF0</b></span>
+            <span class="rval"><span class="rtoken">Blue 500</span>#00ADF0</span>
           </div>
           <div class="rcol" style="background:#87D7F6;color:#0a0a0a">
             <span class="rrole">History card Light</span>
-            <span class="rval"><b>#87D7F6</b></span>
+            <span class="rval"><span class="rtoken">Blue 200</span>#87D7F6</span>
           </div>
-          <div class="rwash" style="background:rgba(15, 64, 117, 0.27);color:#ffffff">
+          <div class="rwash" style="background-image:linear-gradient(rgba(15, 64, 117, 0.27),rgba(15, 64, 117, 0.27)),linear-gradient(rgba(255, 255, 255,0.20),rgba(255, 255, 255,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#0a0a0a">
             <span class="rrole">Button wash</span>
-            <span class="rval"><b>#0490CF</b> at 27%</span>
+            <span class="rval"><span class="rtoken">Blue 900</span>#0F4075 @ 27%</span>
           </div>
         </div>
       <div class="rband">
           <div class="rcol" style="background:#0067A3;color:#ffffff">
             <span class="rrole">Sweep Dark</span>
-            <span class="rval"><b>#0067A3</b></span>
+            <span class="rval"><span class="rtoken">Blue 800</span>#0067A3</span>
           </div>
           <div class="rcol" style="background:#0081BC;color:#ffffff">
             <span class="rrole">Routine base Dark</span>
-            <span class="rval"><b>#0081BC</b></span>
+            <span class="rval"><span class="rtoken">Blue 600</span>#0081BC</span>
           </div>
           <div class="rcol" style="background:#69C1EA;color:#0a0a0a">
             <span class="rrole">History card Dark</span>
-            <span class="rval"><b>#69C1EA</b></span>
+            <span class="rval"><span class="rtoken">Blue 300</span>#69C1EA</span>
           </div>
-          <div class="rwash" style="background:rgba(20, 102, 173, 0.31);color:#ffffff">
+          <div class="rwash" style="background-image:linear-gradient(rgba(20, 102, 173, 0.31),rgba(20, 102, 173, 0.31)),linear-gradient(rgba(0, 0, 0,0.20),rgba(0, 0, 0,0.20));-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#ffffff">
             <span class="rrole">Button wash</span>
-            <span class="rval"><b>#0679B7</b> at 31%</span>
+            <span class="rval"><span class="rtoken">Blue 950</span>#1466AD @ 31%</span>
           </div>
         </div>
     </div>

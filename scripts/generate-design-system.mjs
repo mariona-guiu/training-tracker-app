@@ -72,6 +72,44 @@ const over = (rgba, groundHex) => {
   return '#' + mix.map((v) => v.toString(16).padStart(2, '0')).join('')
 }
 
+// The primitive family each routine belongs to, as the Figma library names them.
+const HUE = {
+  'upper body': 'Orange',
+  'lower body': 'Blue',
+  glutes: 'Yellow',
+  core: 'Pink',
+  'full body': 'Red',
+  mobility: 'Lime',
+}
+
+// The wash swatch is drawn as the button's surface is drawn, so the material is
+// the same rather than merely the colour. Reading Glass.jsx matters here: the
+// wash View renders *inside* the BlurView, so it is a tint over a blur, not a
+// stand-in for one — both are always present.
+//
+//   BlurView intensity={40} tint={inkIsLight ? 'dark' : 'light'}
+//     <View backgroundColor={washFor(kind)} />
+//
+// expo-blur's 0-100 intensity has no exact CSS equivalent; a quarter of it in
+// pixels is the closest honest match.
+const BLUR_INTENSITY = 40
+const washSurface = (wash, ink) => {
+  const tint = lstar(ink) > 50 ? '0, 0, 0' : '255, 255, 255'
+  const a = ((BLUR_INTENSITY / 100) * 0.5).toFixed(2)
+  return (
+    `background-image:linear-gradient(${wash},${wash}),` +
+    `linear-gradient(rgba(${tint},${a}),rgba(${tint},${a}));` +
+    `-webkit-backdrop-filter:blur(${BLUR_INTENSITY / 4}px);` +
+    `backdrop-filter:blur(${BLUR_INTENSITY / 4}px)`
+  )
+}
+
+const rawHex = (rgba) => {
+  const m = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
+  if (!m) return rgba
+  return '#' + [1, 2, 3].map((i) => (+m[i]).toString(16).padStart(2, '0')).join('').toUpperCase()
+}
+
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 // ── icons, read out of the component source ───────────────────────────────
@@ -691,151 +729,36 @@ const css = `
   .wunit.dim { opacity: 0.45; }
   .caret { width: 3px; height: 24px; margin: 0 1px 0 2px; background: var(--s-ink); display: inline-block; }
 
-  /* routine colour panels, laid out like the Figma library */
+  /* Routine colour panels, at the Figma library's own proportions: a
+     1126 x 567 row split 270 / 619 / 237, and the wash inset 329 x 228 at
+     radius 20, 105 across and 164 down. */
   .routinepanel { margin: 26px 0 30px; }
   .rname {
     font-family: ui-rounded, system-ui, sans-serif; text-transform: uppercase;
     font-size: 15px; letter-spacing: 0.03em; margin: 0 0 10px;
   }
-  .rband { position: relative; display: grid; grid-template-columns: 1fr 1fr 1fr; min-height: 150px; }
-  .rcol { padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
-  .rrole { font-size: 11.5px; opacity: .95; }
-  .rval { font-size: 11.5px; font-variant-numeric: tabular-nums; }
-  .rval b { font-weight: 600; }
-  /* The wash is not a flat tint in the app: it is a blurred surface with the
-     wash laid over it, which is why it reads as a material rather than a
-     colour. Same construction here. */
-  .rwash {
-    position: absolute; left: 16%; top: 26px; width: 34%; height: 62%;
-    border-radius: ${RADIUS.pill}px; padding: 10px 12px;
-    display: flex; flex-direction: column; justify-content: space-between;
-    -webkit-backdrop-filter: blur(14px) saturate(1.3);
-    backdrop-filter: blur(14px) saturate(1.3);
+  .rband {
+    position: relative; display: grid;
+    grid-template-columns: 270fr 619fr 237fr;
+    aspect-ratio: 1126 / 567;
   }
-  @media (max-width: 620px) {
+  .rcol {
+    padding: 3.4% 2.6%; min-width: 0;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .rrole { font-size: 12px; }
+  .rval { font-size: 12px; font-variant-numeric: tabular-nums; }
+  .rtoken { display: block; }
+  .rwash {
+    position: absolute; left: 9.3%; top: 28.9%; width: 29.2%; height: 40.2%;
+    border-radius: 20px; padding: 3.4% 2.6%;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .rwash .rrole, .rwash .rval { font-size: 12px; }
+  @media (max-width: 700px) {
+    .rband { aspect-ratio: auto; grid-template-rows: repeat(3, 90px); grid-template-columns: 1fr; }
     .rwash { display: none; }
   }
-
-  /* one section at a time */
-  section { display: none; }
-  section.on { display: block; animation: pagein .18s ease-out; }
-  @keyframes pagein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) { section.on { animation: none; } }
-
-  /* buttons, as the completion screen stacks them */
-  .btnstage { align-items: center; }
-  .btnstage .actions { margin: 0 auto; }
-  .actions { display: flex; flex-direction: column; gap: ${SPACE[2]}px; width: 100%; max-width: 340px; }
-  .btn {
-    width: 100%; border: 0; border-radius: ${RADIUS.pill}px; min-height: 52px;
-    padding: ${SPACE[2]}px ${SPACE[3]}px; cursor: pointer;
-    font-family: -apple-system, system-ui, sans-serif;
-    font-size: ${TYPE.control.fontSize}px; font-weight: ${TYPE.control.fontWeight};
-    transition: opacity .12s, transform .12s;
-  }
-  .btn:active, .btn.pressed { opacity: .82; transform: scale(.98); }
-  .btn.quiet { background: var(--s-raised); color: var(--s-ink); }
-
-  /* The pill and the reveals are driven by a spring in JS, so nothing here
-     transitions them — a CSS transition on top would fight the integrator. */
-  .tabpill {
-    position: absolute; left: 4px; top: 4px; width: 64px; height: 44px;
-    border-radius: ${RADIUS.pill}px; background: var(--s-highlight);
-    will-change: transform;
-  }
-  .tabitem { background: none; border: 0; cursor: pointer; position: relative; z-index: 1; }
-
-  /* the cell, and the settings card, open and shut on their own springs */
-  .hhead { width: 100%; border: 0; cursor: pointer; text-align: left; font: inherit; display: flex; align-items: flex-start; justify-content: space-between; gap: ${SPACE[2]}px; }
-  .hreveal, .sreveal { height: 0; overflow: hidden; will-change: height; }
-  .hchev { will-change: transform; }
-
-  /* The stage keeps its size while the component inside it changes, so the page
-     does not reflow around a component being opened. */
-  /* Fixed, not minimum: a component opening inside must not resize the frame
-     around it, or the page reflows every time you tap something. */
-  /* Height is measured once at load from the component's *tallest* state, so a
-     frame neither grows when something opens nor clips it. Guessing a number
-     here either scrolled or cut the content off. */
-  .stage.holds, .stage.holds-s { align-content: flex-start; overflow: visible; }
-
-  .settingsblock { width: 100%; max-width: 420px; }
-  .snote.outside { margin: ${SPACE[2]}px 0 0; padding: 0 ${SPACE[3]}px; }
-  .sinner { padding-top: ${SPACE[3]}px; }
-  .pacename {
-    margin: ${SPACE[4]}px 0 0; font-size: ${TYPE.label.fontSize}px; font-weight: ${TYPE.label.fontWeight};
-    letter-spacing: ${TYPE.label.letterSpacing}px; text-transform: uppercase; color: var(--s-ink);
-  }
-  .pacedesc { margin: ${SPACE[2]}px 0 0; font-size: ${TYPE.body.fontSize}px; color: var(--s-ink); max-width: none; }
-  .spread { margin-top: ${SPACE[4]}px; }
-  .weightcard { display: block; width: 100%; border: 0; text-align: left; font: inherit; cursor: pointer; }
-  .weightcard .caret { display: none; }
-  .weightcard.editing { outline: 1px solid var(--s-ink); outline-offset: -1px; }
-  .weightcard.editing .caret { display: inline-block; animation: blink 1.06s steps(1) infinite; }
-  .weightcard.editing .wunit { opacity: .45; }
-  @keyframes blink { 0%, 50% { opacity: 1 } 50.01%, 100% { opacity: 0 } }
-
-  /* workout buttons */
-  .btn.workout { background: var(--s-wash, rgba(0,0,0,.1)); color: var(--s-btnink, var(--s-ink)); }
-  .signposts { display: flex; justify-content: space-between; gap: ${SPACE[3]}px; margin-top: ${SPACE[3]}px; }
-  .signpost {
-    display: flex; align-items: center; gap: ${SPACE[2]}px; background: none; border: 0;
-    cursor: pointer; font: inherit; font-size: 14px; line-height: 21.6px; max-width: 46%;
-    text-align: left; padding: 0;
-  }
-  .signpost.right { text-align: right; margin-left: auto; }
-  /* Kept in the layout when there is no previous exercise, exactly as the app
-     keeps an empty View there — otherwise the remaining one slides across. */
-  .signpost.empty { visibility: hidden; pointer-events: none; }
-  .signpost svg { width: 24px; height: 24px; display: block; }
-  .sparrow { flex: none; }
-
-  .track, .choice, .tabitem, .rcard { cursor: pointer; }
-  .choice { border: 0; font: inherit; }
-  .seg button[data-routine], .seg button[data-cellroutine] { text-transform: capitalize; }
-
-  /* The whole page is set in the app's two families, so the design system is
-     branded in the system it documents. ui-rounded is what the app asks iOS for
-     and what Safari and Chrome resolve to SF Pro Rounded on a Mac. */
-  h1, h2, h3, h4, .rname, .brand b { font-family: ui-rounded, -apple-system, system-ui, sans-serif; }
-
-  /* the stack's canvas */
-  .canvasstage { padding: 0; overflow: hidden; }
-  .canvas {
-    position: relative; width: 100%;
-    /* Tall enough for the whole stack at its own spacing: the top offset, five
-       peeks, and a card. On the phone this is the screen and the lower cards
-       sit below the fold; here they should all be reachable. */
-    height: ${STACK.STACK_TOP + (CANONICAL_ORDER.length - 1) * STACK.PEEK_STEP + CARD_HEIGHT + 24}px;
-    background: var(--s-bg); border-radius: ${RADIUS.card}px; touch-action: none;
-    overflow: hidden;
-  }
-  .canvas .rcard {
-    position: absolute; will-change: transform; cursor: grab;
-    user-select: none; -webkit-user-select: none;
-    box-shadow: 0 10px 30px rgba(0,0,0,.13);
-  }
-  .canvas .rcard.held { cursor: grabbing; }
-  .restack {
-    position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
-    z-index: 99; border: 0; cursor: pointer; border-radius: ${RADIUS.pill}px;
-    padding: 12px ${SPACE[4]}px; background: var(--s-ink); color: var(--s-onink);
-    font-family: -apple-system, system-ui, sans-serif;
-    font-size: ${TYPE.control.fontSize}px; font-weight: ${TYPE.control.fontWeight};
-  }
-
-  /* something behind the bar, so the blur has something to blur */
-  .glassstage { position: relative; overflow: hidden; }
-  .glassstage::before {
-    content: ''; position: absolute; inset: 0;
-    background:
-      radial-gradient(circle at 18% 30%, var(--g1) 0 22%, transparent 55%),
-      radial-gradient(circle at 62% 70%, var(--g2) 0 20%, transparent 52%),
-      radial-gradient(circle at 85% 25%, var(--g3) 0 18%, transparent 50%),
-      linear-gradient(120deg, var(--g4), var(--g5));
-    opacity: .9;
-  }
-  .glassstage > * { position: relative; z-index: 1; }
 
   .icongrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; width: 100%; }
   .icontile {
@@ -995,29 +918,31 @@ const colourSection = () => {
       wash: washFor(scheme, name),
       ink: inkFor(scheme, name),
     })
+    // Laid out to the Figma colour library's own geometry, measured from the
+    // export: a 1126 x 567 row split 270 / 619 / 237, with the wash inset at
+    // 329 x 228 and radius 20, its top-left 105 across and 164 down.
     const band = (scheme, label) => {
       const c = col(scheme)
       const pct = Math.round(parseFloat(c.wash.match(/,\s*([0-9.]+)\)/)[1]) * 100)
-      const hex = over(c.wash, c.base)
+      const hue = HUE[name]
+      const step = scheme === 'light'
+        ? { sweep: 700, base: 500, card: 200, wash: 900 }
+        : { sweep: 800, base: 600, card: 300, wash: 950 }
+      const cell = (bg, ink, role, token, value) => `<div class="rcol" style="background:${bg};color:${ink}">
+            <span class="rrole">${role} ${label}</span>
+            <span class="rval"><span class="rtoken">${hue} ${token}</span>${value}</span>
+          </div>`
       return `<div class="rband">
-          <div class="rcol" style="background:${c.sweep};color:${inkOn(c.sweep)}">
-            <span class="rrole">Sweep ${label}</span>
-            <span class="rval"><b>${c.sweep.toUpperCase()}</b></span>
-          </div>
-          <div class="rcol" style="background:${c.base};color:${c.ink}">
-            <span class="rrole">Routine base ${label}</span>
-            <span class="rval"><b>${c.base.toUpperCase()}</b></span>
-          </div>
-          <div class="rcol" style="background:${c.pale};color:${paleFor(scheme, name).ink}">
-            <span class="rrole">History card ${label}</span>
-            <span class="rval"><b>${c.pale.toUpperCase()}</b></span>
-          </div>
-          <div class="rwash" style="background:${c.wash};color:${inkOn(hex)}">
+          ${cell(c.sweep, inkOn(c.sweep), 'Sweep', step.sweep, c.sweep.toUpperCase())}
+          ${cell(c.base, c.ink, 'Routine base', step.base, c.base.toUpperCase())}
+          ${cell(c.pale, paleFor(scheme, name).ink, 'History card', step.card, c.pale.toUpperCase())}
+          <div class="rwash" style="${washSurface(c.wash, c.ink)};color:${c.ink}">
             <span class="rrole">Button wash</span>
-            <span class="rval"><b>${hex.toUpperCase()}</b> at ${pct}%</span>
+            <span class="rval"><span class="rtoken">${hue} ${step.wash}</span>${rawHex(c.wash)} @ ${pct}%</span>
           </div>
         </div>`
     }
+
     return `<div class="routinepanel">
       <h4 class="rname">${name}</h4>
       ${band('light', 'Light')}
